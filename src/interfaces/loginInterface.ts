@@ -13,7 +13,7 @@ export interface LoginResponseInterface {
         username: string,
         first_name: string,
         last_name: string,
-        role: string,
+        role: 'superadmin' | 'admin' | 'manager' | 'attendant',
         phone_number: string,
         profile_pic: string,
         is_active: boolean,
