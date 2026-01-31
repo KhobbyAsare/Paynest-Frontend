@@ -17,6 +17,8 @@ import { Wallet, LogOut } from 'lucide-react'
 import SplitText from './SplitText'
 import { useAuthStore } from "@/(zustand-store)/authStore"
 import { useRouter } from 'next/navigation'
+import { LogoutHandler } from '@/(api-handlers)/logoutHandler'
+import toast from 'react-hot-toast'
 
 const navigation = [
     { name: 'Dashboard', href: '#', icon: HomeIcon, current: true },
@@ -38,12 +40,22 @@ function classNames(...classes: string[]) {
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const { user, clearAuth } = useAuthStore()
+    const { user, clearAuth, accessToken } = useAuthStore()
     const router = useRouter()
 
-    const handleLogout = () => {
-        clearAuth()
-        router.push('/login')
+    const handleLogout = async () => {
+        try {
+            if (accessToken) {
+                await LogoutHandler({ token: accessToken })
+            }
+            toast.success('Logged out successfully')
+        } catch (error: any) {
+            console.error('Logout failed:', error)
+            // Still clear auth even if backend call fails for better UX
+        } finally {
+            clearAuth()
+            router.push('/login')
+        }
     }
 
     return (
