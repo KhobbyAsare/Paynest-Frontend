@@ -13,8 +13,10 @@ import {
     XMarkIcon,
 } from '@heroicons/react/24/outline'
 import Image from 'next/image'
-import { Wallet } from 'lucide-react'
+import { Wallet, LogOut } from 'lucide-react'
 import SplitText from './SplitText'
+import { useAuthStore } from "@/(zustand-store)/authStore"
+import { useRouter } from 'next/navigation'
 
 const navigation = [
     { name: 'Dashboard', href: '#', icon: HomeIcon, current: true },
@@ -36,6 +38,13 @@ function classNames(...classes: string[]) {
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const { user, clearAuth } = useAuthStore()
+    const router = useRouter()
+
+    const handleLogout = () => {
+        clearAuth()
+        router.push('/login')
+    }
 
     return (
         <>
@@ -122,20 +131,26 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                                             </ul>
                                         </li>
                                         <li className="-mx-6 mt-auto">
-                                            <a
-                                                href="#"
-                                                className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-50 hover:text-primary"
-                                            >
-                                                <Image
-                                                    alt="Profile"
-                                                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                                                    width={32}
-                                                    height={32}
-                                                    className="size-8 rounded-full bg-gray-50 outline -outline-offset-1 outline-black/5"
-                                                />
-                                                <span className="sr-only">Your profile</span>
-                                                <span aria-hidden="true">Tom Cook</span>
-                                            </a>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white">
+                                                    <Image
+                                                        alt="Profile"
+                                                        src={user?.profile_pic || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
+                                                        width={32}
+                                                        height={32}
+                                                        className="size-8 rounded-full bg-gray-50 outline -outline-offset-1 outline-black/5"
+                                                    />
+                                                    <span className="sr-only">Your profile</span>
+                                                    <span aria-hidden="true">{user?.first_name} {user?.last_name}</span>
+                                                </div>
+                                                <button
+                                                    onClick={handleLogout}
+                                                    className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                                                >
+                                                    <LogOut className="size-5" />
+                                                    <span>Logout</span>
+                                                </button>
+                                            </div>
                                         </li>
                                     </ul>
                                 </nav>
@@ -210,20 +225,26 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                                     </ul>
                                 </li>
                                 <li className="-mx-6 mt-auto">
-                                    <a
-                                        href="#"
-                                        className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-50 hover:text-primary"
-                                    >
-                                        <Image
-                                            alt="Profile"
-                                            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                                            width={32}
-                                            height={32}
-                                            className="size-8 rounded-full bg-gray-50 outline -outline-offset-1 outline-black/5"
-                                        />
-                                        <span className="sr-only">Your profile</span>
-                                        <span aria-hidden="true">Tom Cook</span>
-                                    </a>
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white">
+                                            <Image
+                                                alt="Profile"
+                                                src={user?.profile_pic || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
+                                                width={32}
+                                                height={32}
+                                                className="size-8 rounded-full bg-gray-50 outline -outline-offset-1 outline-black/5"
+                                            />
+                                            <span className="sr-only">Your profile</span>
+                                            <span aria-hidden="true">{user?.first_name} {user?.last_name}</span>
+                                        </div>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                                        >
+                                            <LogOut className="size-5" />
+                                            <span>Logout</span>
+                                        </button>
+                                    </div>
                                 </li>
                             </ul>
                         </nav>
@@ -240,16 +261,16 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                         <Bars3Icon aria-hidden="true" className="size-6" />
                     </button>
                     <div className="relative flex-1 text-sm/6 font-semibold text-gray-900">Dashboard</div>
-                    <a href="#" className="relative">
+                    <div className="relative">
                         <span className="sr-only">Your profile</span>
                         <Image
                             alt="Profile"
-                            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                            src={user?.profile_pic || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
                             width={32}
                             height={32}
                             className="size-8 rounded-full bg-gray-50 outline -outline-offset-1 outline-black/5"
                         />
-                    </a>
+                    </div>
                 </div>
 
                 <main className="lg:pl-72">
