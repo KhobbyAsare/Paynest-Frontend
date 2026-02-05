@@ -98,7 +98,7 @@ const navigationItems: NavItem[] = [
         roles: ['superadmin', 'admin'],
         subItems: [
             { name: 'All Users', href: '/users', icon: UsersIcon, current: false, roles: ['superadmin', 'admin'] },
-            { name: 'Add User', href: '/users/create', icon: UserCircleIcon, current: false, roles: ['superadmin', 'admin'] },
+            { name: 'Add User', href: '/users/create', icon: UserCircleIcon, current: false, roles: ['admin'] },
             { name: 'Roles & Permissions', href: '/users/roles', icon: ShieldCheckIcon, current: false, roles: ['superadmin'] },
         ]
     },
@@ -109,7 +109,7 @@ const navigationItems: NavItem[] = [
         href: '#',
         icon: CreditCardIcon,
         current: false,
-        roles: ['superadmin', 'admin', 'manager', 'attendant'],
+        roles: ['admin', 'manager', 'attendant'],
         subItems: [
             { name: 'All Transactions', href: '/transactions', icon: CreditCardIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
             { name: 'Create Transaction', href: '/transactions/create', icon: PlusCircleIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
@@ -124,7 +124,7 @@ const navigationItems: NavItem[] = [
         href: '#',
         icon: CurrencyDollarIcon,
         current: false,
-        roles: ['superadmin', 'admin'],
+        roles: ['admin'],
         subItems: [
             { name: 'Revenue Reports', href: '/financials/revenue', icon: BanknotesIcon, current: false, roles: ['superadmin', 'admin'] },
             { name: 'Expense Tracking', href: '/financials/expenses', icon: ReceiptPercentIcon, current: false, roles: ['superadmin', 'admin'] },
@@ -134,7 +134,7 @@ const navigationItems: NavItem[] = [
 
     // Company Management - SuperAdmin only
     {
-        name: 'Company Management',
+        name: 'Organization Management',
         href: '#',
         icon: BuildingOfficeIcon,
         current: false,
@@ -152,7 +152,7 @@ const navigationItems: NavItem[] = [
         href: '#',
         icon: UserGroupIcon,
         current: false,
-        roles: ['superadmin', 'admin', 'manager', 'attendant'],
+        roles: ['admin', 'manager', 'attendant'],
         subItems: [
             { name: 'Customer List', href: '/customers', icon: UserGroupIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
             { name: 'Add Customer', href: '/customers/create', icon: UserPlusIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
@@ -175,7 +175,7 @@ const navigationItems: NavItem[] = [
         href: '#',
         icon: ClipboardDocumentCheckIcon,
         current: false,
-        roles: ['superadmin', 'admin', 'manager', 'attendant'],
+        roles: ['admin', 'manager', 'attendant'],
         subItems: [
             { name: 'My Tasks', href: '/tasks/my', icon: ClipboardDocumentCheckIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
             { name: 'Team Tasks', href: '/tasks/team', icon: UserGroupIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
@@ -189,7 +189,7 @@ const navigationItems: NavItem[] = [
         href: '#',
         icon: ChartBarIcon,
         current: false,
-        roles: ['superadmin', 'admin', 'manager'],
+        roles: ['admin', 'manager'],
         subItems: [
             { name: 'Performance Reports', href: '/reports/performance', icon: ChartBarIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
             { name: 'Attendance Reports', href: '/reports/attendance', icon: CalendarIcon, current: false, roles: ['superadmin', 'admin'] },
@@ -534,8 +534,8 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <main className="lg:pl-72">
-                    <div className="p-4 lg:p-6">
-                        <div className="mb-6">
+                    <div >
+                        <div className="mb-6 sticky top-0 z-50 bg-white p-4">
                             <h1 className="text-2xl font-bold text-gray-900">
                                 Welcome back, {user?.first_name}!
                             </h1>
@@ -546,7 +546,9 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                                 {userRole === 'attendant' && 'Handle customer transactions and queue management.'}
                             </p>
                         </div>
-                        {children}
+                        <div className="p-4 lg:p-6 bg-yellow-600">
+                            {children}
+                        </div>
                     </div>
                 </main>
             </div>

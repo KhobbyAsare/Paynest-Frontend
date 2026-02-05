@@ -1,6 +1,6 @@
 "use client"
 
-import SplitText from "@/(components)/(shared-components)/SplitText";
+import SplitText from "@/components/(shared-components)/SplitText";
 import { Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
