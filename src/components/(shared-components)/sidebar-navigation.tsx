@@ -6,8 +6,6 @@ import {
     Bars3Icon,
     CalendarIcon,
     ChartPieIcon,
-    DocumentDuplicateIcon,
-    FolderIcon,
     HomeIcon,
     UsersIcon,
     XMarkIcon,
@@ -33,9 +31,11 @@ import Image from 'next/image'
 import { Wallet, LogOut, } from 'lucide-react'
 import SplitText from './SplitText'
 import { useAuthStore } from "@/(zustand-store)/authStore"
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { LogoutHandler } from '@/(api-handlers)/logoutHandler'
 import toast from 'react-hot-toast'
+import Link from 'next/link'
+import { useEffect, useMemo } from 'react'
 
 interface NavItem {
     name: string;
@@ -89,6 +89,19 @@ const navigationItems: NavItem[] = [
         roles: ['superadmin', 'admin', 'manager', 'attendant']
     },
 
+    // Company Management - SuperAdmin only
+    {
+        name: 'Organization Management',
+        href: '#',
+        icon: BuildingOfficeIcon,
+        current: false,
+        roles: ['superadmin'],
+        subItems: [
+            { name: 'Organizations', href: '/organizations', icon: CogIcon, current: false, roles: ['superadmin'] },
+            { name: 'Shops', href: '/organizations_shops', icon: BuildingOfficeIcon, current: false, roles: ['superadmin'] }
+        ]
+    },
+
     // User Management - SuperAdmin & Admin only
     {
         name: 'User Management',
@@ -131,21 +144,6 @@ const navigationItems: NavItem[] = [
             { name: 'Profit & Loss', href: '/financials/profit-loss', icon: ChartPieIcon, current: false, roles: ['superadmin', 'admin'] },
         ]
     },
-
-    // Company Management - SuperAdmin only
-    {
-        name: 'Organization Management',
-        href: '#',
-        icon: BuildingOfficeIcon,
-        current: false,
-        roles: ['superadmin'],
-        subItems: [
-            { name: 'Company Settings', href: '/company/settings', icon: CogIcon, current: false, roles: ['superadmin'] },
-            { name: 'Branches', href: '/company/branches', icon: BuildingOfficeIcon, current: false, roles: ['superadmin'] },
-            { name: 'Departments', href: '/company/departments', icon: UserGroupIcon, current: false, roles: ['superadmin'] },
-        ]
-    },
-
     // Customer Management - All roles
     {
         name: 'Customers',
@@ -233,14 +231,41 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     const [expandedItems, setExpandedItems] = useState<string[]>([])
     const { user, clearAuth, accessToken } = useAuthStore()
     const router = useRouter()
+    const pathname = usePathname()
 
     // Get user role from auth store
     const userRole = user?.role as 'superadmin' | 'admin' | 'manager' | 'attendant' || 'attendant'
 
-    // Filter navigation based on user role
-    const filteredNavigation = navigationItems.filter(item =>
-        item.roles.includes(userRole)
-    )
+    // Filter navigation based on user role - Memoized to prevent unnecessary re-renders
+    const filteredNavigation = useMemo(() => {
+        return navigationItems.filter(item => item.roles.includes(userRole))
+    }, [userRole])
+
+    // Helper to check if an item or any sub-item is active
+    const isItemActive = (item: NavItem) => {
+        if (item.href !== '#' && pathname === item.href) return true
+        if (item.subItems) {
+            return item.subItems.some(subItem => pathname === subItem.href)
+        }
+        return false
+    }
+
+    // Auto-expand menu if a sub-item is active - Only runs on pathname change
+    useEffect(() => {
+        const sectionsToExpand: string[] = []
+        filteredNavigation.forEach(item => {
+            if (item.subItems && item.subItems.some(subItem => pathname === subItem.href)) {
+                if (!expandedItems.includes(item.name)) {
+                    sectionsToExpand.push(item.name)
+                }
+            }
+        })
+        if (sectionsToExpand.length > 0) {
+            setExpandedItems(prev => [...new Set([...prev, ...sectionsToExpand])])
+        }
+        // We only want to auto-expand when the pathname changes (on navigation)
+        // This allows users to manually collapse items even if they are active
+    }, [pathname])
 
     const handleLogout = async () => {
         try {
@@ -268,6 +293,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     const renderNavItem = (item: NavItem, isMobile = false) => {
         const hasSubItems = item.subItems && item.subItems.length > 0
         const isExpanded = expandedItems.includes(item.name)
+        const isActive = isItemActive(item)
 
         // Filter subitems based on role
         const filteredSubItems = item.subItems?.filter(subItem =>
@@ -281,7 +307,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                         <button
                             onClick={() => toggleExpand(item.name)}
                             className={classNames(
-                                item.current
+                                isActive
                                     ? isMobile ? 'bg-white text-primary' : 'bg-gray-50 text-primary'
                                     : isMobile ? 'text-white hover:bg-gray-50 hover:text-primary' : 'text-white hover:bg-gray-50 hover:text-primary',
                                 'group flex w-full items-center justify-between gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
@@ -291,7 +317,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                                 <item.icon
                                     aria-hidden="true"
                                     className={classNames(
-                                        item.current
+                                        isActive
                                             ? isMobile ? 'text-primary' : 'text-primary'
                                             : isMobile ? 'text-white group-hover:text-primary' : 'text-white group-hover:text-primary',
                                         'size-6 shrink-0',
@@ -313,38 +339,41 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                         </button>
                         {isExpanded && filteredSubItems.length > 0 && (
                             <ul className="mt-1 ml-4 space-y-1 border-l-2 border-white/20 pl-2">
-                                {filteredSubItems.map((subItem) => (
-                                    <li key={subItem.name}>
-                                        <a
-                                            href={subItem.href}
-                                            className={classNames(
-                                                subItem.current
-                                                    ? isMobile ? 'bg-white text-primary' : 'bg-gray-50 text-primary'
-                                                    : isMobile ? 'text-white hover:bg-gray-50 hover:text-primary' : 'text-white hover:bg-gray-50 hover:text-primary',
-                                                'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
-                                            )}
-                                        >
-                                            <subItem.icon
-                                                aria-hidden="true"
+                                {filteredSubItems.map((subItem) => {
+                                    const isSubActive = pathname === subItem.href
+                                    return (
+                                        <li key={subItem.name}>
+                                            <Link
+                                                href={subItem.href}
                                                 className={classNames(
-                                                    subItem.current
-                                                        ? isMobile ? 'text-primary' : 'text-primary'
-                                                        : isMobile ? 'text-white group-hover:text-primary' : 'text-white group-hover:text-primary',
-                                                    'size-5 shrink-0',
+                                                    isSubActive
+                                                        ? isMobile ? 'bg-white text-primary' : 'bg-gray-50 text-primary'
+                                                        : isMobile ? 'text-white hover:bg-gray-50 hover:text-primary' : 'text-white hover:bg-gray-50 hover:text-primary',
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
                                                 )}
-                                            />
-                                            {subItem.name}
-                                        </a>
-                                    </li>
-                                ))}
+                                            >
+                                                <subItem.icon
+                                                    aria-hidden="true"
+                                                    className={classNames(
+                                                        isSubActive
+                                                            ? isMobile ? 'text-primary' : 'text-primary'
+                                                            : isMobile ? 'text-white group-hover:text-primary' : 'text-white group-hover:text-primary',
+                                                        'size-5 shrink-0',
+                                                    )}
+                                                />
+                                                {subItem.name}
+                                            </Link>
+                                        </li>
+                                    )
+                                })}
                             </ul>
                         )}
                     </div>
                 ) : (
-                    <a
+                    <Link
                         href={item.href}
                         className={classNames(
-                            item.current
+                            isActive
                                 ? isMobile ? 'bg-white text-primary' : 'bg-gray-50 text-primary'
                                 : isMobile ? 'text-white hover:bg-gray-50 hover:text-primary' : 'text-white hover:bg-gray-50 hover:text-primary',
                             'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
@@ -353,14 +382,14 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                         <item.icon
                             aria-hidden="true"
                             className={classNames(
-                                item.current
+                                isActive
                                     ? isMobile ? 'text-primary' : 'text-primary'
                                     : isMobile ? 'text-white group-hover:text-primary' : 'text-white group-hover:text-primary',
                                 'size-6 shrink-0',
                             )}
                         />
                         {item.name}
-                    </a>
+                    </Link>
                 )}
             </li>
         )
@@ -535,18 +564,18 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
 
                 <main className="lg:pl-72">
                     <div >
-                        <div className="mb-6 sticky top-0 z-50 bg-white p-4">
-                            <h1 className="text-2xl font-bold text-gray-900">
+                        <div className="sticky top-0 z-50 bg-primary text-white p-4">
+                            <h1 className="text-2xl font-bold text-gray-100">
                                 Welcome back, {user?.first_name}!
                             </h1>
-                            <p className="text-gray-600">
+                            <p className="text-gray-300">
                                 {userRole === 'superadmin' && 'Manage the entire system and oversee all operations.'}
                                 {userRole === 'admin' && 'Manage users, transactions, and financial reports.'}
                                 {userRole === 'manager' && 'Oversee daily operations and team performance.'}
                                 {userRole === 'attendant' && 'Handle customer transactions and queue management.'}
                             </p>
                         </div>
-                        <div className="p-4 lg:p-6 bg-yellow-600">
+                        <div className="p-4 lg:p-4 lg:pt-0 min-h-[80vh]">
                             {children}
                         </div>
                     </div>

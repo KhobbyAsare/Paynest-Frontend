@@ -143,9 +143,14 @@
   }
 }
 
+button {
+  cursor: pointer;
+}
+
 @theme {
   /* Brand */
   --color-primary: #10295E;
+  --color-primary-color: #10295E;
   /* Deep navy – trust & finance */
   --color-primary-foreground: #FFFFFF;
 
