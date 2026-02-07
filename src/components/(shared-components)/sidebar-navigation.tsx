@@ -12,7 +12,6 @@ import {
     Cog6ToothIcon,
     ShieldCheckIcon,
     UserGroupIcon,
-    BuildingOfficeIcon,
     CreditCardIcon,
     CurrencyDollarIcon,
     BanknotesIcon,
@@ -26,6 +25,8 @@ import {
     ReceiptPercentIcon,
     WrenchScrewdriverIcon,
     UserCircleIcon,
+    BuildingOfficeIcon,
+    BuildingOffice2Icon
 } from '@heroicons/react/24/outline'
 import Image from 'next/image'
 import { Wallet, LogOut, } from 'lucide-react'
@@ -95,10 +96,10 @@ const navigationItems: NavItem[] = [
         href: '#',
         icon: BuildingOfficeIcon,
         current: false,
-        roles: ['superadmin'],
+        roles: ['superadmin', 'admin'],
         subItems: [
-            { name: 'Organizations', href: '/organizations', icon: CogIcon, current: false, roles: ['superadmin'] },
-            { name: 'Shops', href: '/organizations_shops', icon: BuildingOfficeIcon, current: false, roles: ['superadmin'] }
+            { name: 'Organizations', href: '/organizations', icon: BuildingOffice2Icon, current: false, roles: ['superadmin', 'admin'] },
+            { name: 'Shops', href: '/organizations_shops', icon: BuildingOfficeIcon, current: false, roles: ['admin'] }
         ]
     },
 
