@@ -99,7 +99,7 @@ const navigationItems: NavItem[] = [
         roles: ['superadmin', 'admin'],
         subItems: [
             { name: 'Organizations', href: '/organizations', icon: BuildingOffice2Icon, current: false, roles: ['superadmin'] },
-            { name: 'Shops', href: '/organizations_shops', icon: BuildingOfficeIcon, current: false, roles: ['admin'] }
+            { name: 'Shops', href: '/organization_shops', icon: BuildingOfficeIcon, current: false, roles: ['admin'] }
         ]
     },
 
