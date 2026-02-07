@@ -1,4 +1,3 @@
-import { UserResponse } from "@/interfaces/loginInterface";
 import { GeneratedCodeResponse, OnboardingOrganizationAndAdminRequest, OrganizationResponse } from "@/interfaces/organization";
 import { getAPIHeaders } from "@/lib/getToken";
 import axios from "axios";
