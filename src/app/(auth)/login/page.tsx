@@ -11,6 +11,7 @@ import { LoginInterface } from "@/interfaces/loginInterface";
 import toast from "react-hot-toast";
 import { handleErrorMessage } from "@/utils/handleErrorMessage";
 import { loginWithFormData } from "@/(api-handlers)/loginHandler";
+import { getUserData } from "@/(api-handlers)/userHandler";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/(zustand-store)/authStore";
 import { setCookie } from "cookies-next";
@@ -55,22 +56,24 @@ export default function LoginPage() {
         formData.append('username', data.email_or_username);
         formData.append('password', data.password);
 
-        // Prepare data for backend (using FormData)
-        const loginData: LoginInterface = {
-            username: data.email_or_username,
-            password: data.password
-        };
-
         try {
             const response = await loginWithFormData(formData);
             if (response) {
-                // Set cookie for middleware
                 setCookie('pos_token', response.access_token, {
                     maxAge: 30 * 24 * 60 * 60, // 30 days
                     path: '/',
                 });
 
-                useAuthStore.getState().setAuth(response);
+                const { setAuth, updateUser } = useAuthStore.getState();
+                setAuth(response);
+
+                try {
+                    const userData = await getUserData();
+                    updateUser(userData);
+                } catch (userError) {
+                    handleErrorMessage(userError, "Failed to fetch user data.");
+                }
+
                 toast.success("Login successful!");
                 router.push("/dashboard")
             }

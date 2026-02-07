@@ -1,6 +1,7 @@
 "use client"
 import { useAuthStore } from "@/(zustand-store)/authStore"
 import SuperAdminPage from "./(views)/superAdminView"
+import UsersAdministratorView from "./(views)/AdministratorView"
 
 export default function Users() {
     const { user } = useAuthStore()
@@ -10,9 +11,8 @@ export default function Users() {
 
         <div>
             {userRole === 'superadmin' && <SuperAdminPage />}
-            {/* {userRole === 'admin' && <AdminPage />}
-            {userRole === 'manager' && <ManagerPage />}
-            {userRole === 'attendant' && <AttendantPage />} */}
+            {userRole === 'admin' && <UsersAdministratorView />}
+
         </div>
     )
 }

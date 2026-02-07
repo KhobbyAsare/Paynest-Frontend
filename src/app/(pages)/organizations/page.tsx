@@ -1,14 +1,15 @@
+'use client'
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import { useState, useEffect } from "react";
 import { OrganizationResponse } from "@/interfaces/organization";
-import { Button, Input, message, Tag, Dropdown, Menu, Modal, Select } from "antd";
+import { Button, Input, message, Tag, Dropdown, Modal, Select } from "antd";
 import { SearchOutlined, PlusOutlined, MoreOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { getAllOrganizations, changeOrganizationPlanType, deleteOrganization } from "@/(api-handlers)/organizationHandler";
 import { useRouter } from "next/navigation";
 import Loading from "@/components/(shared-components)/Loading";
 import EmptyState from "@/components/(shared-components)/EmptyState";
 
-export default function SuperAdminView() {
+export default function SuperAdminDashboardView() {
     const [organizations, setOrganizations] = useState<OrganizationResponse[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [searchText, setSearchText] = useState<string>('');

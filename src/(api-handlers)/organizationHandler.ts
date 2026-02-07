@@ -1,8 +1,9 @@
-import { OnboardingOrganizationAndAdminRequest, OrganizationResponse } from "@/interfaces/organization";
+import { UserResponse } from "@/interfaces/loginInterface";
+import { GeneratedCodeResponse, OnboardingOrganizationAndAdminRequest, OrganizationResponse } from "@/interfaces/organization";
 import { getAPIHeaders } from "@/lib/getToken";
 import axios from "axios";
 
-
+// Superadmin
 export const getAllOrganizations = async (): Promise<OrganizationResponse[]> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
@@ -51,3 +52,17 @@ export const deleteOrganization = async (organizationId: number): Promise<Organi
         throw error;
     }
 }
+
+// Administrator
+export const generateInvitationCode = async (organization_id: number): Promise<GeneratedCodeResponse> => {
+    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+    try {
+        const response = await axios.post(`${url}/organization/${organization_id}/generate-code`, {}, {
+            headers: getAPIHeaders(),
+        })
+        return response.data
+    } catch (error: any) {
+        throw error;
+    }
+}
+

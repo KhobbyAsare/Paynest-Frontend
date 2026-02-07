@@ -40,3 +40,10 @@ export interface UpdateOrganizationRequest {
     email: string,
     phone_number: string
 }
+
+export interface GeneratedCodeResponse {
+    code: string,
+    organization_id: number,
+    is_active: boolean,
+    expires_at: string
+}

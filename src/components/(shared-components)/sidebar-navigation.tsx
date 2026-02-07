@@ -98,7 +98,7 @@ const navigationItems: NavItem[] = [
         current: false,
         roles: ['superadmin', 'admin'],
         subItems: [
-            { name: 'Organizations', href: '/organizations', icon: BuildingOffice2Icon, current: false, roles: ['superadmin', 'admin'] },
+            { name: 'Organizations', href: '/organizations', icon: BuildingOffice2Icon, current: false, roles: ['superadmin'] },
             { name: 'Shops', href: '/organizations_shops', icon: BuildingOfficeIcon, current: false, roles: ['admin'] }
         ]
     },
@@ -112,7 +112,7 @@ const navigationItems: NavItem[] = [
         roles: ['superadmin', 'admin'],
         subItems: [
             { name: 'All Users', href: '/users', icon: UsersIcon, current: false, roles: ['superadmin', 'admin'] },
-            { name: 'Add User', href: '/users/create', icon: UserCircleIcon, current: false, roles: ['admin'] },
+            { name: 'Setup Employee Profile', href: '/users/setup-employee-profile', icon: UserCircleIcon, current: false, roles: ['admin'] },
             { name: 'Roles & Permissions', href: '/users/roles', icon: ShieldCheckIcon, current: false, roles: ['superadmin'] },
         ]
     },

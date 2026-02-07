@@ -39,6 +39,21 @@ export interface UserResponse {
         created_at: string,
         updated_at: string
     },
+    organization: {
+        id: number,
+        name: string,
+        description: string,
+        address: string,
+        email: string,
+        phone_number: string,
+        currency: string,
+        is_active: boolean,
+        plan_type: string,
+        max_shops: number,
+        max_users: number,
+        created_at: string,
+        updated_at: string
+    },
 }
 
 export interface LoginResponseInterface {
