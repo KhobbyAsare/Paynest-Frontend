@@ -215,7 +215,7 @@ const navigationItems: NavItem[] = [
     // Audit Logs - SuperAdmin only
     {
         name: 'Audit Logs',
-        href: '/audit-logs',
+        href: '/audit-log',
         icon: DocumentTextIcon,
         current: false,
         roles: ['superadmin']
