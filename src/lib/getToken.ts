@@ -7,7 +7,6 @@ export function getToken() {
 
 export function getAPIHeaders() {
     const token = getToken()
-    console.log(token)
     return {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"

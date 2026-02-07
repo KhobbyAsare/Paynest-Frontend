@@ -205,7 +205,7 @@ const navigationItems: NavItem[] = [
         roles: ['superadmin', 'admin', 'manager', 'attendant'],
         subItems: [
             { name: 'Profile Settings', href: '/settings/profile', icon: UserCircleIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
-            { name: 'Account Settings', href: '/settings/account', icon: CogIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
+            { name: 'Organization Profile', href: '/organization_profile', icon: CogIcon, current: false, roles: ['admin'] },
             { name: 'Security', href: '/settings/security', icon: KeyIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
             { name: 'Notifications', href: '/settings/notifications', icon: BellIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
             { name: 'System Settings', href: '/settings/system', icon: WrenchScrewdriverIcon, current: false, roles: ['superadmin'] },
