@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel, TransitionChild } from '@headlessui/react'
 import {
     Bars3Icon,
@@ -36,12 +36,11 @@ import { useRouter, usePathname } from 'next/navigation'
 import { LogoutHandler } from '@/(api-handlers)/logoutHandler'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
-import { useEffect, useMemo } from 'react'
 
 interface NavItem {
     name: string;
     href: string;
-    icon: any;
+    icon: unknown;
     current: boolean;
     roles: ('superadmin' | 'admin' | 'manager' | 'attendant')[];
     subItems?: NavItem[];
@@ -119,16 +118,28 @@ const navigationItems: NavItem[] = [
 
     // Transaction Management - All roles with different access
     {
-        name: 'Transactions',
+        name: 'Inventory',
         href: '#',
         icon: CreditCardIcon,
         current: false,
         roles: ['admin', 'manager', 'attendant'],
         subItems: [
-            { name: 'All Transactions', href: '/transactions', icon: CreditCardIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
-            { name: 'Create Transaction', href: '/transactions/create', icon: PlusCircleIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
-            { name: 'Pending Transactions', href: '/transactions/pending', icon: ClockIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
-            { name: 'Transaction Reports', href: '/transactions/reports', icon: ChartBarIcon, current: false, roles: ['superadmin', 'admin'] },
+            { name: 'All Inventory', href: '/inventories', icon: CreditCardIcon, current: false, roles: ['admin', 'manager'] },
+            { name: 'Create Inventory', href: '/inventories/create', icon: PlusCircleIcon, current: false, roles: ['admin', 'manager', 'attendant'] }
+        ]
+    },
+
+    // Reports & Analytics - SuperAdmin, Admin, Manager
+    {
+        name: 'Reports',
+        href: '#',
+        icon: ChartBarIcon,
+        current: false,
+        roles: ['admin', 'manager'],
+        subItems: [
+            { name: 'Organization Reports', href: '/report', icon: ChartBarIcon, current: false, roles: ['admin'] },
+            { name: 'My Reports', href: '/report/my_report', icon: ChartBarIcon, current: false, roles: ['admin', 'manager'] },
+            { name: 'Pending Reports', href: '/report/pending', icon: ChartBarIcon, current: false, roles: ['admin'] },
         ]
     },
 
@@ -182,19 +193,7 @@ const navigationItems: NavItem[] = [
         ]
     },
 
-    // Reports & Analytics - SuperAdmin, Admin, Manager
-    {
-        name: 'Reports',
-        href: '#',
-        icon: ChartBarIcon,
-        current: false,
-        roles: ['admin', 'manager'],
-        subItems: [
-            { name: 'Performance Reports', href: '/reports/performance', icon: ChartBarIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
-            { name: 'Attendance Reports', href: '/reports/attendance', icon: CalendarIcon, current: false, roles: ['superadmin', 'admin'] },
-            { name: 'Customer Reports', href: '/reports/customers', icon: UserGroupIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
-        ]
-    },
+
 
     // Settings - All roles with different sections
     {
@@ -274,7 +273,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                 await LogoutHandler({ token: accessToken })
             }
             toast.success('Logged out successfully')
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Logout failed:', error)
             // Still clear auth even if backend call fails for better UX
         } finally {
