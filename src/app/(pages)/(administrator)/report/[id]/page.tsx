@@ -103,7 +103,7 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
         <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
             {/* Header Section */}
             <div className="max-w-7xl mx-auto mb-8">
-                <Breadcrumb className="mb-4 text-xs">
+                <Breadcrumb className="mb-4! text-xs">
                     <Breadcrumb.Item><Link href="/report">Reports</Link></Breadcrumb.Item>
                     <Breadcrumb.Item>{report.report_name}</Breadcrumb.Item>
                 </Breadcrumb>
@@ -149,7 +149,7 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
 
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content Areas */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-6!">
                     {/* Status Alert Banner */}
                     <Card className={`${statusConfig.bg} border-0 shadow-sm rounded-2xl overflow-hidden`}>
                         <div className="flex items-start gap-4">
@@ -208,7 +208,7 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-3">
-                                    <div className="size-2 rounded-full bg-indigo-500 mt-2 flex-shrink-0" />
+                                    <div className="size-2 rounded-full bg-indigo-500 mt-2 shrink-0" />
                                     <div>
                                         <Text className="font-medium text-slate-700 block">Temporal Range</Text>
                                         <Text className="text-sm text-slate-500">{new Date(report.period_start).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })} — {new Date(report.period_end).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
@@ -220,7 +220,7 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
 
                     {/* Meta Logs / Timeline */}
                     <Card className="rounded-2xl shadow-sm border-slate-100 p-6">
-                        <Title level={5} className="!mb-6 text-slate-800 flex items-center gap-2"><Info className="size-4 text-slate-400" /> Activity Timeline</Title>
+                        <Title level={5} className="mb-6! text-slate-800 flex items-center gap-2"><Info className="size-4 text-slate-400" /> Activity Timeline</Title>
                         <div className="space-y-6 relative ml-4 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 before:-ml-4">
                             <div className="relative">
                                 <div className="absolute size-3 rounded-full bg-primary border-4 border-white shadow-sm -left-[21px] top-1" />
@@ -252,9 +252,9 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                 </div>
 
                 {/* Sidebar Configuration */}
-                <div className="space-y-6">
+                <div className="space-y-6!">
                     <Card className="rounded-2xl shadow-sm border-slate-100 p-6 bg-white overflow-hidden relative">
-                        <div className="absolute -top-4 -right-4 size-24 bg-slate-50 rounded-full flex-shrink-0" />
+                        <div className="absolute -top-4 -right-4 size-24 bg-slate-50 rounded-full shrink-0" />
                         <Title level={5} className="mb-6! text-slate-800 relative">Parameters Used</Title>
                         <div className="space-y-5 relative">
                             {[
@@ -275,33 +275,14 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                     </Card>
 
                     {/* Quick Access Card */}
-                    <Card className="rounded-2xl shadow-blue-600/5 shadow-2xl border-0 !bg-slate-900 text-white p-6 overflow-hidden relative">
-                        <div className="absolute top-0 right-0 p-4 opacity-10"><FileText className="size-24" /></div>
-                        <Title level={5} className="!text-white !mb-4">Reporting Actions</Title>
-                        <div className="space-y-3 relative">
-                            <Button
-                                className="w-full justify-start gap-3 h-11 rounded-lg bg-white/10 border-0 text-white hover:!bg-white/20 hover:!text-white flex items-center"
-                                icon={<ExternalLink className="size-4" />}
-                                onClick={() => report.file_url && window.open(report.file_url, '_blank')}
-                                disabled={!report.file_url}
-                            >
-                                Open Source File
-                            </Button>
-                            <Button
-                                className="w-full justify-start gap-3 h-11 rounded-lg bg-white/10 border-0 text-white hover:!bg-white/20 hover:!text-white flex items-center"
-                                icon={<Share2 className="size-4" />}
-                            >
-                                Share Intelligence
-                            </Button>
-                        </div>
-                        <div className="mt-6 pt-6 border-t border-white/10 text-center">
-                            <Text className="text-white/40 text-[10px] uppercase font-bold tracking-widest leading-none">Intelligence Generated by Paynest POS</Text>
-                        </div>
+                    <Card className="rounded-2xl shadow-blue-600/5 shadow-2xl border-0 bg-slate-900! text-white p-6 overflow-hidden relative">
+
+                        <Text className="text-white! text-[10px] uppercase font-bold tracking-widest leading-none">Intelligence Generated by Paynest POS</Text>
                     </Card>
 
                     {report.rejection_reason && (
                         <Card className="rounded-2xl shadow-sm border-rose-100 bg-rose-50/30 p-6">
-                            <Title level={5} className="text-rose-800! !mb-4 flex items-center gap-2 italic"><XCircle className="size-4" /> Rejection Feedback</Title>
+                            <Title level={5} className="text-rose-800! mb-4! flex items-center gap-2 italic"><XCircle className="size-4" /> Rejection Feedback</Title>
                             <Text className="text-sm text-rose-700 italic block border-l-2 border-rose-200 pl-3">
                                 &apos;{report.rejection_reason}&apos;
                             </Text>
