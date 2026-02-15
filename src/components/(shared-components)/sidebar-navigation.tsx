@@ -166,7 +166,6 @@ const navigationItems: NavItem[] = [
         subItems: [
             { name: 'Customer List', href: '/customers', icon: UserGroupIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
             { name: 'Add Customer', href: '/customers/create', icon: UserPlusIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
-            { name: 'Customer Support', href: '/customers/support', icon: LifebuoyIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
         ]
     },
 
