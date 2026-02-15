@@ -1,24 +1,17 @@
 "use client"
 
 import { useEffect, useState } from 'react';
-import { Modal, Input, Button, Card, message, Select, Tag, Tooltip, Space, Badge, Descriptions } from 'antd';
+import { Input, Button, Card, message, Select, Tag, Tooltip, Space, Badge } from 'antd';
 import { FileText, Download, Calendar, Search, Clock, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { ReportResponse, ReportStatus } from '@/interfaces/report';
-import { getAllReports, getReportByID, downloadReport } from '@/(api-handlers)/reportHandler';
+import { getAllReports, downloadReport } from '@/(api-handlers)/reportHandler';
+import Link from 'next/link';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import Loading from '@/components/(shared-components)/Loading';
 import EmptyState from '@/components/(shared-components)/EmptyState';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 
 const { Option } = Select;
-
-const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-};
 
 export default function AdminAllReportsView() {
     const [reports, setReports] = useState<ReportResponse[]>([]);
@@ -27,11 +20,6 @@ export default function AdminAllReportsView() {
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [typeFilter, setTypeFilter] = useState<string>('all');
-
-    // Preview Modal state
-    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState<boolean>(false);
-    const [selectedReport, setSelectedReport] = useState<ReportResponse | null>(null);
-    const [previewLoading, setPreviewLoading] = useState<boolean>(false);
 
     const reportTypes = [
         { value: 'daily_sales', label: 'Daily Sales Report' },
@@ -83,19 +71,7 @@ export default function AdminAllReportsView() {
         setFilteredReports(filtered);
     }, [searchTerm, statusFilter, typeFilter, reports]);
 
-    const handlePreview = async (reportId: number) => {
-        setPreviewLoading(true);
-        try {
-            const report = await getReportByID(reportId);
-            setSelectedReport(report);
-            setIsPreviewModalOpen(true);
-        } catch (error: unknown) {
-            handleErrorMessage(error, 'Failed to fetch report details');
-            console.error(error);
-        } finally {
-            setPreviewLoading(false);
-        }
-    };
+    // Navigation happens directly via Link now
 
     const getStatusBadge = (status: ReportStatus) => {
         const statusConfig: Record<string, { color: string; icon: React.ReactElement; text: string }> = {
@@ -128,7 +104,7 @@ export default function AdminAllReportsView() {
             return;
         }
 
-        const fileName = `${report.report_name.replace(/\s+/g, '_')}_${report.id}.${report.file_format}`;
+        const fileName = `${report.report_name.replace(/\s+/g, '_')}_${report.id}.${report.file_format} `;
 
         try {
             await downloadReport(report.id, fileName);
@@ -259,13 +235,14 @@ export default function AdminAllReportsView() {
                                                 </td>
                                                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                     <Space>
-                                                        <Tooltip title="Preview Report">
-                                                            <Button
-                                                                type="text"
-                                                                icon={<Eye className="size-4" />}
-                                                                onClick={() => handlePreview(report.id)}
-                                                                className="flex items-center justify-center text-blue-500 hover:text-blue-600"
-                                                            />
+                                                        <Tooltip title="View Intelligence">
+                                                            <Link href={`/report/${report.id}`}>
+                                                                <Button
+                                                                    type="text"
+                                                                    icon={<Eye className="size-4" />}
+                                                                    className="flex items-center justify-center text-blue-500 hover:text-blue-600"
+                                                                />
+                                                            </Link>
                                                         </Tooltip>
                                                         <Tooltip title="Download Report">
                                                             <Button
@@ -288,78 +265,7 @@ export default function AdminAllReportsView() {
                 </div>
             </Card>
 
-            {/* Preview Report Modal */}
-            <Modal
-                title={
-                    <div className="flex items-center gap-2">
-                        <Eye className="size-5 text-primary" />
-                        <span>Report Details Preview</span>
-                    </div>
-                }
-                open={isPreviewModalOpen}
-                onCancel={() => setIsPreviewModalOpen(false)}
-                footer={[
-                    <Button key="close" onClick={() => setIsPreviewModalOpen(false)}>
-                        Close
-                    </Button>,
-                    <Button
-                        key="download"
-                        type="primary"
-                        icon={<Download className="size-4" />}
-                        onClick={() => selectedReport && handleDownload(selectedReport)}
-                        disabled={selectedReport?.status !== 'completed'}
-                        className="bg-primary"
-                    >
-                        Download
-                    </Button>
-                ]}
-                width={700}
-                loading={previewLoading}
-            >
-                {selectedReport && (
-                    <div className="mt-4">
-                        <Descriptions title="General Information" bordered column={1}>
-                            <Descriptions.Item label="Report Name">{selectedReport.report_name}</Descriptions.Item>
-                            <Descriptions.Item label="Report Type">
-                                <Tag color="blue">
-                                    {reportTypes.find(t => t.value === selectedReport.report_type)?.label || selectedReport.report_type}
-                                </Tag>
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Status">{getStatusBadge(selectedReport.status)}</Descriptions.Item>
-                            <Descriptions.Item label="Period">
-                                {new Date(selectedReport.period_start).toLocaleDateString()} - {new Date(selectedReport.period_end).toLocaleDateString()}
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Created At">{new Date(selectedReport.created_at).toLocaleString()}</Descriptions.Item>
-                        </Descriptions>
-
-                        <Descriptions title="Parameters" bordered column={1} className="mt-6">
-                            <Descriptions.Item label="Shop ID">{selectedReport.parameters.shop_id}</Descriptions.Item>
-                            <Descriptions.Item label="Include Tax">{selectedReport.parameters.include_tax ? "Yes" : "No"}</Descriptions.Item>
-                            <Descriptions.Item label="Payment Method">{selectedReport.parameters.payment_method}</Descriptions.Item>
-                        </Descriptions>
-
-                        <Descriptions title="File Information" bordered column={1} className="mt-6">
-                            <Descriptions.Item label="File Format">{selectedReport.file_format.toUpperCase()}</Descriptions.Item>
-                            <Descriptions.Item label="File Size">{formatFileSize(selectedReport.file_size)}</Descriptions.Item>
-                            <Descriptions.Item label="File URL">
-                                {selectedReport.file_url ? (
-                                    <a href={selectedReport.file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
-                                        {selectedReport.file_url}
-                                    </a>
-                                ) : "N/A"}
-                            </Descriptions.Item>
-                        </Descriptions>
-
-                        {(selectedReport.approved_by || selectedReport.rejection_reason) && (
-                            <Descriptions title="Approval Information" bordered column={1} className="mt-6">
-                                <Descriptions.Item label="Approved By">{selectedReport.approved_by || "N/A"}</Descriptions.Item>
-                                <Descriptions.Item label="Approved At">{selectedReport.approved_at ? new Date(selectedReport.approved_at).toLocaleString() : "N/A"}</Descriptions.Item>
-                                <Descriptions.Item label="Rejection Reason">{selectedReport.rejection_reason || "None"}</Descriptions.Item>
-                            </Descriptions>
-                        )}
-                    </div>
-                )}
-            </Modal>
+            {/* Dedicated detail page used instead of modal */}
         </div>
     );
 }

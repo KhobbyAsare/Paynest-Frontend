@@ -9,6 +9,7 @@ interface EmptyStateProps {
     icon?: React.ReactNode
     onAction?: () => void
     actionText?: string
+    actions?: React.ReactNode
 }
 
 export default function EmptyState({
@@ -16,7 +17,8 @@ export default function EmptyState({
     description = 'Try adjusting your search or filters to find what you are looking for.',
     icon = <SearchX className="size-12 text-gray-400" />,
     onAction,
-    actionText
+    actionText,
+    actions
 }: EmptyStateProps) {
     return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -27,7 +29,11 @@ export default function EmptyState({
             <p className="mt-1 text-sm text-gray-500 max-w-xs mx-auto">
                 {description}
             </p>
-            {onAction && actionText && (
+            {actions ? (
+                <div className="mt-6">
+                    {actions}
+                </div>
+            ) : onAction && actionText && (
                 <div className="mt-6">
                     <Button
                         type="primary"
