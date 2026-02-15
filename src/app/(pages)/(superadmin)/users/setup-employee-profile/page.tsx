@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useEffect, useState, useMemo } from 'react';
@@ -100,7 +101,7 @@ export default function SetUpEmployeeProfile() {
                 description='Create a professional profile for an existing organization user.'
             />
 
-            <Card className="shadow-sm border-gray-200 mb-6">
+            <Card className="shadow-sm border-gray-200 mb-6!">
                 <div className="flex flex-col md:flex-row md:items-center gap-6">
                     <div className="flex-1">
                         <Title level={5}>Select User</Title>
@@ -139,7 +140,7 @@ export default function SetUpEmployeeProfile() {
                     layout="vertical"
                     onFinish={onFinish}
                     initialValues={{
-                        employment_type: 'full-time',
+                        employment_type: 'full_time',
                         employment_status: 'active',
                         role: selectedUserInfo?.role || 'attendant',
                         shop_id: 1,

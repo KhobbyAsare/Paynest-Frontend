@@ -15,10 +15,20 @@ export const CreateInventory = async (inventory_data: CreateInventoryRequest): P
     }
 }
 
-export const GetAllInventory = async (): Promise<InventoryResponse[]> => {
+export const GetAllInventory = async (low_stock_only: boolean, out_of_stock_only: boolean, needs_reorder_only: boolean): Promise<InventoryResponse[]> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/inventory/`, {
+        let mainUrl = `${url}/inventory/`
+        if (low_stock_only) {
+            mainUrl += `?low_stock_only=${low_stock_only}`
+        }
+        if (out_of_stock_only) {
+            mainUrl += `?out_of_stock_only=${out_of_stock_only}`
+        }
+        if (needs_reorder_only) {
+            mainUrl += `?needs_reorder_only=${needs_reorder_only}`
+        }
+        const response = await axios.get(mainUrl, {
             headers: getAPIHeaders(),
         })
         return response.data
@@ -63,7 +73,6 @@ export const UpdateInventory = async (inventory_id: number, inventory_data: Upda
     }
 }
 
-
 export const DeleteInventoryByID = async (inventory_id: number) => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
@@ -76,7 +85,6 @@ export const DeleteInventoryByID = async (inventory_id: number) => {
     }
 }
 
-
 export const GetInventoryByProduct = async (product_id: number): Promise<InventoryResponse> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
@@ -88,7 +96,6 @@ export const GetInventoryByProduct = async (product_id: number): Promise<Invento
         throw error;
     }
 }
-
 
 export const AdjustInventoryStock = async (inventory_id: number, inventory_data: AdjustInventoryStockRequest): Promise<InventoryResponse> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;

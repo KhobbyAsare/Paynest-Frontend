@@ -122,10 +122,10 @@ const navigationItems: NavItem[] = [
         href: '#',
         icon: CreditCardIcon,
         current: false,
-        roles: ['admin', 'manager', 'attendant'],
+        roles: ['manager', 'attendant'],
         subItems: [
-            { name: 'All Inventory', href: '/inventories', icon: CreditCardIcon, current: false, roles: ['admin', 'manager'] },
-            { name: 'Create Inventory', href: '/inventories/create', icon: PlusCircleIcon, current: false, roles: ['admin', 'manager', 'attendant'] }
+            { name: 'All Inventory', href: '/inventory', icon: CreditCardIcon, current: false, roles: ['manager'] },
+            { name: 'Create Inventory', href: '/inventory/create', icon: PlusCircleIcon, current: false, roles: ['manager', 'attendant'] }
         ]
     },
 

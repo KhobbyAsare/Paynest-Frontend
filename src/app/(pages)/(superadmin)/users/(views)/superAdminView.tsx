@@ -1,13 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useEffect, useState } from 'react';
-import { Input, Card, message } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { Input, Card, message, Button, Tooltip } from 'antd';
+import { SearchOutlined, EyeOutlined } from '@ant-design/icons';
 import { getAllUsers } from '@/(api-handlers)/userHandler';
 import { UserResponse } from '@/interfaces/loginInterface';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import Loading from '@/components/(shared-components)/Loading';
 import EmptyState from '@/components/(shared-components)/EmptyState';
+import Link from 'next/link';
 
 export default function SuperAdminPage() {
     const [users, setUsers] = useState<UserResponse[]>([]);
@@ -67,7 +69,7 @@ export default function SuperAdminPage() {
                     style={{ maxWidth: '400px' }}
                     allowClear
                 />
-                <div className="mt-8 flow-root px-2">
+                <div className="mt-8! flow-root px-2">
                     <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                             <table className="relative min-w-full divide-y divide-gray-300">
@@ -94,18 +96,21 @@ export default function SuperAdminPage() {
                                         <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                             Organization
                                         </th>
+                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                            Action
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={7} className="py-10">
+                                            <td colSpan={8} className="py-10">
                                                 <Loading text="Fetching users..." />
                                             </td>
                                         </tr>
                                     ) : filteredUsers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="py-10">
+                                            <td colSpan={8} className="py-10">
                                                 <EmptyState
                                                     title={searchText ? "No users match your search" : "No users found"}
                                                     description={searchText ? `No results for "${searchText}". Try a different keyword.` : "There are currently no users in the system."}
@@ -126,6 +131,16 @@ export default function SuperAdminPage() {
                                                 <td className="whitespace-wrap px-3 py-4 text-sm text-gray-500">{user?.phone_number}</td>
                                                 <td className="whitespace-wrap px-3 py-4 text-sm text-gray-500">{user?.email_verified ? "Verified" : "Not Verified"}</td>
                                                 <td className="whitespace-wrap px-3 py-4 text-sm text-gray-500">{user?.employee_profile?.organization_id ? user?.employee_profile?.organization_id : "N/A"}</td>
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                    <Tooltip title="View Details">
+                                                        <Link href={`/users/${user.id}`}>
+                                                            <Button
+                                                                type="text"
+                                                                icon={<EyeOutlined className="text-primary text-lg" />}
+                                                            />
+                                                        </Link>
+                                                    </Tooltip>
+                                                </td>
                                             </tr>
                                         ))
                                     )}

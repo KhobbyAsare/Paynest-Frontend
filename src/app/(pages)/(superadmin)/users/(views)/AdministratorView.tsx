@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useEffect, useState } from 'react';
-import { Input, Card, message, Button, Modal, Typography, Descriptions, Tag, Avatar, Divider, Tooltip } from 'antd';
+import { Input, Card, Button, Modal, Typography, Tooltip } from 'antd';
 import { SearchOutlined, UserAddOutlined, CopyOutlined, EyeOutlined } from '@ant-design/icons';
 import { getOrganizationUsers } from '@/(api-handlers)/userHandler';
 import { generateInvitationCode } from '@/(api-handlers)/organizationHandler';
@@ -12,9 +13,10 @@ import Loading from '@/components/(shared-components)/Loading';
 import EmptyState from '@/components/(shared-components)/EmptyState';
 import { useAuthStore } from '@/(zustand-store)/authStore';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 export default function UsersAdministratorView() {
     const { user } = useAuthStore();
@@ -28,9 +30,6 @@ export default function UsersAdministratorView() {
     const [isInvitationModalVisible, setIsInvitationModalVisible] = useState(false);
     const [invitationCode, setInvitationCode] = useState<GeneratedCodeResponse | null>(null);
     const [generatingCode, setGeneratingCode] = useState(false);
-
-    const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -83,11 +82,6 @@ export default function UsersAdministratorView() {
             navigator.clipboard.writeText(invitationCode.code);
             toast.success("Code copied to clipboard!");
         }
-    };
-
-    const handleViewDetails = (userRecord: UserResponse) => {
-        setSelectedUser(userRecord);
-        setIsDetailsModalVisible(true);
     };
 
     // Pagination calculations
@@ -182,11 +176,12 @@ export default function UsersAdministratorView() {
                                                 </td>
                                                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                     <Tooltip title="View Details">
-                                                        <Button
-                                                            type="text"
-                                                            icon={<EyeOutlined className="text-primary text-lg" />}
-                                                            onClick={() => handleViewDetails(u)}
-                                                        />
+                                                        <Link href={`/users/${u.id}`}>
+                                                            <Button
+                                                                type="text"
+                                                                icon={<EyeOutlined className="text-primary text-lg" />}
+                                                            />
+                                                        </Link>
                                                     </Tooltip>
                                                 </td>
                                             </tr>
@@ -286,105 +281,6 @@ export default function UsersAdministratorView() {
                     )}
                 </div>
             </Modal>
-
-            {/* User Details Modal */}
-            <Modal
-                title={null}
-                open={isDetailsModalVisible}
-                onCancel={() => setIsDetailsModalVisible(false)}
-                footer={[
-                    <Button key="close" type="primary" onClick={() => setIsDetailsModalVisible(false)}>
-                        Close
-                    </Button>
-                ]}
-                width={700}
-                centered
-            >
-                {selectedUser && (
-                    <div className="pt-2">
-                        <div className="flex items-center gap-4 mb-6">
-                            <Avatar
-                                size={64}
-                                src={selectedUser.profile_pic}
-                                className="bg-primary-light text-primary font-bold text-2xl"
-                            >
-                                {selectedUser.first_name[0]}{selectedUser.last_name[0]}
-                            </Avatar>
-                            <div>
-                                <Title level={4} style={{ margin: 0 }}>
-                                    {selectedUser.first_name} {selectedUser.last_name}
-                                </Title>
-                                <div className="flex gap-2 items-center mt-1">
-                                    <Tag color="blue" className="capitalize m-0">{selectedUser.role}</Tag>
-                                    {selectedUser.is_active ? (
-                                        <Tag color="green" className="m-0">Active</Tag>
-                                    ) : (
-                                        <Tag color="red" className="m-0">Inactive</Tag>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        <Divider className="m-0 mb-4">Account Information</Divider>
-                        <Descriptions column={{ xxl: 2, xl: 2, lg: 2, md: 2, sm: 1, xs: 1 }} layout="vertical">
-                            <Descriptions.Item label="Username">{selectedUser.username}</Descriptions.Item>
-                            <Descriptions.Item label="Email">{selectedUser.email}</Descriptions.Item>
-                            <Descriptions.Item label="Phone">{selectedUser.phone_number || 'N/A'}</Descriptions.Item>
-                            <Descriptions.Item label="Email Status">
-                                {selectedUser.email_verified ? (
-                                    <Tag color="success">Verified</Tag>
-                                ) : (
-                                    <Tag color="warning">Pending Verification</Tag>
-                                )}
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Last Login">
-                                {selectedUser.last_login ? new Date(selectedUser.last_login).toLocaleString() : 'Never'}
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Account Created">
-                                {new Date(selectedUser.created_at).toLocaleDateString()}
-                            </Descriptions.Item>
-                        </Descriptions>
-
-                        {selectedUser.employee_profile && (
-                            <>
-                                <Divider className="m-0 my-4">Employee Profile</Divider>
-                                <Descriptions column={{ xxl: 2, xl: 2, lg: 2, md: 2, sm: 1, xs: 1 }} layout="vertical">
-                                    <Descriptions.Item label="Employee Code">
-                                        <Tag color="purple">{selectedUser.employee_profile.employee_code}</Tag>
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="Department">{selectedUser.employee_profile.department || 'N/A'}</Descriptions.Item>
-                                    <Descriptions.Item label="Job Title">{selectedUser.employee_profile.job_title || 'N/A'}</Descriptions.Item>
-                                    <Descriptions.Item label="Hire Date">
-                                        {selectedUser.employee_profile.hire_date ? new Date(selectedUser.employee_profile.hire_date).toLocaleDateString() : 'N/A'}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="Employment Type">
-                                        <span className="capitalize">{selectedUser.employee_profile.employment_type || 'N/A'}</span>
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="Employment Status">
-                                        <span className="capitalize">{selectedUser.employee_profile.employment_status || 'N/A'}</span>
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="Work Email">{selectedUser.employee_profile.work_email || 'N/A'}</Descriptions.Item>
-                                    <Descriptions.Item label="Work Phone">{selectedUser.employee_profile.work_phone || 'N/A'}</Descriptions.Item>
-                                </Descriptions>
-
-                                <Divider className="m-0 my-4">Permissions</Divider>
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedUser.employee_profile.can_create_shop && <Tag color="cyan">Can Create Shop</Tag>}
-                                    {selectedUser.employee_profile.can_manage_users && <Tag color="cyan">Can Manage Users</Tag>}
-                                    {selectedUser.employee_profile.can_view_reports && <Tag color="cyan">Can View Reports</Tag>}
-                                    {selectedUser.employee_profile.can_manage_inventory && <Tag color="cyan">Can Manage Inventory</Tag>}
-                                    {!selectedUser.employee_profile.can_create_shop &&
-                                        !selectedUser.employee_profile.can_manage_users &&
-                                        !selectedUser.employee_profile.can_view_reports &&
-                                        !selectedUser.employee_profile.can_manage_inventory && (
-                                            <Text type="secondary">No specific administrative permissions granted.</Text>
-                                        )}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                )}
-            </Modal>
         </div>
-    )
+    );
 }
