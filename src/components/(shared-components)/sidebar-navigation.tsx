@@ -23,7 +23,9 @@ import {
     QueueListIcon,
     ReceiptPercentIcon,
     WrenchScrewdriverIcon,
+    Square2StackIcon,
     UserCircleIcon,
+    CubeTransparentIcon,
     BuildingOfficeIcon,
     BuildingOffice2Icon
 } from '@heroicons/react/24/outline'
@@ -87,14 +89,14 @@ const navigationItems: NavItem[] = [
     {
         name: 'Products',
         href: '/products',
-        icon: BuildingOfficeIcon,
+        icon: Square2StackIcon,
         current: false,
         roles: ['attendant'],
     },
     {
         name: 'Product Categories',
         href: '/product_categories',
-        icon: BuildingOfficeIcon,
+        icon: CubeTransparentIcon,
         current: false,
         roles: ['attendant'],
     },
