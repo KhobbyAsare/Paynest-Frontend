@@ -93,7 +93,7 @@ const navigationItems: NavItem[] = [
     },
     {
         name: 'Product Categories',
-        href: '/categories',
+        href: '/product_categories',
         icon: BuildingOfficeIcon,
         current: false,
         roles: ['attendant'],
