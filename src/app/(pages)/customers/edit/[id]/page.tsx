@@ -1,50 +1,141 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useEffect, use } from 'react';
 import {
-    Form, Input, Button, Card, Row, Col,
-    Select, DatePicker, Switch, Typography,
-    Breadcrumb, Space, InputNumber
-} from 'antd';
-import {
     User, Mail, Phone, MapPin,
     Save, X, ArrowLeft, Star,
-    CreditCard, MessageSquare
+    CreditCard, MessageSquare, RefreshCcw,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import dayjs from 'dayjs';
 import { GetCustomerByID, UpdateCustomer } from '@/(api-handlers)/customersHandler';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
-import Loading from '@/components/(shared-components)/Loading';
 import toast from 'react-hot-toast';
 
-const { Title, Text } = Typography;
-const { Option } = Select;
-const { TextArea } = Input;
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+
+/* -------------------------------------------------------------------------- */
+/*  Types                                                                      */
+/* -------------------------------------------------------------------------- */
+interface FormValues {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    date_of_birth: string;
+    gender: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    postal_code: string;
+    notes: string;
+    customer_code: string;
+    is_active: boolean;
+    loyalty_tier: string;
+    loyalty_points: string;
+    preferred_payment_method: string;
+}
+
+interface FormErrors {
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
+    email?: string;
+    customer_code?: string;
+}
 
 interface EditCustomerPageProps {
     params: Promise<{ id: string }>;
 }
 
+const defaultValues: FormValues = {
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    date_of_birth: '',
+    gender: 'Other',
+    address: '',
+    city: '',
+    state: '',
+    country: '',
+    postal_code: '',
+    notes: '',
+    customer_code: '',
+    is_active: true,
+    loyalty_tier: 'Standard',
+    loyalty_points: '0',
+    preferred_payment_method: 'Cash',
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Small helpers                                                              */
+/* -------------------------------------------------------------------------- */
+function FieldLabel({ children, required }: Readonly<{ children: React.ReactNode; required?: boolean }>) {
+    return (
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            {children}
+            {required && <span className="text-rose-500 ml-0.5">*</span>}
+        </label>
+    );
+}
+
+function FieldError({ message }: Readonly<{ message?: string }>) {
+    if (!message) return null;
+    return <p className="mt-1 text-xs text-rose-500">{message}</p>;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Page                                                                       */
+/* -------------------------------------------------------------------------- */
 export default function EditCustomerPage({ params }: EditCustomerPageProps) {
     const { id } = use(params);
     const router = useRouter();
-    const [form] = Form.useForm();
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [values, setValues] = useState<FormValues>(defaultValues);
+    const [errors, setErrors] = useState<FormErrors>({});
 
     useEffect(() => {
         const fetchCustomer = async () => {
             setLoading(true);
             try {
                 const data = await GetCustomerByID(Number(id));
-                form.setFieldsValue({
-                    ...data,
-                    date_of_birth: data.date_of_birth ? dayjs(data.date_of_birth) : null
+                setValues({
+                    first_name: data.first_name ?? '',
+                    last_name: data.last_name ?? '',
+                    email: data.email ?? '',
+                    phone: data.phone ?? '',
+                    date_of_birth: data.date_of_birth
+                        ? data.date_of_birth.slice(0, 10)
+                        : '',
+                    gender: data.gender ?? 'Other',
+                    address: data.address ?? '',
+                    city: data.city ?? '',
+                    state: data.state ?? '',
+                    country: data.country ?? '',
+                    postal_code: data.postal_code ?? '',
+                    notes: data.notes ?? '',
+                    customer_code: data.customer_code ?? '',
+                    is_active: data.is_active ?? true,
+                    loyalty_tier: data.loyalty_tier ?? 'Standard',
+                    loyalty_points: String(data.loyalty_points ?? 0),
+                    preferred_payment_method: data.preferred_payment_method ?? 'Cash',
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
                 handleErrorMessage(error, 'Failed to fetch customer details');
                 router.push('/customers');
             } finally {
@@ -52,200 +143,374 @@ export default function EditCustomerPage({ params }: EditCustomerPageProps) {
             }
         };
         fetchCustomer();
-    }, [id, form, router]);
+    }, [id, router]);
 
-    const onFinish = async (values: any) => {
+    function set<K extends keyof FormValues>(key: K, value: FormValues[K]) {
+        setValues(prev => ({ ...prev, [key]: value }));
+        if (errors[key as keyof FormErrors]) {
+            setErrors(prev => ({ ...prev, [key]: undefined }));
+        }
+    }
+
+    function validate(): boolean {
+        const e: FormErrors = {};
+        if (!values.first_name.trim()) e.first_name = 'First name is required';
+        if (!values.last_name.trim()) e.last_name = 'Last name is required';
+        if (!values.phone.trim()) e.phone = 'Phone number is required';
+        if (!values.customer_code.trim()) e.customer_code = 'Customer code is required';
+        if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+            e.email = 'Enter a valid email address';
+        }
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    }
+
+    async function handleSubmit(ev: React.FormEvent) {
+        ev.preventDefault();
+        if (!validate()) return;
         setSubmitting(true);
         try {
-            const formattedData = {
+            await UpdateCustomer(Number(id), {
                 ...values,
-                date_of_birth: values.date_of_birth ? values.date_of_birth.format('YYYY-MM-DD') : null,
-                communication_preferences: {
-                    additionalProp1: "email"
-                }
-            };
-
-            await UpdateCustomer(Number(id), formattedData);
+                loyalty_points: Number(values.loyalty_points),
+                date_of_birth: values.date_of_birth,
+                communication_preferences: { additionalProp1: 'email' },
+            });
             toast.success('Customer profile updated successfully');
             router.push('/customers');
-        } catch (error: any) {
+        } catch (error: unknown) {
             handleErrorMessage(error, 'Failed to update customer');
         } finally {
             setSubmitting(false);
         }
-    };
+    }
 
-    if (loading) return <div className="h-screen flex items-center justify-center"><Loading text="Retrieving customer intelligence..." /></div>;
+    /* Loading skeleton */
+    if (loading) {
+        return (
+            <div className="h-screen flex flex-col items-center justify-center gap-3 text-slate-400">
+                <RefreshCcw className="size-6 animate-spin" />
+                <p className="text-sm">Retrieving customer data…</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
             <div className="max-w-5xl mx-auto">
-                <Breadcrumb className="mb-4! text-xs font-medium">
-                    <Breadcrumb.Item><Link href="/customers" className="text-slate-400 hover:text-primary">Customers</Link></Breadcrumb.Item>
-                    <Breadcrumb.Item className="text-slate-900 font-bold">Update Profile</Breadcrumb.Item>
-                </Breadcrumb>
 
+                {/* Breadcrumb */}
+                <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-400">
+                    <Link href="/customers" className="hover:text-slate-600 transition-colors">Customers</Link>
+                    <span>/</span>
+                    <span className="text-slate-600 font-medium">Update Profile</span>
+                </nav>
+
+                {/* Heading */}
                 <div className="flex items-center gap-4 mb-8">
                     <Button
-                        icon={<ArrowLeft className="size-4" />}
+                        type="button"
+                        variant="outline"
+                        size="icon"
                         onClick={() => router.back()}
-                        className="rounded-xl border-slate-200 h-11 w-11 flex items-center justify-center shadow-sm"
-                    />
+                        className="rounded-md border-slate-200 shrink-0"
+                    >
+                        <ArrowLeft className="size-4" />
+                    </Button>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 m-0">Synchronize Data</h1>
-                        <p className="text-slate-500 text-sm">Modify information for customer ID: <span className="text-primary font-mono">{id}</span></p>
+                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Update Profile</h1>
+                        <p className="text-slate-500 text-sm">
+                            Editing customer ID:{' '}
+                            <span className="text-primary font-mono">{id}</span>
+                        </p>
                     </div>
                 </div>
 
-                <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={onFinish}
-                    className="space-y-6"
-                >
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <form onSubmit={handleSubmit} noValidate>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                        {/* ── Left column ── */}
                         <div className="lg:col-span-2 space-y-6">
-                            <Card title={<span className="flex items-center gap-2"><User className="size-4" /> Personal Information</span>} className="rounded-2xl shadow-sm border-slate-100">
-                                <Row gutter={16}>
-                                    <Col span={12}>
-                                        <Form.Item name="first_name" label="First Name" rules={[{ required: true }]}>
-                                            <Input className="h-11 rounded-xl" />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Form.Item name="last_name" label="Last Name" rules={[{ required: true }]}>
-                                            <Input className="h-11 rounded-xl" />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                                <Row gutter={16}>
-                                    <Col span={12}>
-                                        <Form.Item name="email" label="Email Address">
-                                            <Input prefix={<Mail className="size-4 text-slate-400" />} className="h-11 rounded-xl" />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Form.Item name="phone" label="Phone Number" rules={[{ required: true }]}>
-                                            <Input prefix={<Phone className="size-4 text-slate-400" />} className="h-11 rounded-xl" />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                                <Row gutter={16}>
-                                    <Col span={12}>
-                                        <Form.Item name="date_of_birth" label="Date of Birth">
-                                            <DatePicker className="w-full h-11 rounded-xl" />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Form.Item name="gender" label="Gender">
-                                            <Select className="h-11 profile-select">
-                                                <Option value="Male">Male</Option>
-                                                <Option value="Female">Female</Option>
-                                                <Option value="Other">Other</Option>
+
+                            {/* Personal Information */}
+                            <Card className="rounded-2xl border-slate-100 shadow-sm">
+                                <CardHeader className="pb-0">
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <User className="size-4 text-primary" />
+                                        Personal Information
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-4 space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <FieldLabel required>First Name</FieldLabel>
+                                            <Input
+                                                value={values.first_name}
+                                                onChange={e => set('first_name', e.target.value)}
+                                                className={cn(errors.first_name && 'border-rose-400 focus-visible:ring-rose-400')}
+                                            />
+                                            <FieldError message={errors.first_name} />
+                                        </div>
+                                        <div>
+                                            <FieldLabel required>Last Name</FieldLabel>
+                                            <Input
+                                                value={values.last_name}
+                                                onChange={e => set('last_name', e.target.value)}
+                                                className={cn(errors.last_name && 'border-rose-400 focus-visible:ring-rose-400')}
+                                            />
+                                            <FieldError message={errors.last_name} />
+                                        </div>
+                                        <div>
+                                            <FieldLabel>Email Address</FieldLabel>
+                                            <div className="relative">
+                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+                                                <Input
+                                                    type="email"
+                                                    value={values.email}
+                                                    onChange={e => set('email', e.target.value)}
+                                                    className={cn('pl-9', errors.email && 'border-rose-400 focus-visible:ring-rose-400')}
+                                                />
+                                            </div>
+                                            <FieldError message={errors.email} />
+                                        </div>
+                                        <div>
+                                            <FieldLabel required>Phone Number</FieldLabel>
+                                            <div className="relative">
+                                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+                                                <Input
+                                                    value={values.phone}
+                                                    onChange={e => set('phone', e.target.value)}
+                                                    className={cn('pl-9', errors.phone && 'border-rose-400 focus-visible:ring-rose-400')}
+                                                />
+                                            </div>
+                                            <FieldError message={errors.phone} />
+                                        </div>
+                                        <div>
+                                            <FieldLabel>Date of Birth</FieldLabel>
+                                            <Input
+                                                type="date"
+                                                value={values.date_of_birth}
+                                                onChange={e => set('date_of_birth', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <FieldLabel>Gender</FieldLabel>
+                                            <Select value={values.gender} onValueChange={val => set('gender', val)}>
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select gender" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Male">Male</SelectItem>
+                                                    <SelectItem value="Female">Female</SelectItem>
+                                                    <SelectItem value="Other">Other</SelectItem>
+                                                </SelectContent>
                                             </Select>
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
+                                        </div>
+                                    </div>
+                                </CardContent>
                             </Card>
 
-                            <Card title={<span className="flex items-center gap-2"><MapPin className="size-4" /> Address Details</span>} className="rounded-2xl shadow-sm border-slate-100">
-                                <Form.Item name="address" label="Street Address">
-                                    <Input className="h-11 rounded-xl" />
-                                </Form.Item>
-                                <Row gutter={16}>
-                                    <Col span={12}>
-                                        <Form.Item name="city" label="City">
-                                            <Input className="h-11 rounded-xl" />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Form.Item name="state" label="State/Region">
-                                            <Input className="h-11 rounded-xl" />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                                <Row gutter={16}>
-                                    <Col span={12}>
-                                        <Form.Item name="country" label="Country">
-                                            <Input className="h-11 rounded-xl" />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Form.Item name="postal_code" label="Postal Code">
-                                            <Input className="h-11 rounded-xl" />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
+                            {/* Address Details */}
+                            <Card className="rounded-2xl border-slate-100 shadow-sm">
+                                <CardHeader className="pb-0">
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <MapPin className="size-4 text-amber-500" />
+                                        Address Details
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-4 space-y-4">
+                                    <div>
+                                        <FieldLabel>Street Address</FieldLabel>
+                                        <Input
+                                            value={values.address}
+                                            onChange={e => set('address', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <FieldLabel>City</FieldLabel>
+                                            <Input
+                                                value={values.city}
+                                                onChange={e => set('city', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <FieldLabel>State / Region</FieldLabel>
+                                            <Input
+                                                value={values.state}
+                                                onChange={e => set('state', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <FieldLabel>Country</FieldLabel>
+                                            <Input
+                                                value={values.country}
+                                                onChange={e => set('country', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <FieldLabel>Postal Code</FieldLabel>
+                                            <Input
+                                                value={values.postal_code}
+                                                onChange={e => set('postal_code', e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </CardContent>
                             </Card>
 
-                            <Card title={<span className="flex items-center gap-2"><MessageSquare className="size-4" /> Additional Notes</span>} className="rounded-2xl shadow-sm border-slate-100">
-                                <Form.Item name="notes">
-                                    <TextArea rows={4} className="rounded-xl" />
-                                </Form.Item>
+                            {/* Additional Notes */}
+                            <Card className="rounded-2xl border-slate-100 shadow-sm">
+                                <CardHeader className="pb-0">
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <MessageSquare className="size-4 text-slate-400" />
+                                        Additional Notes
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-4">
+                                    <Textarea
+                                        rows={4}
+                                        value={values.notes}
+                                        onChange={e => set('notes', e.target.value)}
+                                        className="resize-none"
+                                    />
+                                </CardContent>
                             </Card>
                         </div>
 
+                        {/* ── Right column ── */}
                         <div className="space-y-6">
-                            <Card className="rounded-2xl shadow-sm border-slate-100 bg-slate-900 text-white overflow-hidden relative">
-                                <div className="absolute -top-6 -right-6 size-24 bg-blue-500/10 rounded-full" />
-                                <Title level={5} className="text-white! mb-6">Profile Settings</Title>
-                                <Form.Item name="customer_code" label={<span className="text-slate-400">Unique Code</span>} rules={[{ required: true }]}>
-                                    <Input className="bg-white/5 border-white/20 text-white h-11 rounded-xl" />
-                                </Form.Item>
-                                <div className="flex items-center justify-between pt-2">
-                                    <span className="text-slate-400 text-sm font-medium">Account Status</span>
-                                    <Form.Item name="is_active" valuePropName="checked" noStyle>
-                                        <Switch />
-                                    </Form.Item>
-                                </div>
+
+                            {/* Profile Settings */}
+                            <Card className="rounded-2xl shadow-sm border-0 bg-slate-900 text-white overflow-hidden relative">
+                                <div className="absolute -top-6 -right-6 size-24 bg-blue-500/10 rounded-full pointer-events-none" />
+                                <CardContent className="pt-6 space-y-4">
+                                    <p className="font-semibold text-white text-sm tracking-wide">Profile Settings</p>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                                            Unique Code <span className="text-rose-400">*</span>
+                                        </label>
+                                        <Input
+                                            value={values.customer_code}
+                                            onChange={e => set('customer_code', e.target.value)}
+                                            className={cn(
+                                                'bg-white/5 border-white/20 text-white placeholder:text-white/30 focus-visible:ring-blue-400',
+                                                errors.customer_code && 'border-rose-400'
+                                            )}
+                                        />
+                                        <FieldError message={errors.customer_code} />
+                                    </div>
+                                    <div className="flex items-center justify-between pt-2">
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-300">Account Status</p>
+                                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">
+                                                Active profiles earn loyalty points
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            checked={values.is_active}
+                                            onCheckedChange={val => set('is_active', val)}
+                                        />
+                                    </div>
+                                </CardContent>
                             </Card>
 
-                            <Card title={<span className="flex items-center gap-2"><Star className="size-4 text-amber-500" /> Loyalty</span>} className="rounded-2xl shadow-sm border-slate-100">
-                                <Form.Item name="loyalty_tier" label="Membership Tier">
-                                    <Select className="h-11 rounded-xl">
-                                        <Option value="Standard">Standard</Option>
-                                        <Option value="Silver">Silver</Option>
-                                        <Option value="Gold">Gold</Option>
-                                        <Option value="Platinum">Platinum</Option>
-                                    </Select>
-                                </Form.Item>
-                                <Form.Item name="loyalty_points" label="Loyalty Points">
-                                    <InputNumber min={0} className="w-full h-11 px-0 flex items-center rounded-xl" />
-                                </Form.Item>
+                            {/* Loyalty Program */}
+                            <Card className="rounded-2xl border-slate-100 shadow-sm">
+                                <CardHeader className="pb-0">
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <Star className="size-4 text-amber-500 fill-amber-500" />
+                                        Loyalty Program
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-4 space-y-4">
+                                    <div>
+                                        <FieldLabel>Membership Tier</FieldLabel>
+                                        <Select value={values.loyalty_tier} onValueChange={val => set('loyalty_tier', val)}>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Standard">Standard</SelectItem>
+                                                <SelectItem value="Silver">Silver</SelectItem>
+                                                <SelectItem value="Gold">Gold</SelectItem>
+                                                <SelectItem value="Platinum">Platinum</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <FieldLabel>Loyalty Points</FieldLabel>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            value={values.loyalty_points}
+                                            onChange={e => set('loyalty_points', e.target.value)}
+                                        />
+                                    </div>
+                                </CardContent>
                             </Card>
 
-                            <Card title={<span className="flex items-center gap-2"><CreditCard className="size-4" /> Finance</span>} className="rounded-2xl shadow-sm border-slate-100">
-                                <Form.Item name="preferred_payment_method" label="Payment Method">
-                                    <Select className="h-11 rounded-xl">
-                                        <Option value="Cash">Cash</Option>
-                                        <Option value="Card">Credit/Debit Card</Option>
-                                        <Option value="Transfer">Bank Transfer</Option>
-                                        <Option value="Mobile">Mobile Money</Option>
-                                    </Select>
-                                </Form.Item>
+                            {/* Finance */}
+                            <Card className="rounded-2xl border-slate-100 shadow-sm">
+                                <CardHeader className="pb-0">
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <CreditCard className="size-4 text-primary" />
+                                        Finance
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-4">
+                                    <div>
+                                        <FieldLabel>Preferred Payment Method</FieldLabel>
+                                        <Select
+                                            value={values.preferred_payment_method}
+                                            onValueChange={val => set('preferred_payment_method', val)}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Cash">Cash</SelectItem>
+                                                <SelectItem value="Card">Credit / Debit Card</SelectItem>
+                                                <SelectItem value="Transfer">Bank Transfer</SelectItem>
+                                                <SelectItem value="Mobile">Mobile Money</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </CardContent>
                             </Card>
 
-                            <div className="flex flex-col gap-3 mt-8">
+                            {/* Actions */}
+                            <div className="flex flex-col gap-3">
                                 <Button
-                                    type="primary"
-                                    htmlType="submit"
-                                    loading={submitting}
-                                    icon={<Save className="size-4" />}
-                                    className="bg-primary hover:bg-primary/90 h-12 rounded-xl font-bold shadow-lg shadow-blue-100 w-full"
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="h-11 w-full rounded-md shadow-lg shadow-blue-100 font-semibold"
                                 >
-                                    Update Customer
+                                    {submitting ? (
+                                        <span className="flex items-center gap-2">
+                                            <span className="size-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                            Saving…
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-2">
+                                            <Save className="size-4" />
+                                            Update Customer
+                                        </span>
+                                    )}
                                 </Button>
                                 <Button
-                                    icon={<X className="size-4" />}
+                                    type="button"
+                                    variant="outline"
                                     onClick={() => router.back()}
-                                    className="h-12 rounded-xl font-bold w-full"
+                                    className="h-11 w-full rounded-md"
                                 >
+                                    <X className="size-4" />
                                     Cancel
                                 </Button>
                             </div>
                         </div>
                     </div>
-                </Form>
+                </form>
             </div>
         </div>
     );

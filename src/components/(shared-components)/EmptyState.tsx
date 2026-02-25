@@ -1,7 +1,7 @@
 'use client'
 
 import { SearchX } from 'lucide-react'
-import { Button } from 'antd'
+import { Button } from '@/components/ui/button'
 
 interface EmptyStateProps {
     title?: string
@@ -19,7 +19,7 @@ export default function EmptyState({
     onAction,
     actionText,
     actions
-}: EmptyStateProps) {
+}: Readonly<EmptyStateProps>) {
     return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <div className="mb-4">
@@ -35,11 +35,7 @@ export default function EmptyState({
                 </div>
             ) : onAction && actionText && (
                 <div className="mt-6">
-                    <Button
-                        type="primary"
-                        onClick={onAction}
-                        className="flex items-center gap-2"
-                    >
+                    <Button onClick={onAction} className="flex items-center gap-2">
                         {actionText}
                     </Button>
                 </div>

@@ -1,7 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, Table, Tag, Space, Input, Badge, Tooltip, Dropdown, Checkbox } from 'antd';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Plus, Search, RefreshCcw,
     Download, ArrowUpRight,
@@ -14,9 +13,20 @@ import { GetAllInventory, GetInventoryStatistics } from '@/(api-handlers)/invent
 import { InventoryResponse, InventoryStats } from '@/interfaces/inventory';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 
-function classNames(...classes: (string | boolean | undefined)[]) {
-    return classes.filter(Boolean).join(' ')
-}
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import {
+    Table,
+    TableHeader,
+    TableBody,
+    TableRow,
+    TableHead,
+    TableCell,
+} from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 export default function InventoryPage() {
     const router = useRouter();
@@ -24,6 +34,7 @@ export default function InventoryPage() {
     const [stats, setStats] = useState<InventoryStats | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [searchTerm, setSearchTerm] = useState<string>('');
+    const [filterOpen, setFilterOpen] = useState(false);
     const [filter, setFilter] = useState<{
         lowStock: boolean;
         outOfStock: boolean;
@@ -33,6 +44,19 @@ export default function InventoryPage() {
         outOfStock: false,
         needsReorder: false
     });
+
+    const filterRef = useRef<HTMLDivElement>(null);
+
+    // Close filter dropdown when clicking outside
+    useEffect(() => {
+        function handleClickOutside(e: MouseEvent) {
+            if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+                setFilterOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const fetchInventoryData = useCallback(async () => {
         setLoading(true);
@@ -85,89 +109,7 @@ export default function InventoryPage() {
         },
     ] : [];
 
-    const columns = [
-        {
-            title: 'Product ID',
-            dataIndex: 'product_id',
-            key: 'product_id',
-            render: (id: number) => <span className="font-medium text-slate-700">#{id}</span>,
-        },
-        {
-            title: 'Stock Level',
-            key: 'stock',
-            render: (record: InventoryResponse) => (
-                <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-4">
-                        <span className="text-sm font-semibold">{record.current_stock} units</span>
-                        <div className="flex gap-1">
-                            {record.is_out_of_stock && <Badge status="error" text="Out" />}
-                            {record.is_low_stock && !record.is_out_of_stock && <Badge status="warning" text="Low" />}
-                            {record.needs_reorder && <Badge status="processing" text="Reorder" />}
-                        </div>
-                    </div>
-                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div
-                            className={classNames(
-                                'h-full transition-all duration-500',
-                                record.is_out_of_stock ? 'bg-rose-500 w-0' :
-                                    record.is_low_stock ? 'bg-amber-500' : 'bg-emerald-500'
-                            )}
-                            style={{ width: `${Math.min((record.current_stock / (record.maximum_stock || 100)) * 100, 100)}%` }}
-                        />
-                    </div>
-                </div>
-            ),
-        },
-        {
-            title: 'Location',
-            key: 'location',
-            render: (record: InventoryResponse) => (
-                <div className="text-xs text-slate-500">
-                    <div>{record.aisle || 'N/A'} - {record.shelf || 'N/A'}</div>
-                    <div className="font-medium text-slate-700">{record.bin_location || 'No Bin'}</div>
-                </div>
-            ),
-        },
-        {
-            title: 'Reorder Point',
-            dataIndex: 'reorder_point',
-            key: 'reorder_point',
-            render: (val: number) => <Tag color="blue" className="rounded-full">{val} units</Tag>
-        },
-        {
-            title: 'Status',
-            dataIndex: 'is_active',
-            key: 'is_active',
-            render: (isActive: boolean) => (
-                <Badge
-                    status={isActive ? "success" : "default"}
-                    text={isActive ? "Active" : "Inactive"}
-                />
-            )
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            render: (record: InventoryResponse) => (
-                <Space>
-                    <Tooltip title="View Details">
-                        <Button
-                            type="text"
-                            icon={<ArrowUpRight className="size-4" />}
-                            onClick={() => router.push(`/inventory/${record.id}`)}
-                        />
-                    </Tooltip>
-                    <Tooltip title="Adjustment">
-                        <Button
-                            type="text"
-                            icon={<RefreshCcw className="size-4" />}
-                            className="text-amber-600"
-                        />
-                    </Tooltip>
-                </Space>
-            ),
-        },
-    ];
+    const activeFilterCount = [filter.lowStock, filter.outOfStock, filter.needsReorder].filter(Boolean).length;
 
     const filteredInventory = inventory.filter(item =>
         item.product_id.toString().includes(searchTerm)
@@ -180,24 +122,21 @@ export default function InventoryPage() {
                 description="Monitor stock levels, manage reorders, and optimize your inventory performance."
             >
                 <div className="flex gap-3">
-                    <Button
-                        icon={<Download className="size-4" />}
-                        className="flex items-center gap-2"
-                    >
+                    <Button variant="outline" className="flex items-center gap-2">
+                        <Download className="size-4" />
                         Export
                     </Button>
                     <Button
-                        type="primary"
-                        icon={<Plus className="size-4" />}
                         onClick={() => router.push('/inventory/create')}
-                        className="bg-primary hover:bg-primary/90 flex items-center gap-2"
+                        className="flex items-center gap-2"
                     >
+                        <Plus className="size-4" />
                         Add Inventory
                     </Button>
                 </div>
             </PageHeader>
 
-            {/* Stats Grid - Requested Style */}
+            {/* Stats Grid */}
             <dl className="mx-auto grid grid-cols-1 gap-px bg-gray-200 mt-8 mb-8 overflow-hidden rounded-2xl border border-gray-200 sm:grid-cols-2 lg:grid-cols-4 shadow-sm">
                 {statsConfig.map((stat) => (
                     <div
@@ -209,10 +148,10 @@ export default function InventoryPage() {
                             {stat.name}
                         </dt>
                         <dd
-                            className={classNames(
+                            className={cn(
+                                'text-xs font-semibold',
                                 stat.changeType === 'negative' ? 'text-rose-600' :
-                                    stat.changeType === 'positive' ? 'text-emerald-600' : 'text-gray-500',
-                                'text-xs font-semibold'
+                                    stat.changeType === 'positive' ? 'text-emerald-600' : 'text-gray-500'
                             )}
                         >
                             {stat.change}
@@ -224,66 +163,202 @@ export default function InventoryPage() {
                 ))}
             </dl>
 
-            <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden" bodyStyle={{ padding: 0 }}>
+            <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden p-0">
+                {/* Toolbar */}
                 <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between gap-4 bg-slate-50/50">
                     <div className="flex items-center gap-4 flex-1">
-                        <Input
-                            placeholder="Search by Product ID..."
-                            prefix={<Search className="size-4 text-slate-400" />}
-                            className="max-w-xs rounded-lg"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <div className="flex gap-2">
-                            <Dropdown
-                                menu={{
-                                    items: [
-                                        {
-                                            key: 'lowStock',
-                                            label: <Checkbox checked={filter.lowStock} onClick={(e) => e.stopPropagation()}>Low Stock</Checkbox>,
-                                            onClick: () => setFilter(prev => ({ ...prev, lowStock: !prev.lowStock }))
-                                        },
-                                        {
-                                            key: 'outOfStock',
-                                            label: <Checkbox checked={filter.outOfStock} onClick={(e) => e.stopPropagation()}>Out of Stock</Checkbox>,
-                                            onClick: () => setFilter(prev => ({ ...prev, outOfStock: !prev.outOfStock }))
-                                        },
-                                        {
-                                            key: 'needsReorder',
-                                            label: <Checkbox checked={filter.needsReorder} onClick={(e) => e.stopPropagation()}>Needs Reorder</Checkbox>,
-                                            onClick: () => setFilter(prev => ({ ...prev, needsReorder: !prev.needsReorder }))
-                                        },
-                                    ]
-                                }}
-                                trigger={['click']}
+                        {/* Search */}
+                        <div className="relative max-w-xs w-full">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+                            <Input
+                                placeholder="Search by Product ID..."
+                                className="pl-9 rounded-lg"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        {/* Filter Dropdown */}
+                        <div className="relative" ref={filterRef}>
+                            <Button
+                                variant="outline"
+                                className="flex items-center gap-2 rounded-lg"
+                                onClick={() => setFilterOpen(prev => !prev)}
                             >
-                                <Button icon={<Filter className="size-4" />} className="flex items-center gap-2 rounded-lg">
-                                    Stock Filters
-                                    {(filter.lowStock || filter.outOfStock || filter.needsReorder) && (
-                                        <Badge count={[filter.lowStock, filter.outOfStock, filter.needsReorder].filter(Boolean).length} size="small" />
-                                    )}
-                                    <ChevronDown className="size-4" />
-                                </Button>
-                            </Dropdown>
+                                <Filter className="size-4" />
+                                Stock Filters
+                                {activeFilterCount > 0 && (
+                                    <Badge className="size-5 p-0 flex items-center justify-center text-[10px]">
+                                        {activeFilterCount}
+                                    </Badge>
+                                )}
+                                <ChevronDown className={cn("size-4 transition-transform", filterOpen && "rotate-180")} />
+                            </Button>
+
+                            {filterOpen && (
+                                <div className="absolute top-full left-0 mt-1 z-50 min-w-[180px] rounded-lg border border-slate-200 bg-white shadow-md p-2 space-y-1">
+                                    {[
+                                        { key: 'lowStock' as const, label: 'Low Stock' },
+                                        { key: 'outOfStock' as const, label: 'Out of Stock' },
+                                        { key: 'needsReorder' as const, label: 'Needs Reorder' },
+                                    ].map(({ key, label }) => (
+                                        <label
+                                            key={key}
+                                            className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-slate-50 text-sm text-slate-700 select-none"
+                                        >
+                                            <Checkbox
+                                                checked={filter[key]}
+                                                onCheckedChange={() =>
+                                                    setFilter(prev => ({ ...prev, [key]: !prev[key] }))
+                                                }
+                                            />
+                                            {label}
+                                        </label>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
+
+                    {/* Refresh */}
                     <div className="flex items-center gap-2">
                         <Button
-                            icon={<RefreshCcw className={classNames("size-4", loading && "animate-spin")} />}
+                            variant="outline"
+                            size="icon"
                             onClick={fetchInventoryData}
-                            className="flex items-center justify-center rounded-lg border-slate-200"
-                        />
+                            className="rounded-lg border-slate-200"
+                            title="Refresh"
+                        >
+                            <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
+                        </Button>
                     </div>
                 </div>
 
-                <Table
-                    columns={columns}
-                    dataSource={filteredInventory}
-                    loading={loading}
-                    rowKey="id"
-                    pagination={{ pageSize: 10 }}
-                    className="inventory-table"
-                />
+                {/* Table */}
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-slate-50/50">
+                            <TableHead className="px-6">Product ID</TableHead>
+                            <TableHead className="px-6">Stock Level</TableHead>
+                            <TableHead className="px-6">Location</TableHead>
+                            <TableHead className="px-6">Reorder Point</TableHead>
+                            <TableHead className="px-6">Status</TableHead>
+                            <TableHead className="px-6">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                                    <RefreshCcw className="size-5 animate-spin mx-auto mb-2" />
+                                    Loading inventory…
+                                </TableCell>
+                            </TableRow>
+                        ) : filteredInventory.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                                    No inventory items found.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            filteredInventory.map((item) => (
+                                <TableRow key={item.id} className="hover:bg-slate-50/50">
+                                    {/* Product ID */}
+                                    <TableCell className="px-6 font-medium text-slate-700">
+                                        #{item.product_id}
+                                    </TableCell>
+
+                                    {/* Stock Level */}
+                                    <TableCell className="px-6 min-w-[180px]">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <span className="text-sm font-semibold">{item.current_stock} units</span>
+                                                <div className="flex gap-1">
+                                                    {item.is_out_of_stock && (
+                                                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Out</Badge>
+                                                    )}
+                                                    {item.is_low_stock && !item.is_out_of_stock && (
+                                                        <Badge className="text-[10px] px-1.5 py-0 bg-amber-500 hover:bg-amber-500">Low</Badge>
+                                                    )}
+                                                    {item.needs_reorder && (
+                                                        <Badge className="text-[10px] px-1.5 py-0 bg-blue-500 hover:bg-blue-500">Reorder</Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                                <div
+                                                    className={cn(
+                                                        'h-full transition-all duration-500',
+                                                        item.is_out_of_stock ? 'bg-rose-500 w-0' :
+                                                            item.is_low_stock ? 'bg-amber-500' : 'bg-emerald-500'
+                                                    )}
+                                                    style={{ width: `${Math.min((item.current_stock / (item.maximum_stock || 100)) * 100, 100)}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </TableCell>
+
+                                    {/* Location */}
+                                    <TableCell className="px-6">
+                                        <div className="text-xs text-slate-500">
+                                            <div>{item.aisle || 'N/A'} - {item.shelf || 'N/A'}</div>
+                                            <div className="font-medium text-slate-700">{item.bin_location || 'No Bin'}</div>
+                                        </div>
+                                    </TableCell>
+
+                                    {/* Reorder Point */}
+                                    <TableCell className="px-6">
+                                        <Badge variant="outline" className="rounded-full text-blue-600 border-blue-200 bg-blue-50">
+                                            {item.reorder_point} units
+                                        </Badge>
+                                    </TableCell>
+
+                                    {/* Status */}
+                                    <TableCell className="px-6">
+                                        <span className="inline-flex items-center gap-1.5 text-sm">
+                                            <span className={cn(
+                                                "size-2 rounded-full",
+                                                item.is_active ? "bg-emerald-500" : "bg-slate-300"
+                                            )} />
+                                            <span className={item.is_active ? "text-emerald-700" : "text-slate-400"}>
+                                                {item.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </span>
+                                    </TableCell>
+
+                                    {/* Actions */}
+                                    <TableCell className="px-6">
+                                        <div className="flex items-center gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                title="View Details"
+                                                onClick={() => router.push(`/inventory/${item.id}`)}
+                                            >
+                                                <ArrowUpRight className="size-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                title="Adjustment"
+                                                className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                            >
+                                                <RefreshCcw className="size-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+
+                {/* Pagination footer */}
+                {!loading && filteredInventory.length > 0 && (
+                    <div className="px-6 py-3 border-t border-slate-100 text-xs text-slate-400">
+                        Showing {filteredInventory.length} item{filteredInventory.length !== 1 ? 's' : ''}
+                    </div>
+                )}
             </Card>
         </div>
     );

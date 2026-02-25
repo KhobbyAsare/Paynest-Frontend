@@ -546,7 +546,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                             {userRole === 'attendant' && 'Handle customer transactions and queue management.'}
                         </p>
                     </div>
-                    <div className="p-4 lg:p-4 lg:pt-0 min-h-[80vh]">
+                    <div className="p-4 lg:p-4 lg:pt-0 min-h-[80vh] container mx-auto">
                         {children}
                     </div>
                 </div>
