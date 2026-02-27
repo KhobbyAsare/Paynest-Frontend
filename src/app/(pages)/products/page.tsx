@@ -19,7 +19,12 @@ import {
     CheckCircle,
     XCircle,
     TrendingUp,
-    TrendingDown
+    TrendingDown,
+    Eye,
+    Calendar,
+    Clock,
+    Building2,
+    X
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -71,6 +76,7 @@ import {
     ProductCategoriesResponse
 } from "@/interfaces/productCategories";
 import { toast } from "react-hot-toast";
+import PageHeader from "@/components/(shared-components)/PageHeader";
 
 const { Text } = Typography;
 
@@ -84,6 +90,8 @@ export default function ProductsPage() {
     const [editingProduct, setEditingProduct] = useState<ProductResponse | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [form] = Form.useForm();
+    const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
+    const [viewingProduct, setViewingProduct] = useState<ProductResponse | null>(null);
     const { token } = theme.useToken();
 
     const fetchData = useCallback(async () => {
@@ -129,6 +137,16 @@ export default function ProductsPage() {
         setIsModalVisible(false);
         setEditingProduct(null);
         form.resetFields();
+    };
+
+    const showDetailsModal = (product: ProductResponse) => {
+        setViewingProduct(product);
+        setIsDetailsModalVisible(true);
+    };
+
+    const handleDetailsCancel = () => {
+        setIsDetailsModalVisible(false);
+        setViewingProduct(null);
     };
 
     const onFinish = async (values: any) => {
@@ -224,12 +242,8 @@ export default function ProductsPage() {
         <div className="p-6 space-y-8 bg-slate-50/50 min-h-screen">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Products Inventory</h1>
-                    <p className="text-slate-500 mt-1 text-lg">
-                        Manage your catalog, prices, and stock levels efficiently.
-                    </p>
-                </div>
+                <PageHeader title="Products Inventory" description=" Manage your catalog, prices, and stock levels efficiently." />
+
                 <div className="flex items-center gap-3">
                     <Button
                         variant="outline"
@@ -486,11 +500,11 @@ export default function ProductsPage() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="w-full h-8 border-slate-200 hover:border-primary hover:text-primary hover:bg-primary/5 rounded-lg text-xs font-medium mt-1"
-                                        onClick={() => showModal(product)}
+                                        className="w-full h-8 border-slate-200 hover:border-primary hover:text-primary hover:bg-primary/5 rounded-lg text-xs font-medium mt-1 transition-all flex items-center justify-center gap-1.5"
+                                        onClick={() => showDetailsModal(product)}
                                     >
-                                        <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                                        Edit
+                                        <Eye className="h-3.5 w-3.5" />
+                                        View Details
                                     </Button>
                                 </div>
                             </div>
@@ -816,54 +830,214 @@ export default function ProductsPage() {
                 </div>
             </Modal>
 
-            {/* Custom CSS for Ant Modal */}
-            <style jsx global>{`
-                .ant-modal-custom .ant-modal-content {
-                    padding: 0;
-                    overflow: hidden;
-                    border-radius: 16px;
-                }
-                .ant-modal-custom .ant-divider {
-                    margin: 0;
-                }
-                .ant-modal-custom .ant-form-item-label {
-                    padding-bottom: 4px;
-                }
-                .ant-modal-custom .ant-form-item-label label {
-                    font-size: 13px;
-                    color: #64748b;
-                }
-                .ant-modal-custom .ant-input,
-                .ant-modal-custom .ant-input-number,
-                .ant-modal-custom .ant-select-selector {
-                    border-radius: 10px !important;
-                    border: 1px solid #e2e8f0;
-                    box-shadow: none !important;
-                }
-                .ant-modal-custom .ant-input:hover,
-                .ant-modal-custom .ant-input-number:hover,
-                .ant-modal-custom .ant-select-selector:hover {
-                    border-color: #94a3b8 !important;
-                }
-                .ant-modal-custom .ant-input:focus,
-                .ant-modal-custom .ant-input-number:focus,
-                .ant-modal-custom .ant-select-focused .ant-select-selector {
-                    border-color: #6366f1 !important;
-                    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
-                }
-                .ant-modal-custom .ant-switch {
-                    background-color: #cbd5e1;
-                }
-                .ant-modal-custom .ant-switch-checked {
-                    background-color: #22c55e !important;
-                }
-                .ant-modal-custom .ant-input-number-handler-wrap {
-                    display: none;
-                }
-                .ant-tooltip {
-                    font-size: 12px;
-                }
-            `}</style>
+            {/* Product Details Modal */}
+            <Modal
+                open={isDetailsModalVisible}
+                onCancel={handleDetailsCancel}
+                footer={null}
+                width={700}
+                centered
+                closable={false}
+                styles={{
+                    ...modalStyles,
+                    body: { padding: 0 }
+                }}
+                modalRender={(modal) => (
+                    <div className="ant-modal-details-custom">
+                        {modal}
+                    </div>
+                )}
+            >
+                {viewingProduct && (
+                    <div className="flex flex-col bg-white">
+                        {/* Header */}
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                    <Package className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-lg font-semibold text-slate-900">{viewingProduct.name}</h2>
+                                        <span className={`
+                                text-xs px-2 py-0.5 rounded-full font-medium
+                                ${viewingProduct.is_active
+                                                ? 'bg-emerald-50 text-emerald-700'
+                                                : 'bg-rose-50 text-rose-700'
+                                            }
+                            `}>
+                                            {viewingProduct.is_active ? 'Active' : 'Archived'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
+                                        <span className="flex items-center gap-1">
+                                            <Tag className="h-3.5 w-3.5" />
+                                            {getCategoryName(viewingProduct.category_id)}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <Building2 className="h-3.5 w-3.5" />
+                                            {viewingProduct.brand || 'No Brand'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleDetailsCancel}
+                                className="h-8 w-8 rounded-lg hover:bg-slate-100"
+                            >
+                                <X className="h-4 w-4 text-slate-400" />
+                            </Button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                            {/* Quick Stats */}
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="bg-slate-50 rounded-lg p-3">
+                                    <p className="text-xs text-slate-500 mb-1">Selling Price</p>
+                                    <p className="text-lg font-bold text-slate-900">₵{viewingProduct.selling_price.toLocaleString()}</p>
+                                </div>
+                                <div className="bg-slate-50 rounded-lg p-3">
+                                    <p className="text-xs text-slate-500 mb-1">Cost Price</p>
+                                    <p className="text-lg font-bold text-slate-900">₵{viewingProduct.cost_price.toLocaleString()}</p>
+                                </div>
+                                <div className="bg-slate-50 rounded-lg p-3">
+                                    <p className="text-xs text-slate-500 mb-1">Profit</p>
+                                    <p className={`text-lg font-bold ${(viewingProduct.selling_price - viewingProduct.cost_price) >= 0
+                                        ? 'text-emerald-600'
+                                        : 'text-rose-600'
+                                        }`}>
+                                        ₵{(viewingProduct.selling_price - viewingProduct.cost_price).toLocaleString()}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Margin Bar */}
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-slate-500">Gross Margin</span>
+                                    <span className={`font-medium ${viewingProduct.markup_percentage >= 30
+                                        ? 'text-emerald-600'
+                                        : viewingProduct.markup_percentage >= 15
+                                            ? 'text-amber-600'
+                                            : 'text-rose-600'
+                                        }`}>
+                                        {viewingProduct.markup_percentage}%
+                                    </span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full ${viewingProduct.markup_percentage >= 30
+                                            ? 'bg-emerald-500'
+                                            : viewingProduct.markup_percentage >= 15
+                                                ? 'bg-amber-500'
+                                                : 'bg-rose-500'
+                                            }`}
+                                        style={{ width: `${Math.min(viewingProduct.markup_percentage, 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Left Column */}
+                                <div className="space-y-4">
+                                    <div className="border border-slate-100 rounded-lg p-3">
+                                        <p className="text-xs text-slate-400 mb-1">SKU</p>
+                                        <p className="text-sm font-mono text-slate-700">{viewingProduct.sku || 'N/A'}</p>
+                                    </div>
+                                    <div className="border border-slate-100 rounded-lg p-3">
+                                        <p className="text-xs text-slate-400 mb-1">Barcode</p>
+                                        <p className="text-sm font-mono text-slate-700">{viewingProduct.barcode || 'N/A'}</p>
+                                    </div>
+                                    <div className="border border-slate-100 rounded-lg p-3">
+                                        <p className="text-xs text-slate-400 mb-1">Tax Rate</p>
+                                        <p className="text-sm text-slate-700">{viewingProduct.tax_rate}%</p>
+                                    </div>
+                                </div>
+
+                                {/* Right Column */}
+                                <div className="space-y-4">
+                                    <div className="border border-slate-100 rounded-lg p-3">
+                                        <p className="text-xs text-slate-400 mb-1">Tax Status</p>
+                                        <div className="flex items-center gap-1.5">
+                                            {viewingProduct.is_taxable ? (
+                                                <>
+                                                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                                                    <span className="text-sm text-slate-700">Taxable</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <XCircle className="h-4 w-4 text-slate-400" />
+                                                    <span className="text-sm text-slate-700">Non-taxable</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="border border-slate-100 rounded-lg p-3">
+                                        <p className="text-xs text-slate-400 mb-1">Visibility</p>
+                                        <div className="flex items-center gap-1.5">
+                                            <Eye className={`h-4 w-4 ${viewingProduct.is_active ? 'text-blue-500' : 'text-slate-400'}`} />
+                                            <span className="text-sm text-slate-700">
+                                                {viewingProduct.is_active ? 'Visible in POS' : 'Hidden'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="border border-slate-100 rounded-lg p-3">
+                                        <p className="text-xs text-slate-400 mb-1">Description</p>
+                                        <p className="text-sm text-slate-600 line-clamp-2">
+                                            {viewingProduct.description || 'No description'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Timestamps */}
+                            <div className="bg-slate-50 rounded-lg p-3 flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                                    <span className="text-slate-500">Created:</span>
+                                    <span className="text-slate-700">
+                                        {new Date(viewingProduct.created_at).toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                                    <span className="text-slate-500">Updated:</span>
+                                    <span className="text-slate-700">
+                                        {new Date(viewingProduct.updated_at).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleDetailsCancel}
+                                className="h-9 px-4 rounded-lg text-sm"
+                            >
+                                Close
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={() => {
+                                    handleDetailsCancel();
+                                    showModal(viewingProduct);
+                                }}
+                                className="h-9 px-4 rounded-lg bg-primary hover:bg-primary/90 text-sm gap-1.5"
+                            >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Edit
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }

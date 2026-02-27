@@ -48,6 +48,7 @@ import {
     ProductCategoriesRequest
 } from "@/interfaces/productCategories";
 import { toast } from "react-hot-toast";
+import PageHeader from "@/components/(shared-components)/PageHeader";
 
 export default function ProductCategoryPage() {
     const [categories, setCategories] = useState<ProductCategoriesResponse[]>([]);
@@ -142,12 +143,8 @@ export default function ProductCategoryPage() {
     return (
         <div className="p-6 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Product Categories</h1>
-                    <p className="text-muted-foreground">
-                        Manage your product categories and their visibility.
-                    </p>
-                </div>
+                <PageHeader title="Product Categories" description="Manage your product categories and their visibility." />
+
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" onClick={fetchCategories} disabled={loading}>
                         <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />

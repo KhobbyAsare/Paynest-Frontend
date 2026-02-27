@@ -179,3 +179,73 @@ button {
   --color-error: #DC2626;
   --color-info: #0284C7;
 }
+
+
+.ant-modal-custom .ant-modal-content {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.ant-modal-custom .ant-divider {
+  margin: 0;
+}
+
+.ant-modal-custom .ant-form-item-label {
+  padding-bottom: 4px;
+}
+
+.ant-modal-custom .ant-form-item-label label {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ant-modal-custom .ant-input,
+.ant-modal-custom .ant-input-number,
+.ant-modal-custom .ant-select-selector {
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0;
+  box-shadow: none !important;
+}
+
+.ant-modal-custom .ant-input:hover,
+.ant-modal-custom .ant-input-number:hover,
+.ant-modal-custom .ant-select-selector:hover {
+  border-color: #94a3b8 !important;
+}
+
+.ant-modal-custom .ant-input:focus,
+.ant-modal-custom .ant-input-number:focus,
+.ant-modal-custom .ant-select-focused .ant-select-selector {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+}
+
+.ant-modal-custom .ant-switch {
+  background-color: #cbd5e1;
+}
+
+.ant-modal-custom .ant-switch-checked {
+  background-color: #22c55e !important;
+}
+
+.ant-modal-custom .ant-input-number-handler-wrap {
+  display: none;
+}
+
+/* Details Modal Specific */
+.ant-modal-details-custom .ant-modal-content {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  border: none;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+.ant-modal-details-custom .ant-modal-body {
+  padding: 0;
+}
+
+.ant-tooltip {
+  font-size: 12px;
+}
