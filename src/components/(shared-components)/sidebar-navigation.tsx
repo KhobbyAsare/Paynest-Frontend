@@ -19,15 +19,14 @@ import {
     BellIcon,
     DocumentTextIcon,
     KeyIcon,
-    ClipboardDocumentCheckIcon,
-    QueueListIcon,
     ReceiptPercentIcon,
     WrenchScrewdriverIcon,
     Square2StackIcon,
     UserCircleIcon,
     CubeTransparentIcon,
     BuildingOfficeIcon,
-    BuildingOffice2Icon
+    BuildingOffice2Icon,
+    CalculatorIcon
 } from '@heroicons/react/24/outline'
 import Image from 'next/image'
 import { Wallet, LogOut } from 'lucide-react'
@@ -60,12 +59,6 @@ const UserPlusIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-const CheckCircleIcon = ({ className }: { className?: string }) => (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-);
-
 // Define navigation items based on roles
 const navigationItems: NavItem[] = [
     {
@@ -74,6 +67,13 @@ const navigationItems: NavItem[] = [
         icon: HomeIcon,
         current: true,
         roles: ['superadmin', 'admin', 'manager', 'attendant']
+    },
+    {
+        name: 'Sales',
+        href: '/sales',
+        icon: CalculatorIcon,
+        current: true,
+        roles: ['attendant']
     },
     {
         name: 'Organization Management',
@@ -159,25 +159,6 @@ const navigationItems: NavItem[] = [
         ]
     },
     {
-        name: 'Queue',
-        href: '/queue',
-        icon: QueueListIcon,
-        current: false,
-        roles: ['manager', 'attendant']
-    },
-    {
-        name: 'Tasks',
-        href: '#',
-        icon: ClipboardDocumentCheckIcon,
-        current: false,
-        roles: ['admin', 'manager', 'attendant'],
-        subItems: [
-            { name: 'My Tasks', href: '/tasks/my', icon: ClipboardDocumentCheckIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
-            { name: 'Team Tasks', href: '/tasks/team', icon: UserGroupIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
-            { name: 'Completed Tasks', href: '/tasks/completed', icon: CheckCircleIcon, current: false, roles: ['superadmin', 'admin', 'manager'] },
-        ]
-    },
-    {
         name: 'Settings',
         href: '#',
         icon: Cog6ToothIcon,
@@ -218,7 +199,7 @@ const roleLabels = {
     attendant: 'Attendant'
 };
 
-export default function Sidebar({ children }: { children: React.ReactNode }) {
+export default function Sidebar({ children }: Readonly<{ children: React.ReactNode }>) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
     const [isMounted, setIsMounted] = useState(false);
@@ -247,7 +228,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const sectionsToExpand: string[] = [];
         filteredNavigation.forEach(item => {
-            if (item.subItems && item.subItems.some(subItem => pathname === subItem.href)) {
+            if (item.subItems?.some(subItem => pathname === subItem.href)) {
                 if (!expandedItems.includes(item.name)) {
                     sectionsToExpand.push(item.name);
                 }
@@ -415,12 +396,14 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                             </button>
                         </div>
                         <div className="relative flex grow flex-col gap-y-5 overflow-y-auto bg-primary px-6 pb-2">
-                            <div className="relative flex h-16 shrink-0 items-center gap-2">
-                                <Wallet className='size-8 text-white' />
-                                <SplitText text="Paynest" className="text-2xl font-bold text-white" />
-                            </div>
-                            <div>
-                                {renderRoleBadge()}
+                            <div className="sticky top-0 z-20 bg-primary pt-5 pb-1 -mx-6 px-6">
+                                <div className="relative flex h-16 shrink-0 items-center gap-2">
+                                    <Wallet className='size-8 text-white' />
+                                    <SplitText text="Paynest" className="text-2xl font-bold text-white" />
+                                </div>
+                                <div className="mt-4">
+                                    {renderRoleBadge()}
+                                </div>
                             </div>
                             <nav className="relative flex flex-1 flex-col">
                                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -464,12 +447,14 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
             {/* Static sidebar for desktop */}
             <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
                 <div className="relative flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-primary px-6 pb-2">
-                    <div className="relative flex h-16 shrink-0 items-center gap-2">
-                        <Wallet className='size-8 text-white' />
-                        <SplitText text="Paynest" className="text-2xl font-bold text-white" />
-                    </div>
-                    <div>
-                        {renderRoleBadge()}
+                    <div className="sticky top-0 z-20 bg-primary pt-5 pb-1 -mx-6 px-6">
+                        <div className="relative flex h-16 shrink-0 items-center gap-2">
+                            <Wallet className='size-8 text-white' />
+                            <SplitText text="Paynest" className="text-2xl font-bold text-white" />
+                        </div>
+                        <div className="mt-4">
+                            {renderRoleBadge()}
+                        </div>
                     </div>
                     <nav className="relative flex flex-1 flex-col">
                         <ul role="list" className="flex flex-1 flex-col gap-y-7">
