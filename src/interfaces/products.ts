@@ -29,6 +29,9 @@ export interface ProductResponse {
     id: number,
     organization_id: number,
     shop_id: number,
+    image_url?: string,
+    stock_quantity?: number,
+    category?: string,
     created_at: string,
     updated_at: string
 }
