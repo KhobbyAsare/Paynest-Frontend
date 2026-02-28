@@ -26,7 +26,9 @@ import {
     CubeTransparentIcon,
     BuildingOfficeIcon,
     BuildingOffice2Icon,
-    CalculatorIcon
+    CalculatorIcon,
+    ChevronDoubleLeftIcon,
+    ChevronDoubleRightIcon
 } from '@heroicons/react/24/outline'
 import Image from 'next/image'
 import { Wallet, LogOut } from 'lucide-react'
@@ -201,6 +203,7 @@ const roleLabels = {
 
 export default function Sidebar({ children }: Readonly<{ children: React.ReactNode }>) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
     const [isMounted, setIsMounted] = useState(false);
     const { user, clearAuth, accessToken } = useAuthStore();
@@ -286,12 +289,13 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
                 {hasSubItems ? (
                     <div>
                         <button
-                            onClick={() => toggleExpand(item.name)}
+                            onClick={() => isCollapsed && !isMobile ? setIsCollapsed(false) : toggleExpand(item.name)}
                             className={classNames(
                                 isActive
                                     ? isMobile ? 'bg-white text-primary' : 'bg-gray-50 text-primary'
                                     : isMobile ? 'text-white hover:bg-gray-50 hover:text-primary' : 'text-white hover:bg-gray-50 hover:text-primary',
-                                'group flex w-full items-center justify-between gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
+                                'group flex w-full items-center gap-x-3 rounded-md p-2 text-sm/6 font-semibold transition-all duration-300',
+                                isCollapsed && !isMobile ? 'justify-center' : 'justify-between'
                             )}
                         >
                             <div className="flex items-center gap-x-3">
@@ -304,21 +308,23 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
                                         'size-6 shrink-0',
                                     )}
                                 />
-                                {item.name}
+                                {(!isCollapsed || isMobile) && <span>{item.name}</span>}
                             </div>
-                            <svg
-                                className={classNames(
-                                    isExpanded ? 'rotate-180' : '',
-                                    'size-4 transition-transform duration-200'
-                                )}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
+                            {(!isCollapsed || isMobile) && (
+                                <svg
+                                    className={classNames(
+                                        isExpanded ? 'rotate-180' : '',
+                                        'size-4 transition-transform duration-200'
+                                    )}
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            )}
                         </button>
-                        {isExpanded && filteredSubItems.length > 0 && (
+                        {isExpanded && filteredSubItems.length > 0 && (!isCollapsed || isMobile) && (
                             <ul className="mt-1 ml-4 space-y-1 border-l-2 border-white/20 pl-2">
                                 {filteredSubItems.map((subItem) => {
                                     const isSubActive = pathname === subItem.href;
@@ -358,7 +364,8 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
                             isActive
                                 ? isMobile ? 'bg-white text-primary' : 'bg-gray-50 text-primary'
                                 : isMobile ? 'text-white hover:bg-gray-50 hover:text-primary' : 'text-white hover:bg-gray-50 hover:text-primary',
-                            'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
+                            'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold transition-all duration-300',
+                            isCollapsed && !isMobile ? 'justify-center' : ''
                         )}
                     >
                         <Icon
@@ -370,7 +377,7 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
                                 'size-6 shrink-0',
                             )}
                         />
-                        {item.name}
+                        {(!isCollapsed || isMobile) && <span>{item.name}</span>}
                     </Link>
                 )}
             </li>
@@ -445,16 +452,36 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
             </Dialog>
 
             {/* Static sidebar for desktop */}
-            <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-                <div className="relative flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-primary px-6 pb-2">
+            <div className={classNames(
+                "hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-all duration-300 ease-in-out border-r border-gray-200 bg-primary",
+                isCollapsed ? "lg:w-20" : "lg:w-72"
+            )}>
+                <div className="relative flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-2">
                     <div className="sticky top-0 z-20 bg-primary pt-5 pb-1 -mx-6 px-6">
-                        <div className="relative flex h-16 shrink-0 items-center gap-2">
-                            <Wallet className='size-8 text-white' />
-                            <SplitText text="Paynest" className="text-2xl font-bold text-white" />
+                        <div className={classNames(
+                            "relative flex h-16 shrink-0 items-center justify-between",
+                            isCollapsed ? "flex-col gap-y-4" : "gap-x-2"
+                        )}>
+                            <div className="flex items-center gap-x-2">
+                                <Wallet className='size-8 text-white shrink-0' />
+                                {!isCollapsed && <SplitText text="Paynest" className="text-2xl font-bold text-white whitespace-nowrap" />}
+                            </div>
+                            <button
+                                onClick={() => setIsCollapsed(!isCollapsed)}
+                                className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                            >
+                                {isCollapsed ? (
+                                    <ChevronDoubleRightIcon className="size-5" />
+                                ) : (
+                                    <ChevronDoubleLeftIcon className="size-5" />
+                                )}
+                            </button>
                         </div>
-                        <div className="mt-4">
-                            {renderRoleBadge()}
-                        </div>
+                        {!isCollapsed && (
+                            <div className="mt-4">
+                                {renderRoleBadge()}
+                            </div>
+                        )}
                     </div>
                     <nav className="relative flex flex-1 flex-col">
                         <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -464,27 +491,35 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
                                 </ul>
                             </li>
                             <li className="-mx-6 mt-auto">
-                                <div className="flex flex-col">
-                                    <div className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white">
+                                <div className="flex flex-col border-t border-white/10 pt-4">
+                                    <div className={classNames(
+                                        "flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white",
+                                        isCollapsed ? "justify-center" : ""
+                                    )}>
                                         <Image
                                             alt="Profile"
                                             src={user?.profile_pic || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
                                             width={32}
                                             height={32}
-                                            className="size-8 rounded-full bg-gray-50 outline -outline-offset-1 outline-black/5"
+                                            className="size-8 rounded-full bg-gray-50 outline -outline-offset-1 outline-black/5 shrink-0"
                                         />
-                                        <div className="flex flex-col">
-                                            <span className="sr-only">Your profile</span>
-                                            <span aria-hidden="true">{user?.first_name} {user?.last_name}</span>
-                                            <span className="text-xs text-gray-300">{user?.email}</span>
-                                        </div>
+                                        {!isCollapsed && (
+                                            <div className="flex flex-col truncate">
+                                                <span className="sr-only">Your profile</span>
+                                                <span className="truncate">{user?.first_name} {user?.last_name}</span>
+                                                <span className="text-[10px] text-gray-300 truncate">{user?.email}</span>
+                                            </div>
+                                        )}
                                     </div>
                                     <button
                                         onClick={handleLogout}
-                                        className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                                        className={classNames(
+                                            "flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-red-500/10 hover:text-red-400 transition-colors",
+                                            isCollapsed ? "justify-center px-2" : ""
+                                        )}
                                     >
-                                        <LogOut className="size-5" />
-                                        <span>Logout</span>
+                                        <LogOut className="size-5 shrink-0" />
+                                        {!isCollapsed && <span>Logout</span>}
                                     </button>
                                 </div>
                             </li>
@@ -520,7 +555,10 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
                 </div>
             </div>
 
-            <main className="lg:pl-72">
+            <main className={classNames(
+                "transition-all duration-300 ease-in-out",
+                isCollapsed ? "lg:pl-20" : "lg:pl-72"
+            )}>
                 <div>
                     <div className="sticky top-0 z-50 bg-primary text-white p-4">
                         <h1 className="text-2xl font-bold text-gray-100">
