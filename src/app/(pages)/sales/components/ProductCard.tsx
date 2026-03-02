@@ -51,7 +51,7 @@ export function ProductCard({ product, quantity, onUpdateQuantity }: Readonly<Pr
         >
             {/* Product Image */}
             <div className={cn(
-                "relative h-40 overflow-hidden bg-gradient-to-br",
+                "relative h-40 overflow-hidden bg-linear-to-br",
                 placeholderColor
             )}>
                 {!imageError && product.image_url ? (
@@ -93,7 +93,7 @@ export function ProductCard({ product, quantity, onUpdateQuantity }: Readonly<Pr
             {/* Product Info */}
             <div className="p-4">
                 <div className="flex justify-between items-start gap-2 mb-2">
-                    <h3 className="font-semibold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">
+                    <h3 className="font-semibold text-slate-800 line-clamp-1 group-hover:text-primary-color transition-colors">
                         {product.name}
                     </h3>
                     <div className="shrink-0">
@@ -124,7 +124,7 @@ export function ProductCard({ product, quantity, onUpdateQuantity }: Readonly<Pr
                             <button
                                 onClick={() => onUpdateQuantity(product.id, -1)}
                                 disabled={quantity === 0}
-                                className="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-blue-600 hover:bg-white transition-all disabled:opacity-30"
+                                className="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-primary-color hover:bg-white transition-all disabled:opacity-30"
                             >
                                 <Minus className="w-4 h-4" />
                             </button>
@@ -133,7 +133,7 @@ export function ProductCard({ product, quantity, onUpdateQuantity }: Readonly<Pr
                             </span>
                             <button
                                 onClick={() => onUpdateQuantity(product.id, 1)}
-                                className="w-8 h-8 flex items-center justify-center rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-all"
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-primary-color text-white hover:opacity-90 transition-all"
                             >
                                 <Plus className="w-4 h-4" />
                             </button>
@@ -147,7 +147,7 @@ export function ProductCard({ product, quantity, onUpdateQuantity }: Readonly<Pr
                             "w-full py-2.5 rounded-lg text-white text-sm font-medium transition-all flex items-center justify-center gap-2",
                             product.stock_quantity === 0
                                 ? "bg-slate-300 cursor-not-allowed"
-                                : "bg-blue-600 hover:bg-blue-700"
+                                : "bg-primary-color hover:opacity-90"
                         )}
                     >
                         <ShoppingCart className="w-4 h-4" />

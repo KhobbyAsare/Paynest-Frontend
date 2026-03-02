@@ -1,15 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
     Search,
-    Bell,
     CreditCard,
     Wallet,
     Banknote,
     ChevronRight,
-    Clock,
     X,
     Receipt,
     ShoppingBag,
@@ -25,44 +22,50 @@ import { ProductCategoriesResponse } from "@/interfaces/productCategories";
 import { CategoryItem } from "./components/CategoryItem";
 import { ProductCard } from "./components/ProductCard";
 import { CartItem } from "./components/CartItem";
-import { useAuthStore } from "@/(zustand-store)/authStore";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-
-interface CartItemData {
-    product: ProductResponse;
-    quantity: number;
-    specialInstructions?: string;
-}
+import { useSalesStore } from "@/(zustand-store)/salesStore";
+import { Switch } from "@/components/ui/switch";
+import { SalesCompletionModal } from "./components/SalesCompletionModal";
 
 export default function SalesPage() {
     const [products, setProducts] = useState<ProductResponse[]>([]);
     const [categories, setCategories] = useState<ProductCategoriesResponse[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | "all">("all");
     const [searchQuery, setSearchQuery] = useState("");
-    const [cart, setCart] = useState<Record<number, CartItemData>>({});
     const [isLoading, setIsLoading] = useState(true);
-    const [paymentMethod, setPaymentMethod] = useState<"credit" | "paylater" | "cash">("credit");
     const [showCheckout, setShowCheckout] = useState(false);
+    const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
 
-    const { user } = useAuthStore();
+    const {
+        cart,
+        isOrderMode,
+        toggleOrderMode,
+        updateCartQuantity,
+        removeFromCart,
+        addToCart,
+        paymentMethod,
+        setPaymentMethod
+    } = useSalesStore();
 
     const cartItems = Object.values(cart);
     const itemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
     const subTotal = cartItems.reduce(
-        (acc, item) => acc + item.product.selling_price * item.quantity,
+        (acc, item) => acc + (item.product?.selling_price || 0) * item.quantity,
         0
     );
     const tax = subTotal * 0.04;
     const total = subTotal + tax;
 
+    const prevItemCount = useRef(itemCount);
+
     // Auto-show sidebar only when the first item is added to an empty cart
     useEffect(() => {
-        if (itemCount > 0 && itemCount <= 1 && !showCheckout) {
+        if (prevItemCount.current === 0 && itemCount > 0) {
             setShowCheckout(true);
         }
+        prevItemCount.current = itemCount;
     }, [itemCount]);
 
     useEffect(() => {
@@ -95,39 +98,42 @@ export default function SalesPage() {
         });
     }, [products, selectedCategoryId, searchQuery]);
 
-    const updateCartQuantity = (productId: number, delta: number, instructions?: string) => {
-        setCart((prev) => {
-            const currentItem = prev[productId];
-            const product = products.find((p) => p.id === productId);
+    const renderProductList = () => {
+        if (isLoading) {
+            return Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-64 bg-slate-100 rounded-2xl animate-pulse" />
+            ));
+        }
 
-            if (!product) return prev;
+        if (filteredProducts.length > 0) {
+            return filteredProducts.map((product) => (
+                <ProductCard
+                    key={product.id}
+                    product={product}
+                    quantity={cart[product.id]?.quantity || 0}
+                    onUpdateQuantity={(id, delta) => {
+                        if (delta > 0 && !cart[id]) {
+                            addToCart(product);
+                        } else {
+                            updateCartQuantity(id, delta);
+                        }
+                    }}
+                />
+            ));
+        }
 
-            const newQuantity = (currentItem?.quantity || 0) + delta;
-
-            if (newQuantity <= 0) {
-                const rest = { ...prev };
-                delete rest[productId];
-                return rest;
-            }
-
-            return {
-                ...prev,
-                [productId]: {
-                    product,
-                    quantity: newQuantity,
-                    specialInstructions: instructions || currentItem?.specialInstructions,
-                },
-            };
-        });
+        return (
+            <div className="col-span-full py-20 text-center">
+                <div className="inline-flex flex-col items-center gap-4">
+                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center">
+                        <Search className="w-8 h-8 text-slate-300" />
+                    </div>
+                    <p className="text-slate-400 font-medium">No products found</p>
+                </div>
+            </div>
+        );
     };
 
-    const removeFromCart = (productId: number) => {
-        setCart((prev) => {
-            const rest = { ...prev };
-            delete rest[productId];
-            return rest;
-        });
-    };
     return (
         <div className="min-h-[calc(100vh-80px)] bg-linear-to-br from-slate-50 via-white to-slate-50/50 relative">
             <div className="flex gap-0 p-4 lg:p-6">
@@ -146,31 +152,30 @@ export default function SalesPage() {
                                 placeholder="Search your menu..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-0 focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition-all text-sm"
+                                className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-0 focus:ring-2 focus:ring-primary-color/20 focus:bg-white transition-all text-sm"
                             />
                         </div>
 
                         <div className="flex items-center gap-3">
-
                             {/* Sidebar Toggle / Cart Button */}
                             <button
                                 onClick={() => setShowCheckout(!showCheckout)}
                                 className={cn(
                                     "flex items-center gap-3 p-1.5 pr-4 rounded-xl border transition-all duration-300 group",
                                     showCheckout
-                                        ? "bg-violet-600 border-violet-500 text-white shadow-lg shadow-violet-200"
-                                        : "bg-white border-slate-200 text-slate-600 hover:border-violet-200 hover:bg-violet-50/50"
+                                        ? "bg-primary-color border-primary-color text-white shadow-lg shadow-primary-color/20"
+                                        : "bg-white border-slate-200 text-slate-600 hover:border-primary-color/20 hover:bg-primary-color/5"
                                 )}
                             >
                                 <div className={cn(
                                     "relative p-2 rounded-lg transition-colors",
-                                    showCheckout ? "bg-white/20" : "bg-slate-100 group-hover:bg-violet-100 group-hover:text-violet-600"
+                                    showCheckout ? "bg-white/20" : "bg-slate-100 group-hover:bg-primary-color/10 group-hover:text-primary-color"
                                 )}>
                                     <ShoppingBag className="w-5 h-5" />
                                     {itemCount > 0 && (
                                         <span className={cn(
                                             "absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center ring-2",
-                                            showCheckout ? "bg-white text-violet-600 ring-violet-600" : "bg-rose-500 text-white ring-white"
+                                            showCheckout ? "bg-white text-primary-color ring-primary-color" : "bg-rose-500 text-white ring-white"
                                         )}>
                                             {itemCount}
                                         </span>
@@ -185,28 +190,9 @@ export default function SalesPage() {
                                 </div>
                                 <ChevronRight className={cn(
                                     "w-4 h-4 transition-transform duration-300",
-                                    showCheckout ? "rotate-180 text-white/70" : "text-slate-400 group-hover:text-violet-400"
+                                    showCheckout ? "rotate-180 text-white/70" : "text-slate-400 group-hover:text-primary-color/70"
                                 )} />
                             </button>
-
-                            {/* Divider */}
-                            {/* <div className="w-px h-8 bg-slate-100 mx-1 hidden lg:block" /> */}
-
-                            {/* Compact User Profile */}
-                            {/* <div className="flex items-center gap-2.5 pl-1">
-                                <div className="relative w-9 h-9 rounded-xl overflow-hidden ring-2 ring-slate-100">
-                                    <Image
-                                        src={user?.profile_pic || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=128&h=128&q=80"}
-                                        alt="User"
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </div>
-                                <div className="hidden xl:block">
-                                    <p className="text-xs font-bold text-slate-700 leading-tight">{user?.first_name}</p>
-                                    <p className="text-[10px] text-slate-400 uppercase font-medium tracking-tighter">Cashier</p>
-                                </div>
-                            </div> */}
                         </div>
                     </motion.div>
 
@@ -256,29 +242,7 @@ export default function SalesPage() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-4">
-                            {isLoading ? (
-                                Array.from({ length: 8 }).map((_, i) => (
-                                    <div key={i} className="h-64 bg-slate-100 rounded-2xl animate-pulse" />
-                                ))
-                            ) : filteredProducts.length > 0 ? (
-                                filteredProducts.map((product) => (
-                                    <ProductCard
-                                        key={product.id}
-                                        product={product}
-                                        quantity={cart[product.id]?.quantity || 0}
-                                        onUpdateQuantity={updateCartQuantity}
-                                    />
-                                ))
-                            ) : (
-                                <div className="col-span-full py-20 text-center">
-                                    <div className="inline-flex flex-col items-center gap-4">
-                                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center">
-                                            <Search className="w-8 h-8 text-slate-300" />
-                                        </div>
-                                        <p className="text-slate-400 font-medium">No products found</p>
-                                    </div>
-                                </div>
-                            )}
+                            {renderProductList()}
                         </div>
                     </motion.div>
                 </div>
@@ -305,7 +269,7 @@ export default function SalesPage() {
                                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
                                 className={cn(
                                     "fixed right-0 top-0 h-full z-50 shadow-2xl flex flex-col",
-                                    "w-full sm:w-[500px] lg:w-[480px]"
+                                    "w-full sm:w-[500px] lg:w-[440px]"
                                 )}
                             >
                                 <div className="h-full bg-white lg:rounded-md border-l lg:border border-slate-200 shadow-2xl lg:shadow-xl flex flex-col">
@@ -313,13 +277,22 @@ export default function SalesPage() {
                                     <div className="p-6 border-b border-slate-100">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2.5 bg-linear-to-br from-violet-500 to-indigo-600 rounded-xl">
+                                                <div className="p-2.5 bg-primary-color rounded-xl">
                                                     <Receipt className="w-5 h-5 text-white" />
                                                 </div>
                                                 <div>
-                                                    <h2 className="text-lg font-bold text-slate-800">Current Order</h2>
+                                                    <h2 className="text-lg font-bold text-slate-800">Current Sale</h2>
                                                     <p className="text-xs text-slate-400">{itemCount} items selected</p>
                                                 </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-full border border-slate-100">
+                                                <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors", !isOrderMode ? "text-primary-color" : "text-slate-400")}>Walk-in</span>
+                                                <Switch
+                                                    checked={isOrderMode}
+                                                    onCheckedChange={toggleOrderMode}
+                                                    className="data-[state=checked]:bg-primary-color"
+                                                />
+                                                <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors", isOrderMode ? "text-primary-color" : "text-slate-400")}>Order</span>
                                             </div>
                                             <button
                                                 onClick={() => setShowCheckout(false)}
@@ -372,7 +345,7 @@ export default function SalesPage() {
                                                 </div>
                                                 <div className="pt-2 mt-2 border-t border-slate-200 flex justify-between items-center">
                                                     <span className="text-slate-600 font-semibold">Total</span>
-                                                    <span className="text-2xl font-bold bg-linear-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+                                                    <span className="text-2xl font-bold text-primary-color">
                                                         ${total.toFixed(2)}
                                                     </span>
                                                 </div>
@@ -381,13 +354,13 @@ export default function SalesPage() {
                                             {/* Payment Methods */}
                                             <div className="grid grid-cols-3 gap-2">
                                                 {[
-                                                    { id: 'credit', icon: CreditCard, label: 'Credit Card', color: 'from-blue-500 to-blue-600' },
-                                                    { id: 'mobilemoney', icon: Wallet, label: 'Mobile Money', color: 'from-emerald-500 to-emerald-600' },
+                                                    { id: 'bank transfer', icon: CreditCard, label: 'Credit Card', color: 'from-blue-500 to-blue-600' },
+                                                    { id: 'mobile transfer', icon: Wallet, label: 'Mobile Money', color: 'from-emerald-500 to-emerald-600' },
                                                     { id: 'cash', icon: Banknote, label: 'Cash', color: 'from-amber-500 to-amber-600' },
                                                 ].map((method) => (
                                                     <button
                                                         key={method.id}
-                                                        onClick={() => setPaymentMethod(method.id as any)}
+                                                        onClick={() => setPaymentMethod(method.id as "bank transfer" | "mobile transfer" | "cash")}
                                                         className={cn(
                                                             "relative p-3 rounded-xl border-2 transition-all group",
                                                             paymentMethod === method.id
@@ -409,16 +382,13 @@ export default function SalesPage() {
                                                 ))}
                                             </div>
 
-                                            {/* Place Order Button */}
+                                            {/* Action Button */}
                                             <Button
-                                                className="w-full py-6 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg shadow-violet-200 transition-all active:scale-[0.98]"
+                                                className="w-full py-6 rounded-md bg-primary-color hover:opacity-90 text-white font-semibold text-lg shadow-lg shadow-primary-color/20 transition-all active:scale-[0.98]"
                                                 disabled={cartItems.length === 0}
-                                                onClick={() => {
-                                                    toast.success("Order placed successfully!");
-                                                    setCart({});
-                                                }}
+                                                onClick={() => setIsCompletionModalOpen(true)}
                                             >
-                                                Place Order
+                                                {isOrderMode ? "Place Order" : "Proceed to Payment"}
                                                 <ChevronRight className="w-5 h-5 ml-2" />
                                             </Button>
 
@@ -449,7 +419,7 @@ export default function SalesPage() {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0 }}
-                            className="lg:hidden fixed bottom-6 right-6 z-50 p-4 bg-linear-to-r from-violet-600 to-indigo-600 rounded-full shadow-xl"
+                            className="lg:hidden fixed bottom-6 right-6 z-50 p-4 bg-primary-color text-white rounded-full shadow-xl"
                             onClick={() => setShowCheckout(true)}
                         >
                             <ShoppingBag className="w-6 h-6 text-white" />
@@ -462,6 +432,14 @@ export default function SalesPage() {
                     )}
                 </AnimatePresence>
             </div>
+
+            <SalesCompletionModal
+                isOpen={isCompletionModalOpen}
+                onClose={() => setIsCompletionModalOpen(false)}
+                total={total}
+                subTotal={subTotal}
+                tax={tax}
+            />
         </div>
     );
 }

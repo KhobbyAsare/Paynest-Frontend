@@ -42,13 +42,13 @@ export function CartItem({ id, name, price, quantity, sku, imageUrl, onUpdateQua
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, x: -100 }}
-            className="group bg-white rounded-xl border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all overflow-hidden"
+            className="group bg-white rounded-xl border border-slate-100 hover:border-primary-color/20 hover:shadow-md transition-all overflow-hidden"
         >
             <div className="p-3">
                 <div className="flex gap-3">
                     {/* Product Image with Gradient Placeholder */}
                     <div className={cn(
-                        "relative w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br shrink-0",
+                        "relative w-16 h-16 rounded-lg overflow-hidden bg-linear-to-br shrink-0",
                         getPlaceholderColor(name)
                     )}>
                         {!imageError && imageUrl ? (
@@ -92,7 +92,7 @@ export function CartItem({ id, name, price, quantity, sku, imageUrl, onUpdateQua
                         {/* Notes Toggle - Optional for general POS */}
                         <button
                             onClick={() => setShowNotes(!showNotes)}
-                            className="flex items-center gap-1 mt-2 text-[10px] text-slate-400 hover:text-blue-600 transition-colors"
+                            className="flex items-center gap-1 mt-2 text-[10px] text-slate-400 hover:text-primary-color transition-colors"
                         >
                             <MessageSquare className="w-3 h-3" />
                             {notes ? "Edit notes" : "Add notes"}
@@ -100,14 +100,14 @@ export function CartItem({ id, name, price, quantity, sku, imageUrl, onUpdateQua
 
                         {/* Quantity Controls */}
                         <div className="flex items-center justify-between mt-3">
-                            <span className="text-sm font-bold text-blue-600">
+                            <span className="text-sm font-bold text-primary-color">
                                 ${(price * quantity).toFixed(2)}
                             </span>
 
                             <div className="flex items-center gap-1 bg-slate-50 rounded-lg p-1">
                                 <button
                                     onClick={() => onUpdateQuantity(id, -1)}
-                                    className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-blue-600 hover:bg-white transition-all"
+                                    className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-primary-color hover:bg-white transition-all"
                                 >
                                     <Minus className="w-3 h-3" />
                                 </button>
@@ -116,7 +116,7 @@ export function CartItem({ id, name, price, quantity, sku, imageUrl, onUpdateQua
                                 </span>
                                 <button
                                     onClick={() => onUpdateQuantity(id, 1)}
-                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-all"
+                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-primary-color text-white hover:opacity-90 transition-all"
                                 >
                                     <Plus className="w-3 h-3" />
                                 </button>
@@ -142,7 +142,7 @@ export function CartItem({ id, name, price, quantity, sku, imageUrl, onUpdateQua
                                     onUpdateQuantity(id, 0, e.target.value);
                                 }}
                                 placeholder="Add notes (e.g., gift wrap, urgent, etc.)"
-                                className="w-full mt-3 p-2 text-xs bg-slate-50 rounded-lg border-0 focus:ring-2 focus:ring-blue-500/20"
+                                className="w-full mt-3 p-2 text-xs bg-slate-50 rounded-lg border-0 focus:ring-2 focus:ring-primary-color/20"
                             />
                         </motion.div>
                     )}
