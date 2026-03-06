@@ -40,7 +40,7 @@ export default function AttendantView({
     notes,
     setNotes,
     onOpenModal
-}: AttendantViewProps) {
+}: Readonly<AttendantViewProps>) {
     const status = closure?.status?.toLowerCase() || "";
 
     if (!closure) {

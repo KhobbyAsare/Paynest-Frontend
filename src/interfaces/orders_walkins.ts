@@ -62,18 +62,52 @@ export interface OrderWalkInsResponse {
         status: PaymentStatus,
         amount_paid: number
     },
-    items: {
-        product_id: number,
-        quantity: number,
-        notes: string
-    }[],
+    items: [],
     id: number,
     organization_id: number,
     order_number: string,
     attendant_id: number,
+    subtotal: number,
+    tax_amount: number,
+    discount_amount: number,
+    total_amount: number,
+    amount_paid: number,
+    amount_due: number,
+    payment_method: PaymentMethod,
+    payment_status: PaymentStatus,
     order_date: string,
     order_time: string,
     close_at: string,
     created_at: string,
-    updated_at: string
+    updated_at: string,
+    customer: {
+        customer_code: string,
+        first_name: string,
+        last_name: string,
+        email: string,
+        phone: string,
+        date_of_birth: string,
+        gender: string,
+        address: string,
+        city: string,
+        state: string,
+        country: string,
+        postal_code: string,
+        loyalty_points: number,
+        loyalty_tier: string,
+        preferred_payment_method: string,
+        communication_preferences: {
+            email: boolean,
+            sms: boolean,
+            phone: boolean,
+            marketing_emails: boolean
+        },
+        notes: string,
+        is_active: boolean,
+        id: number,
+        organization_id: number,
+        created_at: string,
+        updated_at: string
+    },
+    payments: []
 }

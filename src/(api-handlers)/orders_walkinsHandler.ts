@@ -42,7 +42,7 @@ export const GetWalkinOrderById = async (id: number): Promise<OrderWalkInsRespon
 export const CloseOrder = async (id: number): Promise<OrderWalkInsResponse> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.patch(`${url}/orders/${id}/close/`, {
+        const response = await axios.patch(`${url}/orders/${id}/close/`, {}, {
             headers: getAPIHeaders(),
         })
         return response.data
@@ -55,7 +55,7 @@ export const CloseOrder = async (id: number): Promise<OrderWalkInsResponse> => {
 export const UpdateOrderStatus = async (id: number, status_name: OrderStatus): Promise<OrderWalkInsResponse> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.patch(`${url}/orders/${id}/status/${status_name}`, {
+        const response = await axios.put(`${url}/orders/${id}/status/${status_name}`, {}, {
             headers: getAPIHeaders(),
         })
         return response.data

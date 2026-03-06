@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -5,6 +6,15 @@ import {
     Banknote,
     RefreshCcw,
     Plus,
+    X,
+    AlertCircle,
+    CheckCircle,
+    Calendar,
+    Clock,
+    Building2,
+    Wallet,
+    FileText,
+    Save,
 } from "lucide-react";
 import { useAuthStore } from "@/(zustand-store)/authStore";
 import {
@@ -21,13 +31,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Modal, theme, Select } from "antd";
-import { Building2 } from "lucide-react";
+import { Modal, theme, Select, Space, Typography, Divider } from "antd";
 import toast from "react-hot-toast";
 import PageHeader from "@/components/(shared-components)/PageHeader";
+import { motion } from "framer-motion";
+import { format } from "date-fns";
 
 import AttendantView from "./views/AttendantView";
 import AdminView from "./views/AdminView";
+
+const { Text } = Typography;
 
 export default function DailyClosurePage() {
     const { user } = useAuthStore();
@@ -40,7 +53,7 @@ export default function DailyClosurePage() {
     const { token } = theme.useToken();
 
     // Form states
-    const [openingBalance, setOpeningBalance] = useState<string>("0");
+    const [openingBalance, setOpeningBalance] = useState<string>("");
     const [openingNotes, setOpeningNotes] = useState<string>("");
     const [actualCash, setActualCash] = useState<string>("");
     const [notes, setNotes] = useState<string>("");
@@ -126,6 +139,12 @@ export default function DailyClosurePage() {
             toast.error("No shop selected. Please select a shop first.");
             return;
         }
+
+        if (!openingBalance || parseFloat(openingBalance) < 0) {
+            toast.error("Please enter a valid opening balance");
+            return;
+        }
+
         setIsActionLoading(true);
         try {
             await CreateDailyClosure({
@@ -135,7 +154,7 @@ export default function DailyClosurePage() {
                 closure_date: new Date().toISOString().split('T')[0]
             });
             toast.success("Daily closure opened successfully");
-            setOpeningBalance("0");
+            setOpeningBalance("");
             setOpeningNotes("");
             setIsModalVisible(false);
             await fetchCurrentClosure();
@@ -189,50 +208,30 @@ export default function DailyClosurePage() {
         }
     };
 
+    const getStatusBadge = (status: string) => {
+        const config: Record<string, { color: string, icon: any, label: string }> = {
+            opened: { color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Clock, label: 'Opened' },
+            open: { color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Clock, label: 'Opened' },
+            submitted: { color: 'bg-amber-50 text-amber-700 border-amber-200', icon: AlertCircle, label: 'Pending Verification' },
+            verified: { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle, label: 'Verified' },
+            rejected: { color: 'bg-rose-50 text-rose-700 border-rose-200', icon: AlertCircle, label: 'Rejected' },
+        };
+
+        const statusKey = status.toLowerCase();
+        return config[statusKey] || config.opened;
+    };
+
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <RefreshCcw className="w-10 h-10 text-primary-color animate-spin" />
+                <RefreshCcw className="w-10 h-10 text-primary animate-spin" />
                 <p className="text-slate-500 font-medium">Loading daily closure data...</p>
             </div>
         );
     }
 
-    const renderStatusBadge = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'opened':
-            case 'open':
-                return <Badge className="bg-blue-500 hover:bg-blue-600 text-white">Opened</Badge>;
-            case 'submitted':
-                return <Badge className="bg-amber-500 hover:bg-amber-600 text-white">Pending Verification</Badge>;
-            case 'verified':
-                return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">Verified</Badge>;
-            default:
-                return <Badge variant="outline">{status}</Badge>;
-        }
-    };
-
-
-    const modalStyles = {
-        header: {
-            borderRadius: token.borderRadiusLG,
-            padding: token.paddingLG,
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-        },
-        body: {
-            padding: token.paddingLG,
-        },
-        footer: {
-            borderTop: `1px solid ${token.colorBorderSecondary}`,
-            padding: token.paddingLG,
-        },
-        content: {
-            borderRadius: token.borderRadiusLG,
-        },
-    };
-
     return (
-        <div className="p-6 space-y-8 bg-slate-50/50 min-h-screen">
+        <div className="p-6 space-y-8 bg-linear-to-br from-slate-50 via-white to-slate-50 min-h-screen">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <PageHeader
@@ -244,150 +243,247 @@ export default function DailyClosurePage() {
                     {isAdmin && (
                         <Select
                             placeholder="Select Shop"
-                            className="w-[220px] h-12 rounded-xl"
+                            className="w-[220px] h-11"
                             value={selectedShopId}
                             onChange={(value) => setSelectedShopId(value)}
                             suffixIcon={<Building2 className="w-4 h-4 text-slate-400" />}
+                            style={{ borderRadius: '6px' }}
                         >
                             {shops.map((shop) => (
                                 <Select.Option key={shop.id} value={shop.id}>
-                                    {shop.name}
+                                    <Space>
+                                        <Building2 className="w-4 h-4" />
+                                        {shop.name}
+                                    </Space>
                                 </Select.Option>
                             ))}
                         </Select>
                     )}
+
                     <Button
                         variant="outline"
                         size="lg"
                         onClick={fetchCurrentClosure}
                         disabled={isLoading || !activeShopId}
-                        className="shadow-sm hover:bg-slate-100 transition-all border-slate-200"
+                        className="rounded-md h-11 border-slate-200 hover:border-slate-300"
                     >
-                        <RefreshCcw className={`h-5 w-5 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                        <RefreshCcw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                         Refresh
                     </Button>
+
                     {!closure && isInternalUser && (
                         <Button
                             onClick={() => setIsModalVisible(true)}
                             size="lg"
-                            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all"
+                            className="rounded-md h-11 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-black text-white shadow-lg px-6"
                         >
-                            <Plus className="mr-2 h-5 w-5" /> Open Daily Closure
+                            <Plus className="mr-2 h-4 w-4" />
+                            Open Daily Closure
                         </Button>
                     )}
                 </div>
             </div>
 
-            {
-                closure && (
-                    <div className="bg-white/40 backdrop-blur-xl p-4 rounded-3xl border border-white/20 shadow-sm flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-primary/10 rounded-xl">
-                                <Banknote className="w-5 h-5 text-primary" />
-                            </div>
-                            <span className="font-bold text-slate-700">Active Closure: {closure.closure_number}</span>
+            {/* Active Closure Banner */}
+            {closure && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-md border border-slate-200 shadow-sm p-4 flex items-center justify-between"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-primary/10 rounded-md">
+                            <Wallet className="w-5 h-5 text-primary" />
                         </div>
-                        {renderStatusBadge(closure.status)}
+                        <div>
+                            <p className="text-sm text-slate-500">Active Closure</p>
+                            <p className="font-bold text-slate-800">{closure.closure_number}</p>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                            <Calendar className="w-4 h-4" />
+                            <span>{format(new Date(closure.closure_date), 'MMM d, yyyy')}</span>
+                        </div>
                     </div>
-                )
-            }
 
-            {
-                isInternalUser ? (
-                    <AttendantView
-                        closure={closure}
-                        isActionLoading={isActionLoading}
-                        handleSubmitClosure={handleSubmitClosure}
-                        actualCash={actualCash}
-                        setActualCash={setActualCash}
-                        notes={notes}
-                        setNotes={setNotes}
-                        onOpenModal={() => setIsModalVisible(true)}
-                    />
-                ) : isAdmin ? (
-                    <AdminView
-                        closure={closure}
-                        isActionLoading={isActionLoading}
-                        handleVerifyClosure={handleVerifyClosure}
-                        discrepancyReason={discrepancyReason}
-                        setDiscrepancyReason={setDiscrepancyReason}
-                    />
-                ) : (
-                    <Card className="p-12 text-center">
-                        <p className="text-slate-500">You do not have permission to view this page.</p>
-                    </Card>
-                )
-            }
+                    {(() => {
+                        const status = getStatusBadge(closure.status);
+                        const StatusIcon = status.icon;
+                        return (
+                            <Badge className={`rounded-full px-4 py-1.5 ${status.color} flex items-center gap-1.5`}>
+                                <StatusIcon className="w-3.5 h-3.5" />
+                                {status.label}
+                            </Badge>
+                        );
+                    })()}
+                </motion.div>
+            )}
 
-            {/* Opening Modal */}
+            {/* Main Views */}
+            {isInternalUser ? (
+                <AttendantView
+                    closure={closure}
+                    isActionLoading={isActionLoading}
+                    handleSubmitClosure={handleSubmitClosure}
+                    actualCash={actualCash}
+                    setActualCash={setActualCash}
+                    notes={notes}
+                    setNotes={setNotes}
+                    onOpenModal={() => setIsModalVisible(true)}
+                />
+            ) : isAdmin ? (
+                <AdminView
+                    closure={closure}
+                    isActionLoading={isActionLoading}
+                    handleVerifyClosure={handleVerifyClosure}
+                    discrepancyReason={discrepancyReason}
+                    setDiscrepancyReason={setDiscrepancyReason}
+                />
+            ) : (
+                <Card className="p-12 text-center border-slate-200">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertCircle className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <p className="text-slate-500">You do not have permission to view this page.</p>
+                </Card>
+            )}
+
+            {/* Opening Modal - Redesigned with Ant Design */}
             <Modal
-                title={null}
                 open={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
                 footer={null}
-                width={500}
+                width={480}
                 centered
                 closable={false}
-                styles={modalStyles}
+                modalRender={(modal) => (
+                    <div className="ant-modal-custom">
+                        {modal}
+                    </div>
+                )}
             >
                 {/* Custom Header */}
-                <div style={modalStyles.header} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-primary/10 rounded-xl">
-                            <Banknote className="h-5 w-5 text-primary" />
+                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                    <Space size="middle" align="center">
+                        <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-md">
+                            <Banknote className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold text-slate-800">Open Daily Closure</h3>
-                            <p className="text-xs text-slate-500 font-normal">Set your opening float and notes for today</p>
+                            <Text strong style={{ fontSize: '16px', color: '#1e293b' }}>
+                                Open Daily Closure
+                            </Text>
+                            <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginTop: '2px' }}>
+                                Set your opening float and notes for today
+                            </Text>
                         </div>
-                    </div>
+                    </Space>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsModalVisible(false)}
+                        className="rounded-full h-8 w-8 hover:bg-slate-100"
+                    >
+                        <X className="h-4 w-4 text-slate-400" />
+                    </Button>
                 </div>
 
                 {/* Body Content */}
-                <div style={modalStyles.body} className="space-y-6 pt-4">
+                <div className="px-6 py-6 space-y-6">
+                    {/* Shop Info */}
+                    {shops.length > 0 && (
+                        <div className="bg-slate-50 p-4 rounded-md border border-slate-100">
+                            <div className="flex items-center gap-3">
+                                <Building2 className="w-5 h-5 text-slate-400" />
+                                <div>
+                                    <p className="text-xs text-slate-500">Selected Shop</p>
+                                    <p className="font-medium text-slate-700">
+                                        {shops.find(s => s.id === activeShopId)?.name || 'Unknown Shop'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Opening Balance Input */}
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-1">Opening Cash Balance</label>
+                        <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
+                            <Wallet className="w-4 h-4 text-slate-400" />
+                            Opening Cash Balance
+                        </label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">₵</span>
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-400">
+                                ₵
+                            </span>
                             <Input
                                 type="number"
                                 placeholder="0.00"
                                 value={openingBalance}
                                 onChange={(e) => setOpeningBalance(e.target.value)}
-                                className="pl-8 h-12 bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 text-lg rounded-xl font-bold"
+                                className="pl-12 h-14 text-lg font-semibold bg-white border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-md"
+                                min="0"
+                                step="0.01"
                             />
                         </div>
+                        <p className="text-xs text-slate-400 mt-1">
+                            Enter the initial cash amount in the register
+                        </p>
                     </div>
+
+                    {/* Opening Notes */}
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-1">Opening Notes</label>
+                        <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
+                            <FileText className="w-4 h-4 text-slate-400" />
+                            Opening Notes (Optional)
+                        </label>
                         <Textarea
-                            placeholder="Shift details, float notes..."
-                            className="min-h-[120px] bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl resize-none p-4"
+                            placeholder="Add any notes about shift start, float details, etc..."
+                            className="min-h-[100px] bg-white border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-md resize-none p-4"
                             value={openingNotes}
                             onChange={(e) => setOpeningNotes(e.target.value)}
                         />
                     </div>
+
+                    {/* Date & Time */}
+                    <div className="flex items-center gap-4 text-sm text-slate-500 bg-slate-50 p-3 rounded-md">
+                        <div className="flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4" />
+                            <span>{format(new Date(), 'MMMM d, yyyy')}</span>
+                        </div>
+                        <div className="w-px h-4 bg-slate-200" />
+                        <div className="flex items-center gap-1.5">
+                            <Clock className="w-4 h-4" />
+                            <span>{format(new Date(), 'h:mm a')}</span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Footer Content */}
-                <div style={modalStyles.footer} className="flex justify-end gap-3">
+                {/* Footer Actions */}
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 rounded-b-md">
                     <Button
-                        variant="ghost"
+                        variant="outline"
                         onClick={() => setIsModalVisible(false)}
-                        className="rounded-xl px-6"
+                        className="rounded-md h-11 px-6 border-slate-200 hover:bg-white"
                     >
                         Cancel
                     </Button>
                     <Button
                         onClick={handleOpenClosure}
-                        disabled={isActionLoading}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all rounded-xl px-6"
+                        disabled={isActionLoading || !openingBalance}
+                        className="rounded-md h-11 px-8 bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium shadow-lg shadow-emerald-200 flex items-center gap-2"
                     >
-                        {isActionLoading ? <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> : <Banknote className="mr-2 h-4 w-4" />}
-                        Open Daily Closure
+                        {isActionLoading ? (
+                            <>
+                                <RefreshCcw className="h-4 w-4 animate-spin" />
+                                Opening...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="h-4 w-4" />
+                                Open Closure
+                            </>
+                        )}
                     </Button>
                 </div>
             </Modal>
-        </div >
+        </div>
     );
 }

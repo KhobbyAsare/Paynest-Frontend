@@ -72,10 +72,14 @@ const navigationItems: NavItem[] = [
     },
     {
         name: 'Sales',
-        href: '/sales',
+        href: '#',
         icon: CalculatorIcon,
-        current: true,
-        roles: ['attendant']
+        current: false,
+        roles: ['superadmin', 'admin', 'manager', 'attendant'],
+        subItems: [
+            { name: 'POS', href: '/sales', icon: CalculatorIcon, current: false, roles: ['attendant'] },
+            { name: 'Orders & Walk-ins', href: '/orders', icon: ReceiptPercentIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
+        ]
     },
     {
         name: 'Organization Management',
