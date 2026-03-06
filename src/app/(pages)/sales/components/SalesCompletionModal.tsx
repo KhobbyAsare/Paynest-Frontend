@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { handleErrorMessage } from "@/lib/handleErrorMessage";
+import { Input } from "@/components/ui/input";
+import { MapPin } from "lucide-react";
 
 interface SalesCompletionModalProps {
     isOpen: boolean;
@@ -51,6 +53,7 @@ export function SalesCompletionModal({
     const [isLoading, setIsLoading] = useState(false);
     const [customers, setCustomers] = useState<CustomerResponse[]>([]);
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+    const [deliveryAddress, setDeliveryAddress] = useState<string>("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -106,6 +109,7 @@ export function SalesCompletionModal({
                     payment,
                     delivery_amount: 0,
                     is_delivered: false,
+                    delivery_address: deliveryAddress || null,
                     actual_delivery_date: new Date().toISOString(),
                     expected_delivery_date: new Date().toISOString()
                 };
@@ -121,6 +125,7 @@ export function SalesCompletionModal({
                     payment,
                     delivery_amount: 0,
                     is_delivered: true,
+                    delivery_address: null,
                     actual_delivery_date: null,
                     expected_delivery_date: null
                 };
@@ -139,8 +144,8 @@ export function SalesCompletionModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-slate-50 border-none shadow-2xl rounded-lg">
-                <DialogHeader className="p-6 bg-white border-b border-slate-100 rounded-t-lg">
+            <DialogContent className="sm:max-w-[500px] p-0! gap-0! overflow-hidden bg-slate-50 border-none shadow-2xl rounded-lg ">
+                <DialogHeader className="p-2 bg-white border-b border-slate-100 rounded-t-lg">
                     <DialogTitle className="text-2xl font-bold flex items-center gap-3">
                         <div className="p-2 bg-primary-color/10 rounded-md">
                             <CheckCircle2 className="w-6 h-6 text-primary-color" />
@@ -189,7 +194,13 @@ export function SalesCompletionModal({
                                 className="w-full h-11"
                                 placeholder="Choose a customer"
                                 value={selectedCustomerId}
-                                onChange={(value) => setSelectedCustomerId(value)}
+                                onChange={(value) => {
+                                    setSelectedCustomerId(value);
+                                    const customer = customers.find(c => c.id === value);
+                                    if (customer?.address) {
+                                        setDeliveryAddress(customer.address);
+                                    }
+                                }}
                                 options={customers.map((c) => ({
                                     value: c.id,
                                     label: (
@@ -213,6 +224,22 @@ export function SalesCompletionModal({
                                     </div>
                                 }
                                 getPopupContainer={(triggerNode) => triggerNode.parentNode}
+                            />
+                        </div>
+                    )}
+
+                    {/* Delivery Address (Only for Order Mode) */}
+                    {isOrderMode && (
+                        <div className="space-y-3">
+                            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                <MapPin className="w-4 h-4" />
+                                Delivery Address (Optional)
+                            </label>
+                            <Input
+                                placeholder="Enter delivery address"
+                                value={deliveryAddress}
+                                onChange={(e) => setDeliveryAddress(e.target.value)}
+                                className="h-11 bg-white border-slate-200"
                             />
                         </div>
                     )}
@@ -244,7 +271,7 @@ export function SalesCompletionModal({
                     </div>
                 </div>
 
-                <DialogFooter className="p-6 bg-white border-t border-slate-100 mt-0">
+                <DialogFooter className="p-2 bg-white border-t border-slate-100 mt-0">
                     <div className="flex w-full gap-3">
                         <Button
                             variant="outline"
@@ -257,7 +284,7 @@ export function SalesCompletionModal({
                         <Button
                             className="flex-2 h-12 rounded-md bg-primary-color hover:opacity-90 text-white shadow-lg shadow-primary-color/20"
                             onClick={handleComplete}
-                            disabled={isSubmitting || (isOrderMode && !selectedCustomerId)}
+                            disabled={isSubmitting || (isOrderMode && (!selectedCustomerId || !deliveryAddress))}
                         >
                             {isSubmitting ? (
                                 <Loader2 className="w-5 h-5 animate-spin mr-2" />

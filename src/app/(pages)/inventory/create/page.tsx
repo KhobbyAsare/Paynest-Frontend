@@ -10,9 +10,12 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { CreateInventory } from '@/(api-handlers)/inventoryHandler';
 import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
+import { GetProducts } from '@/(api-handlers)/productsHandler';
 import { OrganizationShopResponse } from '@/interfaces/organizationShops';
+import { ProductResponse } from '@/interfaces/products';
 import { CreateInventoryRequest } from '@/interfaces/inventory';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import { useAuthStore } from '@/(zustand-store)/authStore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,32 +91,52 @@ export default function CreateInventoryPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
+    const [products, setProducts] = useState<ProductResponse[]>([]);
     const [values, setValues] = useState<FormValues>(defaultValues);
     const [errors, setErrors] = useState<FormErrors>({});
+    const { user } = useAuthStore();
+
+    const role = user?.role?.toLowerCase();
+    const isAdmin = role === 'admin' || role === 'superadmin';
+    const userShopId = user?.employee_profile?.shop_id;
 
     useEffect(() => {
-        const fetchShops = async () => {
+        const fetchData = async () => {
             try {
-                const data = await getOrganizationShops();
-                setShops(data);
+                const [shopsData, productsData] = await Promise.all([
+                    getOrganizationShops(),
+                    GetProducts()
+                ]);
+                setShops(shopsData);
+                setProducts(productsData);
             } catch (error) {
-                console.error("Failed to fetch shops", error);
+                console.error("Failed to fetch requirements", error);
+                toast.error("Failed to load dependency data");
             }
         };
-        fetchShops();
+        fetchData();
     }, []);
 
-    function set<K extends keyof FormValues>(key: K, value: FormValues[K]) {
+    useEffect(() => {
+        // Auto-select for non-admins if they have a shop ID
+        if (!isAdmin && userShopId) {
+            setValues(prev => ({ ...prev, shop_id: String(userShopId) }));
+        }
+        // Or if only one shop exists, select it automatically for anyone
+        else if (shops.length === 1 && !values.shop_id) {
+            setValues(prev => ({ ...prev, shop_id: String(shops[0].id) }));
+        }
+    }, [isAdmin, userShopId, shops, values.shop_id]);
+
+    function handleFieldChange<K extends keyof FormValues>(key: K, value: FormValues[K]) {
         setValues(prev => ({ ...prev, [key]: value }));
         // Clear error on change
-        if (errors[key as keyof FormErrors]) {
-            setErrors(prev => ({ ...prev, [key]: undefined }));
-        }
+        setErrors(prev => ({ ...prev, [key]: undefined }));
     }
 
     function validate(): boolean {
         const newErrors: FormErrors = {};
-        if (!values.product_id) newErrors.product_id = 'Product ID is required';
+        if (!values.product_id) newErrors.product_id = 'Please select a product';
         if (!values.shop_id) newErrors.shop_id = 'Please select a shop';
         if (!values.unit_of_measurement) newErrors.unit_of_measurement = 'Please select a unit';
         if (values.current_stock === '') newErrors.current_stock = 'Opening stock is required';
@@ -194,16 +217,24 @@ export default function CreateInventoryPage() {
                             </CardHeader>
                             <CardContent className="pt-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Product ID */}
+                                    {/* Product Selection */}
                                     <div>
-                                        <FieldLabel required>Product ID</FieldLabel>
-                                        <Input
-                                            type="number"
-                                            placeholder="Enter Product ID"
+                                        <FieldLabel required>Select Product</FieldLabel>
+                                        <Select
                                             value={values.product_id}
-                                            onChange={e => set('product_id', e.target.value)}
-                                            className={cn(errors.product_id && 'border-rose-400 focus-visible:border-rose-400')}
-                                        />
+                                            onValueChange={val => handleFieldChange('product_id', val)}
+                                        >
+                                            <SelectTrigger className={cn("w-full", errors.product_id && 'border-rose-400')}>
+                                                <SelectValue placeholder="Search product..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {products.map(product => (
+                                                    <SelectItem key={product.id} value={String(product.id)}>
+                                                        {product.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <FieldError message={errors.product_id} />
                                     </div>
 
@@ -212,7 +243,8 @@ export default function CreateInventoryPage() {
                                         <FieldLabel required>Assigned Shop</FieldLabel>
                                         <Select
                                             value={values.shop_id}
-                                            onValueChange={val => set('shop_id', val)}
+                                            onValueChange={val => handleFieldChange('shop_id', val)}
+                                            disabled={!isAdmin}
                                         >
                                             <SelectTrigger className={cn("w-full", errors.shop_id && 'border-rose-400')}>
                                                 <SelectValue placeholder="Select Shop" />
@@ -233,7 +265,7 @@ export default function CreateInventoryPage() {
                                         <FieldLabel required>Unit of Measurement</FieldLabel>
                                         <Select
                                             value={values.unit_of_measurement}
-                                            onValueChange={val => set('unit_of_measurement', val)}
+                                            onValueChange={val => handleFieldChange('unit_of_measurement', val)}
                                         >
                                             <SelectTrigger className={cn("w-full", errors.unit_of_measurement && 'border-rose-400')}>
                                                 <SelectValue placeholder="Select unit" />
@@ -254,7 +286,7 @@ export default function CreateInventoryPage() {
                                         <div className="flex items-center gap-3 h-9">
                                             <Switch
                                                 checked={values.on_sale}
-                                                onCheckedChange={val => set('on_sale', val)}
+                                                onCheckedChange={val => handleFieldChange('on_sale', val)}
                                             />
                                             <span className="text-sm text-slate-500">
                                                 {values.on_sale ? 'Listed for sale' : 'Not for sale'}
@@ -274,7 +306,7 @@ export default function CreateInventoryPage() {
                                         <span className="text-sm font-medium text-slate-600">Active Tracking</span>
                                         <Switch
                                             checked={values.is_active}
-                                            onCheckedChange={val => set('is_active', val)}
+                                            onCheckedChange={val => handleFieldChange('is_active', val)}
                                         />
                                     </div>
                                     <hr className="my-4 border-slate-200" />
@@ -311,7 +343,7 @@ export default function CreateInventoryPage() {
                                                 type="number"
                                                 min={0}
                                                 value={values[key] as string}
-                                                onChange={e => set(key, e.target.value)}
+                                                onChange={e => handleFieldChange(key, e.target.value)}
                                                 className={cn(errors[key] && 'border-rose-400 focus-visible:border-rose-400')}
                                             />
                                             <FieldError message={errors[key]} />
@@ -347,7 +379,7 @@ export default function CreateInventoryPage() {
                                         <Input
                                             placeholder="e.g. Aisle 4"
                                             value={values.aisle}
-                                            onChange={e => set('aisle', e.target.value)}
+                                            onChange={e => handleFieldChange('aisle', e.target.value)}
                                         />
                                     </div>
                                     <div>
@@ -355,7 +387,7 @@ export default function CreateInventoryPage() {
                                         <Input
                                             placeholder="e.g. Shelf B2"
                                             value={values.shelf}
-                                            onChange={e => set('shelf', e.target.value)}
+                                            onChange={e => handleFieldChange('shelf', e.target.value)}
                                         />
                                     </div>
                                     <div>
@@ -363,7 +395,7 @@ export default function CreateInventoryPage() {
                                         <Input
                                             placeholder="e.g. BIN-092"
                                             value={values.bin_location}
-                                            onChange={e => set('bin_location', e.target.value)}
+                                            onChange={e => handleFieldChange('bin_location', e.target.value)}
                                         />
                                     </div>
                                 </div>

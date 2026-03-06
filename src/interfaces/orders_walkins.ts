@@ -20,6 +20,7 @@ export interface WalkInsRequest {
     },
     delivery_amount: number,
     is_delivered: boolean,
+    delivery_address: string | null,
     actual_delivery_date: null,
     expected_delivery_date: null
 }
@@ -41,6 +42,7 @@ export interface OrderRequest {
     },
     delivery_amount: number,
     is_delivered: boolean,
+    delivery_address: string | null,
     actual_delivery_date: string,
     expected_delivery_date: string
 }

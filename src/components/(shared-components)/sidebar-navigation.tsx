@@ -103,6 +103,13 @@ const navigationItems: NavItem[] = [
         roles: ['attendant'],
     },
     {
+        name: 'Daily Closure',
+        href: '/daily-closure',
+        icon: BanknotesIcon,
+        current: false,
+        roles: ['admin', 'manager', 'attendant']
+    },
+    {
         name: 'User Management',
         href: '#',
         icon: UsersIcon,
@@ -174,6 +181,7 @@ const navigationItems: NavItem[] = [
             { name: 'System Settings', href: '/settings/system', icon: WrenchScrewdriverIcon, current: false, roles: ['superadmin'] },
         ]
     },
+
     {
         name: 'Audit Logs',
         href: '/audit-log',

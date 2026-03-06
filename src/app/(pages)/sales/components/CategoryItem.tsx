@@ -67,7 +67,7 @@ export function CategoryItem({ id, name, icon = "Package", count, isSelected, on
             whileTap={{ scale: 0.95 }}
             onClick={() => onClick(id)}
             className={cn(
-                "relative flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-300 min-w-[100px] gap-2",
+                "relative flex items-center justify-center p-2 rounded-xl transition-all duration-300 w-auto gap-2",
                 isSelected
                     ? "bg-primary-color text-white shadow-lg shadow-primary-color/20"
                     : "bg-white border border-slate-100 text-slate-600 hover:border-primary-color/20 hover:shadow-md"
