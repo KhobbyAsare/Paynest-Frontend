@@ -28,7 +28,8 @@ import {
     BuildingOffice2Icon,
     CalculatorIcon,
     ChevronDoubleLeftIcon,
-    ChevronDoubleRightIcon
+    ChevronDoubleRightIcon,
+    ShoppingCartIcon
 } from '@heroicons/react/24/outline'
 import Image from 'next/image'
 import { Wallet, LogOut } from 'lucide-react'
@@ -79,6 +80,7 @@ const navigationItems: NavItem[] = [
         subItems: [
             { name: 'POS', href: '/sales', icon: CalculatorIcon, current: false, roles: ['attendant'] },
             { name: 'Orders & Walk-ins', href: '/orders', icon: ReceiptPercentIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
+            { name: 'Order Items', href: '/order-items', icon: ShoppingCartIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },
         ]
     },
     {
