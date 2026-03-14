@@ -26,10 +26,11 @@ export const GetPaymentsByOrderId = async (order_id: number): Promise<PaymentRes
     }
 }
 
-export const GetAllPayments = async (): Promise<PaymentResponse[]> => {
+export const GetAllPayments = async (shopId?: number): Promise<PaymentResponse[]> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.get(`${url}/payments/`, {
+            params: { shop_id: shopId },
             headers: getAPIHeaders(),
         })
         return response.data

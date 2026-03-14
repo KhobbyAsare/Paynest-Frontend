@@ -57,7 +57,8 @@ const { Title, Text } = Typography;
 
 export default function FinancePage() {
     const { user } = useAuthStore();
-    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+    const role = (user?.role || "attendant").toLowerCase();
+    const isAdmin = role === 'admin' || role === 'superadmin';
 
     const [financeData, setFinanceData] = useState<FinanceOverviewResponse | null>(null);
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);

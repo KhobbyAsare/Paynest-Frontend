@@ -58,7 +58,7 @@ export default function DailyClosurePage() {
     const [discrepancyReason, setDiscrepancyReason] = useState<string>("");
 
     const role = (user?.role || "attendant").toLowerCase();
-    const isAdmin = role === 'admin';
+    const isAdmin = role === 'admin' || role === 'superadmin';
     const isInternalUser = role === 'attendant' || role === 'manager';
 
     // Determine the active shop ID to work with

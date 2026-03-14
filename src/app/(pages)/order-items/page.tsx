@@ -11,8 +11,8 @@ import {
     RefreshCcw,
     ShoppingCart,
     FilterX,
-    XCircle,
-    Package
+    Package,
+    ShoppingBag
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -61,6 +61,9 @@ import {
     GetWalkinOrdersList
 } from "@/(api-handlers)/orders_walkinsHandler";
 import { OrderWalkInsResponse } from "@/interfaces/orders_walkins";
+import { getOrganizationShops } from "@/(api-handlers)/organizationShopsHandler";
+import { useAuthStore } from "@/(zustand-store)/authStore";
+import { OrganizationShopResponse } from "@/interfaces/organizationShops";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 
@@ -81,12 +84,34 @@ export default function OrderItemsPage() {
 
     const [searchOrderId, setSearchOrderId] = useState<string>("");
 
+    // Shop filtering
+    const { user } = useAuthStore();
+    const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
+    const [selectedShopId, setSelectedShopId] = useState<string>("all");
+    const role = (user?.role || "attendant").toLowerCase();
+    const isAdmin = role === 'admin' || role === 'superadmin';
+
+    const fetchShops = useCallback(async () => {
+        if (!isAdmin) return;
+        try {
+            const data = await getOrganizationShops();
+            setShops(data);
+        } catch (error) {
+            console.error("Failed to fetch shops:", error);
+        }
+    }, [isAdmin]);
+
+    useEffect(() => {
+        fetchShops();
+    }, [fetchShops]);
+
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
+            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
             const [productsData, ordersData] = await Promise.all([
-                GetProducts(),
-                GetWalkinOrdersList()
+                GetProducts(shopIdParams),
+                GetWalkinOrdersList(shopIdParams)
             ]);
             setProducts(productsData);
             setOrders(ordersData);
@@ -95,7 +120,7 @@ export default function OrderItemsPage() {
                 const itemsData = await GetOrderItems(Number(searchOrderId));
                 setOrderItems(itemsData);
             } else {
-                const itemsData = await GetAllOrderItems();
+                const itemsData = await GetAllOrderItems(shopIdParams);
                 setOrderItems(itemsData);
             }
         } catch (error) {
@@ -104,11 +129,11 @@ export default function OrderItemsPage() {
         } finally {
             setLoading(false);
         }
-    }, [searchOrderId]);
+    }, [searchOrderId, selectedShopId]);
 
     useEffect(() => {
         fetchData();
-    }, [fetchData, searchOrderId]);
+    }, [fetchData, searchOrderId, selectedShopId]);
 
     const showModal = (item: OrderItemResponse | null = null) => {
         setEditingItem(item);
@@ -379,10 +404,29 @@ export default function OrderItemsPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                {(searchTerm !== "" || selectedStatus !== "all" || searchOrderId !== "") && (
+
+                {isAdmin && (
+                    <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                        <ShoppingBag className="h-5 w-5 text-slate-400" />
+                        <AntSelect
+                            className="w-[200px] h-12 bg-slate-50 rounded-md"
+                            value={selectedShopId}
+                            onChange={(value) => setSelectedShopId(value)}
+                        >
+                            <AntSelect.Option value="all">All Shops</AntSelect.Option>
+                            {shops.map((shop) => (
+                                <AntSelect.Option key={shop.id} value={shop.id.toString()}>
+                                    {shop.name}
+                                </AntSelect.Option>
+                            ))}
+                        </AntSelect>
+                    </div>
+                )}
+
+                {(searchTerm !== "" || selectedStatus !== "all" || searchOrderId !== "" || selectedShopId !== "all") && (
                     <Button
                         variant="ghost"
-                        onClick={() => { setSearchTerm(""); setSelectedStatus("all"); setSearchOrderId(""); }}
+                        onClick={() => { setSearchTerm(""); setSelectedStatus("all"); setSearchOrderId(""); setSelectedShopId("all"); }}
                         className="h-12 text-slate-500 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl px-4"
                     >
                         <FilterX className="mr-2 h-4 w-4" />

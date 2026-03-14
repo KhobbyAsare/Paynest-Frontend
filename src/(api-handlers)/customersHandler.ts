@@ -14,10 +14,11 @@ export const CreateCustomer = async (inventory_data: CreateCustomerRequest): Pro
     }
 }
 
-export const GetAllCustomers = async (): Promise<CustomerResponse[]> => {
+export const GetAllCustomers = async (shopId?: number): Promise<CustomerResponse[]> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.get(`${url}/customers/`, {
+            params: { shop_id: shopId },
             headers: getAPIHeaders(),
         })
         return response.data

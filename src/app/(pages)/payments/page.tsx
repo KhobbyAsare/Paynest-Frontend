@@ -15,7 +15,8 @@ import {
     Smartphone,
     Building2,
     CheckCircle2,
-    Receipt
+    Receipt,
+    ShoppingBag
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -61,6 +62,9 @@ import {
     PaymentUpdateRequest
 } from "@/interfaces/payments";
 import { UserResponse } from "@/interfaces/loginInterface";
+import { getOrganizationShops } from "@/(api-handlers)/organizationShopsHandler";
+import { useAuthStore } from "@/(zustand-store)/authStore";
+import { OrganizationShopResponse } from "@/interfaces/organizationShops";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 
@@ -79,6 +83,27 @@ export default function PaymentsPage() {
     const [submitting, setSubmitting] = useState(false);
     const [form] = Form.useForm();
 
+    // Shop filtering
+    const { user } = useAuthStore();
+    const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
+    const [selectedShopId, setSelectedShopId] = useState<string>("all");
+    const role = (user?.role || "attendant").toLowerCase();
+    const isAdmin = role === 'admin' || role === 'superadmin';
+
+    const fetchShops = useCallback(async () => {
+        if (!isAdmin) return;
+        try {
+            const data = await getOrganizationShops();
+            setShops(data);
+        } catch (error) {
+            console.error("Failed to fetch shops:", error);
+        }
+    }, [isAdmin]);
+
+    useEffect(() => {
+        fetchShops();
+    }, [fetchShops]);
+
 
 
     // Watch payment_method for dynamic fields
@@ -87,16 +112,24 @@ export default function PaymentsPage() {
     const fetchInitialData = useCallback(async () => {
         setLoading(true);
         try {
+            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
             const [ordersData, usersData] = await Promise.all([
-                GetWalkinOrdersList(),
+                GetWalkinOrdersList(shopIdParams),
                 getOrganizationUsers()
             ]);
             setOrders(ordersData);
             setUsers(usersData);
 
-            // Auto-select first order if none selected
-            if (ordersData.length > 0 && !selectedOrderId) {
-                setSelectedOrderId(ordersData[0].id);
+            // If we have orders, and current selectedOrderId is not in the new orders list, select the first one
+            if (ordersData.length > 0) {
+                if (!selectedOrderId || !ordersData.find(o => o.id === selectedOrderId)) {
+                    // We don't auto-select if we are in "View All" mode (which we'll add)
+                    if (selectedOrderId !== -1) {
+                        setSelectedOrderId(ordersData[0].id);
+                    }
+                }
+            } else {
+                setSelectedOrderId(null);
             }
         } catch (error) {
             console.error("Failed to fetch initial data:", error);
@@ -104,21 +137,27 @@ export default function PaymentsPage() {
         } finally {
             setLoading(false);
         }
-    }, [selectedOrderId]);
+    }, [selectedOrderId, selectedShopId]);
 
     const fetchPayments = useCallback(async () => {
-        if (selectedOrderId === null) return;
         setLoading(true);
         try {
-            const paymentsData = await GetPaymentsByOrderId(selectedOrderId);
-            setPayments(paymentsData);
+            if (selectedOrderId && selectedOrderId !== -1) {
+                const paymentsData = await GetPaymentsByOrderId(selectedOrderId);
+                setPayments(paymentsData);
+            } else {
+                // Fetch all payments for organization or shop
+                const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
+                const paymentsData = await GetAllPayments(shopIdParams);
+                setPayments(paymentsData);
+            }
         } catch (error) {
             console.error("Failed to fetch payments:", error);
-            toast.error("Failed to load payments for the selected order");
+            toast.error("Failed to load payments");
         } finally {
             setLoading(false);
         }
-    }, [selectedOrderId]);
+    }, [selectedOrderId, selectedShopId]);
 
     useEffect(() => {
         fetchInitialData();
@@ -382,12 +421,34 @@ export default function PaymentsPage() {
                         value={selectedOrderId}
                         onChange={setSelectedOrderId}
                         optionFilterProp="children"
-                        options={orders.map(o => ({
-                            value: o.id,
-                            label: `Order #${o.order_number || o.id} (₵${o.total_amount})`
-                        }))}
+                        options={[
+                            { value: -1, label: 'All Payments (Wide Search)' },
+                            ...orders.map(o => ({
+                                value: o.id,
+                                label: `Order #${o.order_number || o.id} (₵${o.total_amount})`
+                            }))
+                        ]}
                     />
                 </div>
+
+                {isAdmin && (
+                    <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                        <ShoppingBag className="h-5 w-5 text-slate-400" />
+                        <AntSelect
+                            className="w-[180px] h-12"
+                            value={selectedShopId}
+                            onChange={(value) => setSelectedShopId(value)}
+                            options={[
+                                { value: 'all', label: 'All Shops' },
+                                ...shops.map(shop => ({
+                                    value: shop.id.toString(),
+                                    label: shop.name
+                                }))
+                            ]}
+                        />
+                    </div>
+                )}
+
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <Input
@@ -398,22 +459,23 @@ export default function PaymentsPage() {
                     />
                 </div>
                 <AntSelect
-                    className="h-12 w-full sm:w-[180px] rounded-md overflow-hidden"
+                    className="h-12 w-full sm:w-[150px] rounded-md overflow-hidden"
                     value={selectedStatus}
                     onChange={setSelectedStatus}
                     options={[
-                        { value: 'all', label: 'All Statuses' },
+                        { value: 'all', label: 'All Status' },
                         { value: 'pending', label: 'Pending' },
                         { value: 'verified', label: 'Verified' },
                         { value: 'failed', label: 'Failed' },
                     ]}
                 />
-                {(searchTerm !== "" || selectedStatus !== "all" || (orders.length !== 0 && selectedOrderId !== orders[0].id)) && (
+                {(searchTerm !== "" || selectedStatus !== "all" || (orders.length !== 0 && selectedOrderId !== orders[0].id) || selectedShopId !== "all") && (
                     <Button
                         variant="ghost"
                         onClick={() => {
                             setSearchTerm("");
                             setSelectedStatus("all");
+                            setSelectedShopId("all");
                             if (orders.length > 0) setSelectedOrderId(orders[0].id);
                         }}
                         className="h-12 text-slate-500 hover:text-primary rounded-xl px-4"

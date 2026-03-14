@@ -15,20 +15,16 @@ export const CreateInventory = async (inventory_data: CreateInventoryRequest): P
     }
 }
 
-export const GetAllInventory = async (low_stock_only: boolean, out_of_stock_only: boolean, needs_reorder_only: boolean): Promise<InventoryResponse[]> => {
+export const GetAllInventory = async (low_stock_only: boolean, out_of_stock_only: boolean, needs_reorder_only: boolean, shopId?: number): Promise<InventoryResponse[]> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        let mainUrl = `${url}/inventory/`
-        if (low_stock_only) {
-            mainUrl += `?low_stock_only=${low_stock_only}`
-        }
-        if (out_of_stock_only) {
-            mainUrl += `?out_of_stock_only=${out_of_stock_only}`
-        }
-        if (needs_reorder_only) {
-            mainUrl += `?needs_reorder_only=${needs_reorder_only}`
-        }
-        const response = await axios.get(mainUrl, {
+        const response = await axios.get(`${url}/inventory/`, {
+            params: {
+                low_stock_only,
+                out_of_stock_only,
+                needs_reorder_only,
+                shop_id: shopId
+            },
             headers: getAPIHeaders(),
         })
         return response.data
@@ -49,10 +45,11 @@ export const GetInventoryByID = async (inventory_id: number): Promise<InventoryR
     }
 }
 
-export const GetInventoryStatistics = async (): Promise<InventoryStats> => {
+export const GetInventoryStatistics = async (shopId?: number): Promise<InventoryStats> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.get(`${url}/inventory/stats`, {
+            params: { shop_id: shopId },
             headers: getAPIHeaders(),
         })
         return response.data

@@ -26,14 +26,15 @@ export const GetCurrentClosure = async (shop_id: number) => {
     }
 }
 
-export const GetAllClosures = async (shop_id: number, startDate?: string, endDate?: string) => {
+export const GetAllClosures = async (shop_id?: number, startDate?: string, endDate?: string) => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
-    let query = "";
-    if (startDate) query += `?start_date=${startDate}`;
-    if (endDate) query += `${query ? '&' : '?'}end_date=${endDate}`;
-    
     try {
-        const response = await axios.get(`${url}/daily-closures/all/${shop_id}${query}`, {
+        const response = await axios.get(`${url}/daily-closures/`, {
+            params: {
+                shop_id: shop_id,
+                start_date: startDate,
+                end_date: endDate
+            },
             headers: getAPIHeaders(),
         })
         return response.data

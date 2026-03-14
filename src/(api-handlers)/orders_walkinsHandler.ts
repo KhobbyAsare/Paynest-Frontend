@@ -14,10 +14,11 @@ export const CreateWalkIns = async (product_data: WalkInsRequest | OrderRequest)
     }
 }
 
-export const GetWalkinOrdersList = async (): Promise<OrderWalkInsResponse[]> => {
+export const GetWalkinOrdersList = async (shopId?: number): Promise<OrderWalkInsResponse[]> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.get(`${url}/orders/`, {
+            params: { shop_id: shopId },
             headers: getAPIHeaders(),
         })
         return response.data
@@ -64,15 +65,16 @@ export const UpdateOrderStatus = async (id: number, status_name: OrderStatus): P
     }
 }
 
-export const GetSoldItemsReport = async (date?: string, page: number = 1, size: number = 10): Promise<SoldItemsReportResponse> => {
+export const GetSoldItemsReport = async (date?: string, page: number = 1, size: number = 10, shopId?: number): Promise<SoldItemsReportResponse> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
-    let endpoint = `${url}/orders/sold-items/report?page=${page}&size=${size}`;
-    if (date) {
-        endpoint += `&report_date=${date}`;
-    }
-    
     try {
-        const response = await axios.get(endpoint, {
+        const response = await axios.get(`${url}/orders/sold-items/report`, {
+            params: {
+                report_date: date,
+                page,
+                size,
+                shop_id: shopId
+            },
             headers: getAPIHeaders(),
         })
         return response.data

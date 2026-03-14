@@ -27,10 +27,11 @@ export const GetOrderItems = async (order_id: number): Promise<OrderItemResponse
     }
 }
 
-export const GetAllOrderItems = async (): Promise<OrderItemResponse[]> => {
+export const GetAllOrderItems = async (shopId?: number): Promise<OrderItemResponse[]> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.get(`${url}/order-items/`, {
+            params: { shop_id: shopId },
             headers: getAPIHeaders(),
         })
         return response.data

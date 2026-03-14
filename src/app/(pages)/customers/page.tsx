@@ -9,7 +9,10 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { GetAllCustomers, DeleteCustomer } from '@/(api-handlers)/customersHandler';
+import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
+import { useAuthStore } from '@/(zustand-store)/authStore';
 import { CustomerResponse } from '@/interfaces/customers';
+import { OrganizationShopResponse } from '@/interfaces/organizationShops';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import EmptyState from '@/components/(shared-components)/EmptyState';
@@ -73,17 +76,39 @@ export default function CustomerListPage() {
         customerName: '',
     });
 
+    // Shop filtering
+    const { user } = useAuthStore();
+    const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
+    const [selectedShopId, setSelectedShopId] = useState<string>("all");
+    const role = (user?.role || "attendant").toLowerCase();
+    const isAdmin = role === 'admin' || role === 'superadmin';
+
+    const fetchShops = useCallback(async () => {
+        if (!isAdmin) return;
+        try {
+            const data = await getOrganizationShops();
+            setShops(data);
+        } catch (error) {
+            console.error("Failed to fetch shops:", error);
+        }
+    }, [isAdmin]);
+
+    useEffect(() => {
+        fetchShops();
+    }, [fetchShops]);
+
     const fetchCustomers = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await GetAllCustomers();
+            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
+            const data = await GetAllCustomers(shopIdParams);
             setCustomers(data);
         } catch (error: unknown) {
             handleErrorMessage(error, 'Failed to fetch customers');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [selectedShopId]);
 
     useEffect(() => {
         fetchCustomers();
@@ -292,6 +317,23 @@ export default function CustomerListPage() {
                             <Filter className="size-4" />
                             Filters
                         </Button>
+
+                        {isAdmin && (
+                            <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
+                                <select
+                                    className="bg-transparent text-sm font-medium text-slate-600 focus:outline-none cursor-pointer h-11"
+                                    value={selectedShopId}
+                                    onChange={(e) => setSelectedShopId(e.target.value)}
+                                >
+                                    <option value="all">All Shops</option>
+                                    {shops.map((shop) => (
+                                        <option key={shop.id} value={shop.id}>
+                                            {shop.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <Button

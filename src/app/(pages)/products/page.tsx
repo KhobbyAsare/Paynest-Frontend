@@ -75,6 +75,9 @@ import {
 import {
     ProductCategoriesResponse
 } from "@/interfaces/productCategories";
+import { getOrganizationShops } from "@/(api-handlers)/organizationShopsHandler";
+import { useAuthStore } from "@/(zustand-store)/authStore";
+import { OrganizationShopResponse } from "@/interfaces/organizationShops";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 
@@ -94,11 +97,33 @@ export default function ProductsPage() {
     const [viewingProduct, setViewingProduct] = useState<ProductResponse | null>(null);
     const { token } = theme.useToken();
 
+    // Shop filtering
+    const { user } = useAuthStore();
+    const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
+    const [selectedShopId, setSelectedShopId] = useState<string>("all");
+    const role = (user?.role || "attendant").toLowerCase();
+    const isAdmin = role === 'admin' || role === 'superadmin';
+
+    const fetchShops = useCallback(async () => {
+        if (!isAdmin) return;
+        try {
+            const data = await getOrganizationShops();
+            setShops(data);
+        } catch (error) {
+            console.error("Failed to fetch shops:", error);
+        }
+    }, [isAdmin]);
+
+    useEffect(() => {
+        fetchShops();
+    }, [fetchShops]);
+
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
+            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
             const [productsData, categoriesData] = await Promise.all([
-                GetProducts(),
+                GetProducts(shopIdParams),
                 GetProductCategories()
             ]);
             setProducts(productsData);
@@ -109,11 +134,11 @@ export default function ProductsPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [selectedShopId]);
 
     useEffect(() => {
         fetchData();
-    }, [fetchData]);
+    }, [fetchData, selectedShopId]);
 
     const showModal = (product: ProductResponse | null = null) => {
         setEditingProduct(product);
@@ -267,15 +292,37 @@ export default function ProductsPage() {
 
             {/* Filters Section */}
             <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <Input
-                        placeholder="Search by name, SKU, or barcode..."
-                        className="pl-11 h-12 bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 text-lg rounded-md"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="relative flex-1 w-full flex items-center gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                        <Input
+                            placeholder="Search by name, SKU, or barcode..."
+                            className="pl-11 h-12 bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 text-lg rounded-md"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
+
+                {isAdmin && (
+                    <div className="w-full sm:w-[240px]">
+                        <Select value={selectedShopId} onValueChange={setSelectedShopId}>
+                            <SelectTrigger className="h-12 bg-slate-50 border-none rounded-md focus:ring-2 focus:ring-primary/20 text-slate-600">
+                                <Building2 className="mr-2 h-4 w-4 text-slate-400" />
+                                <SelectValue placeholder="All Shops" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-md border-slate-100">
+                                <SelectItem value="all">All Shops</SelectItem>
+                                {shops.map((shop) => (
+                                    <SelectItem key={shop.id} value={shop.id.toString()}>
+                                        {shop.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
                 <div className="w-full sm:w-[240px]">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                         <SelectTrigger className="h-12 bg-slate-50 border-none rounded-md focus:ring-2 focus:ring-primary/20 text-slate-600">

@@ -13,7 +13,10 @@ import {
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import { GetWalkinOrdersList, CloseOrder, UpdateOrderStatus } from '@/(api-handlers)/orders_walkinsHandler';
+import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
+import { useAuthStore } from '@/(zustand-store)/authStore';
 import { OrderWalkInsResponse, OrderStatus } from '@/interfaces/orders_walkins';
+import { OrganizationShopResponse } from '@/interfaces/organizationShops';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 
 import { Button } from '@/components/ui/button';
@@ -59,11 +62,33 @@ export default function OrdersPage() {
     const [loading, setLoading] = useState<boolean>(true);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
+    
+    // Shop filtering
+    const { user } = useAuthStore();
+    const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
+    const [selectedShopId, setSelectedShopId] = useState<string>('all');
+    const role = (user?.role || "attendant").toLowerCase();
+    const isAdmin = role === 'admin' || role === 'superadmin';
+
+    const fetchShops = useCallback(async () => {
+        if (!isAdmin) return;
+        try {
+            const data = await getOrganizationShops();
+            setShops(data);
+        } catch (error) {
+            console.error('Failed to fetch shops:', error);
+        }
+    }, [isAdmin]);
+
+    useEffect(() => {
+        fetchShops();
+    }, [fetchShops]);
 
     const fetchOrders = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await GetWalkinOrdersList();
+            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
+            const data = await GetWalkinOrdersList(shopIdParams);
             // Sort by most recent
             const sortedData = [...data].sort((a, b) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -78,7 +103,7 @@ export default function OrdersPage() {
 
     useEffect(() => {
         fetchOrders();
-    }, [fetchOrders]);
+    }, [fetchOrders, selectedShopId]);
 
     const handleUpdateStatus = async (id: number, status: OrderStatus) => {
         try {
@@ -170,6 +195,24 @@ export default function OrdersPage() {
                                 <option value="delivered">Delivered</option>
                             </select>
                         </div>
+
+                        {isAdmin && (
+                            <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
+                                <ShoppingBag className="size-4 text-slate-400" />
+                                <select
+                                    className="bg-transparent text-sm font-medium text-slate-600 focus:outline-none cursor-pointer"
+                                    value={selectedShopId}
+                                    onChange={(e) => setSelectedShopId(e.target.value)}
+                                >
+                                    <option value="all">All Shops</option>
+                                    {shops.map((shop) => (
+                                        <option key={shop.id} value={shop.id}>
+                                            {shop.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-6">

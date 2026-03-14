@@ -5,19 +5,29 @@ import {
     Plus, Search, RefreshCcw,
     Download, ArrowUpRight,
     Package, AlertTriangle, XCircle, DollarSign,
-    ChevronDown, Filter
+    ChevronDown, Filter, Building2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import { GetAllInventory, GetInventoryStatistics } from '@/(api-handlers)/inventoryHandler';
 import { InventoryResponse, InventoryStats } from '@/interfaces/inventory';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import { getOrganizationShops } from "@/(api-handlers)/organizationShopsHandler";
+import { useAuthStore } from "@/(zustand-store)/authStore";
+import { OrganizationShopResponse } from "@/interfaces/organizationShops";
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {
     Table,
     TableHeader,
@@ -47,6 +57,27 @@ export default function InventoryPage() {
 
     const filterRef = useRef<HTMLDivElement>(null);
 
+    // Shop filtering
+    const { user } = useAuthStore();
+    const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
+    const [selectedShopId, setSelectedShopId] = useState<string>("all");
+    const role = (user?.role || "attendant").toLowerCase();
+    const isAdmin = role === 'admin' || role === 'superadmin';
+
+    const fetchShops = useCallback(async () => {
+        if (!isAdmin) return;
+        try {
+            const data = await getOrganizationShops();
+            setShops(data);
+        } catch (error) {
+            console.error("Failed to fetch shops:", error);
+        }
+    }, [isAdmin]);
+
+    useEffect(() => {
+        fetchShops();
+    }, [fetchShops]);
+
     // Close filter dropdown when clicking outside
     useEffect(() => {
         function handleClickOutside(e: MouseEvent) {
@@ -61,9 +92,10 @@ export default function InventoryPage() {
     const fetchInventoryData = useCallback(async () => {
         setLoading(true);
         try {
+            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
             const [inventoryData, statsData] = await Promise.all([
-                GetAllInventory(filter.lowStock, filter.outOfStock, filter.needsReorder),
-                GetInventoryStatistics()
+                GetAllInventory(filter.lowStock, filter.outOfStock, filter.needsReorder, shopIdParams),
+                GetInventoryStatistics(shopIdParams)
             ]);
             setInventory(inventoryData);
             setStats(statsData);
@@ -72,7 +104,7 @@ export default function InventoryPage() {
         } finally {
             setLoading(false);
         }
-    }, [filter]);
+    }, [filter, selectedShopId]);
 
     useEffect(() => {
         fetchInventoryData();
@@ -178,6 +210,26 @@ export default function InventoryPage() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
+
+                        {/* Shop Filter (Admin only) */}
+                        {isAdmin && (
+                            <div className="w-full md:w-[240px]">
+                                <Select value={selectedShopId} onValueChange={setSelectedShopId}>
+                                    <SelectTrigger className="h-10 bg-white border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 text-slate-600">
+                                        <Building2 className="mr-2 h-4 w-4 text-slate-400" />
+                                        <SelectValue placeholder="All Shops" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-lg border-slate-100">
+                                        <SelectItem value="all">All Shops</SelectItem>
+                                        {shops.map((shop) => (
+                                            <SelectItem key={shop.id} value={shop.id.toString()}>
+                                                {shop.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         {/* Filter Dropdown */}
                         <div className="relative" ref={filterRef}>

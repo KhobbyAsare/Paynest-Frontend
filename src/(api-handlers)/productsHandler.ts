@@ -16,10 +16,11 @@ export const CreateProduct = async (product_data: ProductRequest): Promise<Produ
 }
 
 
-export const GetProducts = async (): Promise<ProductResponse[]> => {
+export const GetProducts = async (shopId?: number): Promise<ProductResponse[]> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.get(`${url}/products/`, {
+            params: { shop_id: shopId },
             headers: getAPIHeaders(),
         })
         return response.data

@@ -27,7 +27,10 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { GetSoldItemsReport } from '@/(api-handlers)/orders_walkinsHandler';
+import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
+import { useAuthStore } from '@/(zustand-store)/authStore';
 import { SoldItem } from '@/interfaces/orders_walkins';
+import { OrganizationShopResponse } from '@/interfaces/organizationShops';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import { cn } from '@/lib/utils';
@@ -46,12 +49,34 @@ export default function SalesReportPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [sortBy, setSortBy] = useState<string>('date_desc');
+    
+    // Shop filtering
+    const { user } = useAuthStore();
+    const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
+    const [selectedShopId, setSelectedShopId] = useState<string>('all');
+    const role = (user?.role || "attendant").toLowerCase();
+    const isAdmin = role === 'admin' || role === 'superadmin';
+
+    const fetchShops = useCallback(async () => {
+        if (!isAdmin) return;
+        try {
+            const data = await getOrganizationShops();
+            setShops(data);
+        } catch (error) {
+            console.error('Failed to fetch shops:', error);
+        }
+    }, [isAdmin]);
+
+    useEffect(() => {
+        fetchShops();
+    }, [fetchShops]);
 
     const fetchReport = useCallback(async () => {
         setLoading(true);
         try {
             const dateStr = selectedDate.format('YYYY-MM-DD');
-            const response = await GetSoldItemsReport(dateStr, currentPage, pageSize);
+            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
+            const response = await GetSoldItemsReport(dateStr, currentPage, pageSize, shopIdParams);
             setData(response.items);
             setTotalCount(response.total_count);
             setTotalRevenue(response.total_revenue);
@@ -60,7 +85,7 @@ export default function SalesReportPage() {
         } finally {
             setLoading(false);
         }
-    }, [selectedDate, currentPage, pageSize]);
+    }, [selectedDate, currentPage, pageSize, selectedShopId]);
 
     useEffect(() => {
         fetchReport();
@@ -370,6 +395,30 @@ export default function SalesReportPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {isAdmin && (
+                            <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
+                                <Select
+                                    value={selectedShopId}
+                                    onValueChange={setSelectedShopId}
+                                >
+                                    <SelectTrigger className="w-56 h-10 bg-white shadow-sm border-slate-200 focus:ring-blue-500/20">
+                                        <div className="flex items-center gap-2">
+                                            <ShoppingBag className="w-4 h-4 text-blue-500/70" />
+                                            <SelectValue placeholder="All Shops" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Shops (Organization)</SelectItem>
+                                        {shops.map(shop => (
+                                            <SelectItem key={shop.id} value={shop.id.toString()}>
+                                                {shop.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
                 </motion.div>
 
