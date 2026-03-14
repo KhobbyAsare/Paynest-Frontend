@@ -1,4 +1,4 @@
-import { WalkInsRequest, OrderWalkInsResponse, OrderRequest, OrderStatus } from "@/interfaces/orders_walkins";
+import { WalkInsRequest, OrderWalkInsResponse, OrderRequest, OrderStatus, SoldItemsReportResponse } from "@/interfaces/orders_walkins";
 import { getAPIHeaders } from "@/lib/getToken";
 import axios from "axios";
 
@@ -63,3 +63,20 @@ export const UpdateOrderStatus = async (id: number, status_name: OrderStatus): P
         throw error;
     }
 }
+
+export const GetSoldItemsReport = async (date?: string, page: number = 1, size: number = 10): Promise<SoldItemsReportResponse> => {
+    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+    let endpoint = `${url}/orders/sold-items/report?page=${page}&size=${size}`;
+    if (date) {
+        endpoint += `&report_date=${date}`;
+    }
+    
+    try {
+        const response = await axios.get(endpoint, {
+            headers: getAPIHeaders(),
+        })
+        return response.data
+    } catch (error: unknown) {
+        throw error;
+    }
+}

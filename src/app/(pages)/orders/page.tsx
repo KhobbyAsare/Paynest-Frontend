@@ -320,10 +320,10 @@ export default function OrdersPage() {
                                                         View Order Details
                                                     </DropdownMenuItem>
 
-                                                    {(order.order_status !== 'delivered' || !order.close_at) && <DropdownMenuSeparator className="bg-slate-50" />}
+                                                    {!order.close_at && <DropdownMenuSeparator className="bg-slate-50" />}
 
                                                     {/* Fulfillment Actions */}
-                                                    {(order.order_status !== 'delivered' || !order.close_at) && (
+                                                    {!order.close_at && (
                                                         <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fulfillment</div>
                                                     )}
 
@@ -364,15 +364,17 @@ export default function OrdersPage() {
                                                         </DropdownMenuItem>
                                                     )}
 
-                                                    {!order.close_at && <DropdownMenuSeparator className="bg-slate-50" />}
                                                     {!order.close_at && (
-                                                        <DropdownMenuItem
-                                                            onClick={() => handleCloseOrder(order.id)}
-                                                            className="rounded-lg py-2 text-rose-600 focus:bg-rose-50 focus:text-rose-700 cursor-pointer"
-                                                        >
-                                                            <XCircle className="size-4 mr-2" />
-                                                            Close Order
-                                                        </DropdownMenuItem>
+                                                        <>
+                                                            <DropdownMenuSeparator className="bg-slate-50" />
+                                                            <DropdownMenuItem
+                                                                onClick={() => handleCloseOrder(order.id)}
+                                                                className="rounded-lg py-2 text-rose-600 focus:bg-rose-50 focus:text-rose-700 cursor-pointer"
+                                                            >
+                                                                <XCircle className="size-4 mr-2" />
+                                                                Close Order & Finalize
+                                                            </DropdownMenuItem>
+                                                        </>
                                                     )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>

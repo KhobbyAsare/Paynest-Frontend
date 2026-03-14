@@ -113,3 +113,23 @@ export interface OrderWalkInsResponse {
     },
     payments: []
 }
+
+export interface SoldItem {
+    id: number;
+    product_name: string;
+    product_sku: string;
+    quantity: number;
+    unit_price: number;
+    total_amount: number;
+    order_number: string;
+    sold_at: string;
+    category_name: string | null;
+}
+
+export interface SoldItemsReportResponse {
+    items: SoldItem[];
+    total_count: number;
+    page: number;
+    size: number;
+    total_revenue: number;
+}
