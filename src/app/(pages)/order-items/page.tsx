@@ -215,10 +215,14 @@ export default function OrderItemsPage() {
 
     const columns: ColumnsType<OrderItemResponse> = [
         {
-            title: 'Order ID',
-            dataIndex: 'order_id',
-            key: 'order_id',
-            render: (text) => <span className="font-semibold text-slate-700">#{text}</span>,
+            title: 'Order',
+            key: 'order',
+            render: (_, record) => (
+                <div>
+                    <div className="font-semibold text-slate-700">#{record.order_number || record.order_id}</div>
+                    <div className="text-[10px] text-slate-400 font-mono">ID: {record.order_id}</div>
+                </div>
+            ),
         },
         {
             title: 'Product',

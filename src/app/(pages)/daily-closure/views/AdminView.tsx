@@ -199,41 +199,36 @@ export default function AdminView({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
                 <div className="lg:col-span-2 space-y-8">
                     {/* Summary Stats Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <dl className="mx-auto grid grid-cols-1 gap-px bg-slate-200 overflow-hidden rounded-2xl border border-slate-200 sm:grid-cols-2 lg:grid-cols-4 shadow-sm w-full mb-8">
                         {[
-                            { label: 'Total Orders', value: closure.total_orders, icon: Receipt, color: 'primary' },
-                            { label: 'Total Items', value: closure.total_items, icon: Calculator, color: 'purple' },
-                            { label: 'Customers', value: closure.total_customers, icon: FileText, color: 'primary' },
-                            { label: 'Net Sales', value: `₵${closure.net_sales.toFixed(2)}`, icon: Banknote, color: 'emerald' },
-                        ].map((stat, i) => (
-                            <motion.div
+                            { label: 'Total Orders', value: closure.total_orders, icon: Receipt, textColor: 'text-primary-color' },
+                            { label: 'Total Items', value: closure.total_items, icon: Calculator, textColor: 'text-purple-500' },
+                            { label: 'Customers', value: closure.total_customers, icon: FileText, textColor: 'text-primary-color' },
+                            { label: 'Net Sales', value: `₵${closure.net_sales.toFixed(2)}`, icon: Banknote, textColor: 'text-emerald-500' },
+                        ].map((stat) => (
+                            <div
                                 key={stat.label}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm"
+                                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 bg-white px-4 py-8 sm:px-6 xl:px-8"
                             >
-                                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-4", {
-                                    'bg-primary/10 text-primary-color': stat.color === 'primary',
-                                    'bg-purple-50 text-purple-500': stat.color === 'purple',
-                                    'bg-emerald-50 text-emerald-500': stat.color === 'emerald',
-                                })}>
-                                    <stat.icon className="w-5 h-5" />
-                                </div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                                <p className="text-xl font-bold text-slate-800">{stat.value}</p>
-                            </motion.div>
+                                <dt className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                                    <stat.icon className={cn("size-5", stat.textColor)} />
+                                    {stat.label}
+                                </dt>
+                                <dd className="w-full flex-none text-3xl font-bold tracking-tight text-slate-900 mt-2">
+                                    {stat.value}
+                                </dd>
+                            </div>
                         ))}
-                    </div>
+                    </dl>
 
                     {/* Detailed Breakdown */}
-                    <Card className="rounded-3xl border-slate-100 shadow-sm overflow-hidden">
-                        <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-                            <CardTitle className="text-lg flex items-center gap-2">
+                    <Card className="border-0 shadow-xl overflow-hidden rounded-2xl">
+                        <div className="p-6 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white">
+                            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
                                 <ClipboardCheck className="w-5 h-5 text-primary-color" />
                                 Financial Reconciliation
-                            </CardTitle>
-                        </CardHeader>
+                            </h3>
+                        </div>
                         <CardContent className="p-0">
                             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                                 <div className="p-8 space-y-6">
@@ -465,12 +460,12 @@ export default function AdminView({
     };
 
     const renderHistory = () => (
-        <Card className="rounded-3xl border-slate-100 shadow-sm mt-6">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <CardTitle className="text-lg flex items-center gap-2">
+        <Card className="border-0 shadow-xl overflow-hidden rounded-2xl mt-6">
+            <div className="p-6 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h3 className="font-semibold text-slate-800 flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary-color" />
                     Closure History
-                </CardTitle>
+                </h3>
                 <div className="flex items-center gap-2">
                     <RangePicker
                         onChange={(_, dateStrings) => {
@@ -482,7 +477,7 @@ export default function AdminView({
                         <RefreshCcw className={cn("h-4 w-4 text-slate-500", loadingHistory && "animate-spin")} />
                     </Button>
                 </div>
-            </CardHeader>
+            </div>
             <CardContent className="p-0">
                 <Table
                     columns={columns}

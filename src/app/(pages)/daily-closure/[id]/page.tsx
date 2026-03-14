@@ -128,12 +128,16 @@ export default function ClosureDetailPage() {
 
     return (
         <div className="p-6 space-y-8 bg-slate-50/30 min-h-screen">
-            <div className="flex items-center gap-4">
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-4"
+            >
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => router.back()}
-                    className="rounded-full bg-white shadow-sm"
+                    className="rounded-full bg-white shadow-sm h-10 w-10 border border-slate-200"
                 >
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
@@ -141,7 +145,7 @@ export default function ClosureDetailPage() {
                     title={`Closure Details: ${closure.closure_number}`}
                     description={`Detailed sales and reconciliation report for ${format(new Date(closure.closure_date), 'PPP')}`}
                 />
-            </div>
+            </motion.div>
 
             {/* Status Banner */}
             <motion.div
@@ -247,44 +251,40 @@ export default function ClosureDetailPage() {
                 </div>
             </motion.div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <dl className="mx-auto grid grid-cols-1 gap-px bg-slate-200 overflow-hidden rounded-2xl border border-slate-200 sm:grid-cols-2 lg:grid-cols-4 shadow-sm w-full">
                 {[
-                    { label: 'Net Sales', value: `₵${closure.net_sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, subValue: `₵${closure.total_tax.toFixed(2)} Tax`, icon: Banknote, color: 'emerald' },
-                    { label: 'Actual Cash', value: `₵${closure.actual_cash?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}`, subValue: 'Counter submission', icon: Receipt, color: 'amber' },
-                    { label: 'Total Items', value: closure.total_items, subValue: `${closure.total_orders} Orders`, icon: Package, color: 'indigo' },
-                    { label: 'Avg Order', value: `₵${(closure.net_sales / (closure.total_orders || 1)).toFixed(2)}`, subValue: 'Per customer', icon: Calculator, color: 'sky' },
-                ].map((stat, i) => (
-                    <motion.div
+                    { label: 'Net Sales', value: `₵${closure.net_sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, subValue: `₵${closure.total_tax.toFixed(2)} Tax`, icon: Banknote, textColor: 'text-emerald-500' },
+                    { label: 'Actual Cash', value: `₵${closure.actual_cash?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}`, subValue: 'Counter submission', icon: Receipt, textColor: 'text-amber-500' },
+                    { label: 'Total Items', value: closure.total_items.toString(), subValue: `${closure.total_orders} Orders`, icon: Package, textColor: 'text-indigo-500' },
+                    { label: 'Avg Order', value: `₵${(closure.net_sales / (closure.total_orders || 1)).toFixed(2)}`, subValue: 'Per customer', icon: Calculator, textColor: 'text-sky-500' },
+                ].map((stat) => (
+                    <div
                         key={stat.label}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.05 }}
-                        className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group"
+                        className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 bg-white px-4 py-8 sm:px-6 xl:px-8"
                     >
-                        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform", {
-                            'bg-emerald-50 text-emerald-500': stat.color === 'emerald',
-                            'bg-indigo-50 text-indigo-500': stat.color === 'indigo',
-                            'bg-sky-50 text-sky-500': stat.color === 'sky',
-                            'bg-amber-50 text-amber-500': stat.color === 'amber',
-                        })}>
-                            <stat.icon className="w-4.5 h-4.5" />
-                        </div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                        <p className="text-lg font-black text-slate-900 tabular-nums">{stat.value}</p>
-                        <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">{stat.subValue}</p>
-                    </motion.div>
+                        <dt className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                            <stat.icon className={cn("size-5", stat.textColor)} />
+                            {stat.label}
+                        </dt>
+                        <dd className="w-full flex-none text-3xl font-bold tracking-tight text-slate-900 mt-2">
+                            {stat.value}
+                        </dd>
+                        <dd className="text-xs font-medium text-slate-400 mt-1">
+                            {stat.subValue}
+                        </dd>
+                    </div>
                 ))}
-            </div>
+            </dl>
 
             {/* Financial Reconciliation Breakdown */}
-            <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden bg-white">
-                <CardHeader className="border-b border-slate-50 bg-slate-50/50 py-4">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
-                        <ClipboardCheck className="w-4 h-4 text-primary-color" />
+            <Card className="border-0 shadow-xl overflow-hidden rounded-2xl bg-white">
+                <div className="p-6 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white flex flex-col gap-1">
+                    <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-base">
+                        <ClipboardCheck className="w-5 h-5 text-primary-color" />
                         Financial Reconciliation Breakdown
-                    </CardTitle>
-                    <CardDescription className="text-xs">How the system calculated your final cash difference</CardDescription>
-                </CardHeader>
+                    </h3>
+                    <p className="text-xs text-slate-400">How the system calculated your final cash difference</p>
+                </div>
                 <CardContent className="p-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                         {/* Left Side: Expected Cash Logic */}
@@ -381,13 +381,13 @@ export default function ClosureDetailPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    <Card className="rounded-2xl border-slate-100 shadow-sm bg-white overflow-hidden">
-                        <CardHeader className="border-b border-slate-50 bg-slate-50/50 py-4">
-                            <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
+                    <Card className="border-0 shadow-xl overflow-hidden rounded-2xl bg-white">
+                        <div className="p-6 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white">
+                            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
                                 <FileText className="w-4 h-4 text-primary-color" />
                                 Sold Products Breakdown
-                            </CardTitle>
-                        </CardHeader>
+                            </h3>
+                        </div>
                         <CardContent className="p-0">
                             <Table
                                 columns={productColumns}

@@ -5,7 +5,6 @@ import { useEffect, useState, useCallback } from "react";
 import {
     Banknote,
     RefreshCcw,
-    Plus,
     X,
     AlertCircle,
     CheckCircle,
@@ -31,14 +30,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Modal, theme, Select, Space, Typography, Divider } from "antd";
+import { Modal, Select, Space, Typography } from "antd";
 import toast from "react-hot-toast";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-
 import AttendantView from "./views/AttendantView";
 import AdminView from "./views/AdminView";
+import { cn } from "@/lib/utils";
 
 const { Text } = Typography;
 
@@ -50,7 +49,6 @@ export default function DailyClosurePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
-    const { token } = theme.useToken();
 
     // Form states
     const [openingBalance, setOpeningBalance] = useState<string>("");
@@ -235,46 +233,47 @@ export default function DailyClosurePage() {
     return (
         <div className="p-6 space-y-8 bg-linear-to-br from-slate-50 via-white to-slate-50 min-h-screen">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+            >
                 <PageHeader
                     title="Daily Closure"
                     description="Manage and track your shop's daily financial reconciliation"
-                />
+                >
+                    <div className="flex flex-wrap items-center gap-3">
+                        {isAdmin && (
+                            <Select
+                                placeholder="Select Shop"
+                                className="w-[220px] h-10"
+                                value={selectedShopId}
+                                onChange={(value) => setSelectedShopId(value)}
+                                suffixIcon={<Building2 className="w-4 h-4 text-slate-400" />}
+                                style={{ borderRadius: '8px' }}
+                            >
+                                {shops.map((shop) => (
+                                    <Select.Option key={shop.id} value={shop.id}>
+                                        <Space>
+                                            <Building2 className="w-4 h-4" />
+                                            {shop.name}
+                                        </Space>
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        )}
 
-                <div className="flex items-center gap-3">
-                    {isAdmin && (
-                        <Select
-                            placeholder="Select Shop"
-                            className="w-[220px] h-11"
-                            value={selectedShopId}
-                            onChange={(value) => setSelectedShopId(value)}
-                            suffixIcon={<Building2 className="w-4 h-4 text-slate-400" />}
-                            style={{ borderRadius: '6px' }}
+                        <Button
+                            variant="outline"
+                            onClick={fetchCurrentClosure}
+                            disabled={isLoading || !activeShopId}
+                            className="rounded-xl h-10 border-slate-200 hover:border-slate-300 bg-white"
                         >
-                            {shops.map((shop) => (
-                                <Select.Option key={shop.id} value={shop.id}>
-                                    <Space>
-                                        <Building2 className="w-4 h-4" />
-                                        {shop.name}
-                                    </Space>
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    )}
-
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={fetchCurrentClosure}
-                        disabled={isLoading || !activeShopId}
-                        className="rounded-md h-11 border-slate-200 hover:border-slate-300"
-                    >
-                        <RefreshCcw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                        Refresh
-                    </Button>
-
-                </div>
-            </div>
+                            <RefreshCcw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+                            Refresh
+                        </Button>
+                    </div>
+                </PageHeader>
+            </motion.div>
 
             {/* Active Closure Banner */}
             {closure && (
@@ -357,7 +356,7 @@ export default function DailyClosurePage() {
                 {/* Custom Header */}
                 <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
                     <Space size="middle" align="center">
-                        <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-md">
+                        <div className="p-2.5 bg-linear-to-br from-emerald-500 to-teal-600 rounded-md">
                             <Banknote className="h-5 w-5 text-white" />
                         </div>
                         <div>

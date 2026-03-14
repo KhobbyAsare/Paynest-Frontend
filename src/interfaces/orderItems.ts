@@ -11,6 +11,7 @@ export interface OrderItemRequest {
 export interface OrderItemResponse {
     id: number;
     order_id: number;
+    order_number?: string;
     product_id: number;
     inventory_id: number;
     product_name: string;
