@@ -1,8 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import { useState, useEffect } from "react";
 import { OrganizationResponse } from "@/interfaces/organization";
-import { Button, Input, message, Tag, Dropdown, Modal, Select } from "antd";
+import { Button, Input, message, Tag, Dropdown, Modal } from "antd";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { SearchOutlined, PlusOutlined, MoreOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { getAllOrganizations, changeOrganizationPlanType, deleteOrganization } from "@/(api-handlers)/organizationHandler";
 import { useRouter } from "next/navigation";
@@ -286,15 +294,18 @@ export default function SuperAdminDashboardView() {
                 <div className="py-4">
                     <p className="mb-2 text-sm text-gray-600">Select new plan for <strong>{selectedOrg?.name}</strong>:</p>
                     <Select
-                        className="w-full"
                         value={newPlan}
-                        onChange={(value) => setNewPlan(value)}
-                        placeholder="Select a plan"
+                        onValueChange={(value) => setNewPlan(value)}
                     >
-                        <Select.Option value="free">Free</Select.Option>
-                        <Select.Option value="basic">Basic</Select.Option>
-                        <Select.Option value="pro">Pro</Select.Option>
-                        <Select.Option value="enterprise">Enterprise</Select.Option>
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a plan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="free">Free</SelectItem>
+                            <SelectItem value="basic">Basic</SelectItem>
+                            <SelectItem value="pro">Pro</SelectItem>
+                            <SelectItem value="enterprise">Enterprise</SelectItem>
+                        </SelectContent>
                     </Select>
                 </div>
             </Modal>

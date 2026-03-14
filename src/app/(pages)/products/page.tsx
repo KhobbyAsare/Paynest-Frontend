@@ -50,7 +50,6 @@ import {
     InputNumber,
     Switch,
     Popconfirm,
-    Select as AntSelect,
     Row,
     Col,
     Divider,
@@ -640,18 +639,21 @@ export default function ProductsPage() {
                                         label={<Text type="secondary">Category</Text>}
                                         rules={[{ required: true, message: 'Category is required' }]}
                                     >
-                                        <AntSelect
-                                            placeholder="Select"
-                                            size="large"
-                                            className="rounded-lg"
-                                            dropdownClassName="rounded-lg"
+                                        <Select
+                                            value={form.getFieldValue("category_id")?.toString()}
+                                            onValueChange={(value) => form.setFieldsValue({ category_id: Number(value) })}
                                         >
-                                            {categories.map(c => (
-                                                <AntSelect.Option key={c.id} value={c.id}>
-                                                    {c.name}
-                                                </AntSelect.Option>
-                                            ))}
-                                        </AntSelect>
+                                            <SelectTrigger className="h-10 rounded-lg border-slate-200">
+                                                <SelectValue placeholder="Select" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {categories.map(c => (
+                                                    <SelectItem key={c.id} value={c.id.toString()}>
+                                                        {c.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </Form.Item>
                                 </Col>
                             </Row>

@@ -30,7 +30,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Modal, Select, Space, Typography } from "antd";
+import { Modal, Space, Typography } from "antd";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import toast from "react-hot-toast";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import { motion } from "framer-motion";
@@ -244,21 +251,24 @@ export default function DailyClosurePage() {
                     <div className="flex flex-wrap items-center gap-3">
                         {isAdmin && (
                             <Select
-                                placeholder="Select Shop"
-                                className="w-[220px] h-10"
-                                value={selectedShopId}
-                                onChange={(value) => setSelectedShopId(value)}
-                                suffixIcon={<Building2 className="w-4 h-4 text-slate-400" />}
-                                style={{ borderRadius: '8px' }}
+                                value={selectedShopId?.toString()}
+                                onValueChange={(value) => setSelectedShopId(Number(value))}
                             >
-                                {shops.map((shop) => (
-                                    <Select.Option key={shop.id} value={shop.id}>
-                                        <Space>
-                                            <Building2 className="w-4 h-4" />
-                                            {shop.name}
-                                        </Space>
-                                    </Select.Option>
-                                ))}
+                                <SelectTrigger className="w-[220px] h-10 border-slate-200 bg-white rounded-[8px]">
+                                    <div className="flex items-center gap-2">
+                                        <SelectValue placeholder="Select Shop" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {shops.map((shop) => (
+                                        <SelectItem key={shop.id} value={shop.id.toString()}>
+                                            <div className="flex items-center gap-2">
+                                                <Building2 className="w-4 h-4 text-slate-400" />
+                                                <span>{shop.name}</span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
                             </Select>
                         )}
 

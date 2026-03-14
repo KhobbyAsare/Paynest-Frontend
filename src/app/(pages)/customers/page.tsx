@@ -5,7 +5,7 @@ import {
     Search, Edit, Trash2,
     Mail, Phone, MapPin,
     Download, Filter, RefreshCcw,
-    UserPlus, Star, AlertTriangle
+    UserPlus, Star, AlertTriangle, ShoppingBag
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { GetAllCustomers, DeleteCustomer } from '@/(api-handlers)/customersHandler';
@@ -31,6 +31,13 @@ import {
     TableHead,
     TableCell,
 } from '@/components/ui/table';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 
 /* -------------------------------------------------------------------------- */
@@ -320,18 +327,25 @@ export default function CustomerListPage() {
 
                         {isAdmin && (
                             <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
-                                <select
-                                    className="bg-transparent text-sm font-medium text-slate-600 focus:outline-none cursor-pointer h-11"
+                                <Select
                                     value={selectedShopId}
-                                    onChange={(e) => setSelectedShopId(e.target.value)}
+                                    onValueChange={(val) => setSelectedShopId(val)}
                                 >
-                                    <option value="all">All Shops</option>
-                                    {shops.map((shop) => (
-                                        <option key={shop.id} value={shop.id}>
-                                            {shop.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                    <SelectTrigger className="h-10 w-[200px] border-slate-200 bg-white rounded-[8px]">
+                                        <div className="flex items-center gap-2">
+                                            <ShoppingBag className="size-4 text-slate-400" />
+                                            <SelectValue placeholder="All Shops" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Shops</SelectItem>
+                                        {shops.map((shop) => (
+                                            <SelectItem key={shop.id} value={shop.id.toString()}>
+                                                {shop.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
                     </div>

@@ -29,12 +29,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Modal,
     Form,
     Input as AntInput,
     InputNumber,
     Popconfirm,
-    Select as AntSelect,
     Row,
     Col,
     Space,
@@ -414,38 +420,43 @@ export default function PaymentsPage() {
 
             <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                 <div className="w-full sm:w-[300px]">
-                    <AntSelect
-                        showSearch
-                        placeholder="Select Order"
-                        className="w-full h-12"
-                        value={selectedOrderId}
-                        onChange={setSelectedOrderId}
-                        optionFilterProp="children"
-                        options={[
-                            { value: -1, label: 'All Payments (Wide Search)' },
-                            ...orders.map(o => ({
-                                value: o.id,
-                                label: `Order #${o.order_number || o.id} (₵${o.total_amount})`
-                            }))
-                        ]}
-                    />
+                    <Select
+                        value={selectedOrderId?.toString()}
+                        onValueChange={(val) => setSelectedOrderId(val ? Number(val) : null)}
+                    >
+                        <SelectTrigger className="w-full h-12 bg-white border-slate-200">
+                            <SelectValue placeholder="Select Order" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="-1">All Payments (Wide Search)</SelectItem>
+                            {orders.map(o => (
+                                <SelectItem key={o.id} value={o.id.toString()}>
+                                    {`Order #${o.order_number || o.id} (₵${o.total_amount})`}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {isAdmin && (
                     <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
                         <ShoppingBag className="h-5 w-5 text-slate-400" />
-                        <AntSelect
-                            className="w-[180px] h-12"
+                        <Select
                             value={selectedShopId}
-                            onChange={(value) => setSelectedShopId(value)}
-                            options={[
-                                { value: 'all', label: 'All Shops' },
-                                ...shops.map(shop => ({
-                                    value: shop.id.toString(),
-                                    label: shop.name
-                                }))
-                            ]}
-                        />
+                            onValueChange={(value) => setSelectedShopId(value)}
+                        >
+                            <SelectTrigger className="w-[180px] h-12 bg-white border-slate-200">
+                                <SelectValue placeholder="All Shops" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Shops</SelectItem>
+                                {shops.map((shop) => (
+                                    <SelectItem key={shop.id} value={shop.id.toString()}>
+                                        {shop.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 )}
 
@@ -458,17 +469,20 @@ export default function PaymentsPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <AntSelect
-                    className="h-12 w-full sm:w-[150px] rounded-md overflow-hidden"
+                <Select
                     value={selectedStatus}
-                    onChange={setSelectedStatus}
-                    options={[
-                        { value: 'all', label: 'All Status' },
-                        { value: 'pending', label: 'Pending' },
-                        { value: 'verified', label: 'Verified' },
-                        { value: 'failed', label: 'Failed' },
-                    ]}
-                />
+                    onValueChange={setSelectedStatus}
+                >
+                    <SelectTrigger className="h-12 w-full sm:w-[150px] bg-white border-slate-200">
+                        <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="verified">Verified</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                </Select>
                 {(searchTerm !== "" || selectedStatus !== "all" || (orders.length !== 0 && selectedOrderId !== orders[0].id) || selectedShopId !== "all") && (
                     <Button
                         variant="ghost"
@@ -537,15 +551,21 @@ export default function PaymentsPage() {
                             <Row gutter={12}>
                                 <Col xs={24} md={12}>
                                     <Form.Item name="order_id" label={<Text type="secondary">Associated Order</Text>} rules={[{ required: true, message: 'Select an order' }]}>
-                                        <AntSelect
-                                            showSearch
-                                            placeholder="Link to order..."
-                                            optionFilterProp="children"
-                                            options={orders.map(o => ({
-                                                value: o.id,
-                                                label: `Order #${o.order_number || o.id} (₵${o.total_amount})`
-                                            }))}
-                                        />
+                                        <Select
+                                            value={form.getFieldValue("order_id")?.toString()}
+                                            onValueChange={(val) => form.setFieldsValue({ order_id: Number(val) })}
+                                        >
+                                            <SelectTrigger className="w-full h-10 bg-white border-slate-200">
+                                                <SelectValue placeholder="Link to order..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {orders.map(o => (
+                                                    <SelectItem key={o.id} value={o.id.toString()}>
+                                                        {`Order #${o.order_number || o.id} (₵${o.total_amount})`}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </Form.Item>
                                 </Col>
                                 <Col xs={24} md={12}>
@@ -563,18 +583,37 @@ export default function PaymentsPage() {
                                 </Col>
                                 <Col xs={24} md={8}>
                                     <Form.Item name="currency" label={<Text type="secondary">Currency</Text>}>
-                                        <AntSelect options={[{ value: 'GHS', label: 'GHS (₵)' }, { value: 'USD', label: 'USD ($)' }]} />
+                                        <Select
+                                            value={form.getFieldValue("currency")}
+                                            onValueChange={(val) => form.setFieldsValue({ currency: val })}
+                                        >
+                                            <SelectTrigger className="w-full h-10 bg-white border-slate-200">
+                                                <SelectValue placeholder="Select Currency" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="GHS">GHS (₵)</SelectItem>
+                                                <SelectItem value="USD">USD ($)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </Form.Item>
                                 </Col>
                                 <Col xs={24} md={8}>
                                     <Form.Item name="payment_method" label={<Text type="secondary">Payment Method</Text>} rules={[{ required: true }]}>
-                                        <AntSelect options={[
-                                            { value: 'Cash', label: 'Cash' },
-                                            { value: 'Mobile Money', label: 'Mobile Money' },
-                                            { value: 'Card', label: 'Card' },
-                                            { value: 'Check', label: 'Check' },
-                                            { value: 'Bank Transfer', label: 'Bank Transfer' },
-                                        ]} />
+                                        <Select
+                                            value={form.getFieldValue("payment_method")}
+                                            onValueChange={(val) => form.setFieldsValue({ payment_method: val })}
+                                        >
+                                            <SelectTrigger className="w-full h-10 bg-white border-slate-200">
+                                                <SelectValue placeholder="Select Method" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Cash">Cash</SelectItem>
+                                                <SelectItem value="Mobile Money">Mobile Money</SelectItem>
+                                                <SelectItem value="Card">Card</SelectItem>
+                                                <SelectItem value="Check">Check</SelectItem>
+                                                <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </Form.Item>
                                 </Col>
                             </Row>
@@ -658,20 +697,39 @@ export default function PaymentsPage() {
                                 <Row gutter={12}>
                                     <Col span={12}>
                                         <Form.Item name="collected_by" label={<Text type="secondary">Collected By</Text>}>
-                                            <AntSelect
-                                                placeholder="Select staff..."
-                                                options={users.map(u => ({ value: u.id, label: `${u.first_name} ${u.last_name}` }))}
-                                            />
+                                            <Select
+                                                value={form.getFieldValue("collected_by")?.toString()}
+                                                onValueChange={(val) => form.setFieldsValue({ collected_by: Number(val) })}
+                                            >
+                                                <SelectTrigger className="w-full h-10 bg-white border-slate-200">
+                                                    <SelectValue placeholder="Select staff..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {users.map(u => (
+                                                        <SelectItem key={u.id} value={u.id.toString()}>
+                                                            {`${u.first_name} ${u.last_name}`}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </Form.Item>
                                     </Col>
                                     {editingPayment && (
                                         <Col span={12}>
                                             <Form.Item name="status" label={<Text type="secondary">Payment Status</Text>}>
-                                                <AntSelect options={[
-                                                    { value: 'pending', label: 'Pending' },
-                                                    { value: 'verified', label: 'Verified' },
-                                                    { value: 'failed', label: 'Failed' },
-                                                ]} />
+                                                <Select
+                                                    value={form.getFieldValue("status")}
+                                                    onValueChange={(val) => form.setFieldsValue({ status: val })}
+                                                >
+                                                    <SelectTrigger className="w-full h-10 bg-white border-slate-200">
+                                                        <SelectValue placeholder="Select Status" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="pending">Pending</SelectItem>
+                                                        <SelectItem value="verified">Verified</SelectItem>
+                                                        <SelectItem value="failed">Failed</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                             </Form.Item>
                                         </Col>
                                     )}
@@ -680,11 +738,21 @@ export default function PaymentsPage() {
                                     <Row gutter={12}>
                                         <Col span={24}>
                                             <Form.Item name="verified_by" label={<Text type="secondary">Verified By</Text>}>
-                                                <AntSelect
-                                                    allowClear
-                                                    placeholder="Select verifier..."
-                                                    options={users.map(u => ({ value: u.id, label: `${u.first_name} ${u.last_name}` }))}
-                                                />
+                                                <Select
+                                                    value={form.getFieldValue("verified_by")?.toString()}
+                                                    onValueChange={(val) => form.setFieldsValue({ verified_by: val ? Number(val) : null })}
+                                                >
+                                                    <SelectTrigger className="w-full h-10 bg-white border-slate-200">
+                                                        <SelectValue placeholder="Select verifier..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {users.map(u => (
+                                                            <SelectItem key={u.id} value={u.id.toString()}>
+                                                                {`${u.first_name} ${u.last_name}`}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </Form.Item>
                                         </Col>
                                     </Row>

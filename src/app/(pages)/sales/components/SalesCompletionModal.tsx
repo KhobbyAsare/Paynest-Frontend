@@ -8,7 +8,13 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog";
-import { Select } from "antd";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useSalesStore } from "@/(zustand-store)/salesStore";
 import { useAuthStore } from "@/(zustand-store)/authStore";
@@ -212,40 +218,41 @@ export function SalesCompletionModal({
                                 Select Customer <span className="text-rose-500">*</span>
                             </label>
                             <Select
-                                className="w-full h-11"
-                                placeholder="Choose a customer"
-                                value={selectedCustomerId}
-                                onChange={(value) => {
-                                    setSelectedCustomerId(value);
-                                    const customer = customers.find(c => c.id === value);
+                                value={selectedCustomerId?.toString()}
+                                onValueChange={(value) => {
+                                    const id = Number(value);
+                                    setSelectedCustomerId(id);
+                                    const customer = customers.find(c => c.id === id);
                                     if (customer?.address) {
                                         setDeliveryAddress(customer.address);
                                     }
                                 }}
-                                options={customers.map((c) => ({
-                                    value: c.id,
-                                    label: (
-                                        <div className="flex flex-col py-1">
-                                            <span className="font-medium text-slate-800">{c.first_name} {c.last_name}</span>
-                                            <span className="text-[10px] text-slate-500">{c.phone}</span>
+                            >
+                                <SelectTrigger className="w-full h-11 bg-white border-slate-200">
+                                    <SelectValue placeholder="Choose a customer" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-[300px]">
+                                    {isLoading ? (
+                                        <div className="p-4 text-center text-slate-400 text-sm">
+                                            <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
+                                            Loading customers...
                                         </div>
-                                    )
-                                }))}
-                                showSearch
-                                filterOption={(input, option) => {
-                                    const customer = customers.find(c => c.id === option?.value);
-                                    if (!customer) return false;
-                                    const searchStr = `${customer.first_name} ${customer.last_name} ${customer.phone}`.toLowerCase();
-                                    return searchStr.includes(input.toLowerCase());
-                                }}
-                                loading={isLoading}
-                                notFoundContent={
-                                    <div className="p-4 text-center text-slate-400 text-sm">
-                                        No customers found
-                                    </div>
-                                }
-                                getPopupContainer={(triggerNode) => triggerNode.parentNode}
-                            />
+                                    ) : customers.length === 0 ? (
+                                        <div className="p-4 text-center text-slate-400 text-sm">
+                                            No customers found
+                                        </div>
+                                    ) : (
+                                        customers.map((c) => (
+                                            <SelectItem key={c.id} value={c.id.toString()}>
+                                                <div className="flex flex-col py-0.5">
+                                                    <span className="font-medium text-slate-800">{c.first_name} {c.last_name}</span>
+                                                    <span className="text-[10px] text-slate-500">{c.phone}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
                         </div>
                     )}
 

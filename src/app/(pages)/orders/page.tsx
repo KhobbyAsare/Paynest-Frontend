@@ -38,6 +38,13 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -181,36 +188,48 @@ export default function OrdersPage() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <Filter className="size-4 text-slate-400" />
-                            <select
-                                className="bg-transparent text-sm font-medium text-slate-600 focus:outline-none cursor-pointer"
+                            <Select
                                 value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value as OrderStatus | 'all')}
+                                onValueChange={(val) => setFilterStatus(val as OrderStatus | 'all')}
                             >
-                                <option value="all">All Statuses</option>
-                                <option value="initiated">Initiated</option>
-                                <option value="preparing">Preparing</option>
-                                <option value="ready">Ready</option>
-                                <option value="transported">In Transit</option>
-                                <option value="delivered">Delivered</option>
-                            </select>
+                                <SelectTrigger className="h-10 w-[160px] bg-white border-slate-200 rounded-[8px]">
+                                    <div className="flex items-center gap-2">
+                                        <Filter className="size-4 text-slate-400" />
+                                        <SelectValue placeholder="All Statuses" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Statuses</SelectItem>
+                                    <SelectItem value="initiated">Initiated</SelectItem>
+                                    <SelectItem value="preparing">Preparing</SelectItem>
+                                    <SelectItem value="ready">Ready</SelectItem>
+                                    <SelectItem value="transported">In Transit</SelectItem>
+                                    <SelectItem value="delivered">Delivered</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {isAdmin && (
                             <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
-                                <ShoppingBag className="size-4 text-slate-400" />
-                                <select
-                                    className="bg-transparent text-sm font-medium text-slate-600 focus:outline-none cursor-pointer"
+                                <Select
                                     value={selectedShopId}
-                                    onChange={(e) => setSelectedShopId(e.target.value)}
+                                    onValueChange={(val) => setSelectedShopId(val)}
                                 >
-                                    <option value="all">All Shops</option>
-                                    {shops.map((shop) => (
-                                        <option key={shop.id} value={shop.id}>
-                                            {shop.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                    <SelectTrigger className="h-10 w-[180px] bg-white border-slate-200 rounded-[8px]">
+                                        <div className="flex items-center gap-2">
+                                            <ShoppingBag className="size-4 text-slate-400" />
+                                            <SelectValue placeholder="All Shops" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Shops</SelectItem>
+                                        {shops.map((shop) => (
+                                            <SelectItem key={shop.id} value={shop.id.toString()}>
+                                                {shop.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
                     </div>

@@ -25,12 +25,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Modal,
     Form,
     Input as AntInput,
     InputNumber,
     Popconfirm,
-    Select as AntSelect,
     Row,
     Col,
     Space,
@@ -408,18 +414,22 @@ export default function OrderItemsPage() {
                 {isAdmin && (
                     <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
                         <ShoppingBag className="h-5 w-5 text-slate-400" />
-                        <AntSelect
-                            className="w-[200px] h-12 bg-slate-50 rounded-md"
+                        <Select
                             value={selectedShopId}
-                            onChange={(value) => setSelectedShopId(value)}
+                            onValueChange={(value) => setSelectedShopId(value)}
                         >
-                            <AntSelect.Option value="all">All Shops</AntSelect.Option>
-                            {shops.map((shop) => (
-                                <AntSelect.Option key={shop.id} value={shop.id.toString()}>
-                                    {shop.name}
-                                </AntSelect.Option>
-                            ))}
-                        </AntSelect>
+                            <SelectTrigger className="w-[200px] h-12 bg-slate-50 border-none rounded-md">
+                                <SelectValue placeholder="Select Shop" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Shops</SelectItem>
+                                {shops.map((shop) => (
+                                    <SelectItem key={shop.id} value={shop.id.toString()}>
+                                        {shop.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 )}
 
@@ -508,19 +518,21 @@ export default function OrderItemsPage() {
                                             label={<Text type="secondary">Select Order</Text>}
                                             rules={[{ required: true, message: 'Please select an order' }]}
                                         >
-                                            <AntSelect
-                                                showSearch
-                                                placeholder="Search and select order..."
-                                                optionFilterProp="children"
-                                                filterOption={(input, option) =>
-                                                    (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
-                                                }
-                                                className="rounded-lg w-full"
-                                                options={orders.map(o => ({
-                                                    value: o.id,
-                                                    label: `Order #${o.order_number || o.id} - ${o.order_status} (₵${o.total_amount})`
-                                                }))}
-                                            />
+                                            <Select
+                                                value={form.getFieldValue("target_order_id")?.toString()}
+                                                onValueChange={(val) => form.setFieldsValue({ target_order_id: Number(val) })}
+                                            >
+                                                <SelectTrigger className="w-full rounded-lg border-slate-200">
+                                                    <SelectValue placeholder="Search and select order..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {orders.map(o => (
+                                                        <SelectItem key={o.id} value={o.id.toString()}>
+                                                            {`Order #${o.order_number || o.id} - ${o.order_status} (₵${o.total_amount})`}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </Form.Item>
                                     </Col>
                                     <Col xs={24} md={12}>
@@ -529,19 +541,21 @@ export default function OrderItemsPage() {
                                             label={<Text type="secondary">Select Product</Text>}
                                             rules={[{ required: true, message: 'Please select a product' }]}
                                         >
-                                            <AntSelect
-                                                showSearch
-                                                placeholder="Search and select product..."
-                                                optionFilterProp="children"
-                                                filterOption={(input, option) =>
-                                                    (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
-                                                }
-                                                className="rounded-lg w-full"
-                                                options={products.map(p => ({
-                                                    value: p.id,
-                                                    label: `${p.name} (SKU: ${p.sku}) - ₵${p.selling_price}`
-                                                }))}
-                                            />
+                                            <Select
+                                                value={form.getFieldValue("product_id")?.toString()}
+                                                onValueChange={(val) => form.setFieldsValue({ product_id: Number(val) })}
+                                            >
+                                                <SelectTrigger className="w-full rounded-lg border-slate-200">
+                                                    <SelectValue placeholder="Search and select product..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {products.map(p => (
+                                                        <SelectItem key={p.id} value={p.id.toString()}>
+                                                            {`${p.name} (SKU: ${p.sku}) - ₵${p.selling_price}`}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </Form.Item>
                                     </Col>
                                 </Row>
@@ -613,13 +627,21 @@ export default function OrderItemsPage() {
                                             name="item_status"
                                             label={<Text type="secondary">Status</Text>}
                                         >
-                                            <AntSelect className="rounded-lg">
-                                                <AntSelect.Option value="pending">Pending</AntSelect.Option>
-                                                <AntSelect.Option value="processing">Processing</AntSelect.Option>
-                                                <AntSelect.Option value="completed">Completed</AntSelect.Option>
-                                                <AntSelect.Option value="delivered">Delivered</AntSelect.Option>
-                                                <AntSelect.Option value="cancelled">Cancelled</AntSelect.Option>
-                                            </AntSelect>
+                                            <Select
+                                                value={form.getFieldValue("item_status")}
+                                                onValueChange={(val) => form.setFieldsValue({ item_status: val })}
+                                            >
+                                                <SelectTrigger className="rounded-lg border-slate-200">
+                                                    <SelectValue placeholder="Select Status" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="pending">Pending</SelectItem>
+                                                    <SelectItem value="processing">Processing</SelectItem>
+                                                    <SelectItem value="completed">Completed</SelectItem>
+                                                    <SelectItem value="delivered">Delivered</SelectItem>
+                                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </Form.Item>
                                     </Col>
                                 )}
