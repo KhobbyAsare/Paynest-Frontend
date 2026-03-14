@@ -189,12 +189,13 @@ export default function DailyClosurePage() {
         }
     };
 
-    const handleVerifyClosure = async (status: 'verified' | 'rejected') => {
-        if (!closure) return;
+    const handleVerifyClosure = async (status: 'verified' | 'rejected', closureId?: number) => {
+        const id = closureId ?? closure?.id;
+        if (!id) return;
 
         setIsActionLoading(true);
         try {
-            await VerifyDailyClosure(closure.id, {
+            await VerifyDailyClosure(id, {
                 status: status,
                 discrepancy_reason: discrepancyReason
             });
@@ -210,11 +211,12 @@ export default function DailyClosurePage() {
 
     const getStatusBadge = (status: string) => {
         const config: Record<string, { color: string, icon: any, label: string }> = {
-            opened: { color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Clock, label: 'Opened' },
-            open: { color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Clock, label: 'Opened' },
+            opened: { color: 'bg-primary/10 text-primary-color border-primary/20', icon: Clock, label: 'Opened' },
+            open: { color: 'bg-primary/10 text-primary-color border-primary/20', icon: Clock, label: 'Opened' },
             submitted: { color: 'bg-amber-50 text-amber-700 border-amber-200', icon: AlertCircle, label: 'Pending Verification' },
             verified: { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle, label: 'Verified' },
             rejected: { color: 'bg-rose-50 text-rose-700 border-rose-200', icon: AlertCircle, label: 'Rejected' },
+            discrepancy: { color: 'bg-amber-50 text-amber-700 border-amber-200', icon: AlertCircle, label: 'Pending Review (Discrepancy)' },
         };
 
         const statusKey = status.toLowerCase();
@@ -271,16 +273,6 @@ export default function DailyClosurePage() {
                         Refresh
                     </Button>
 
-                    {!closure && isInternalUser && (
-                        <Button
-                            onClick={() => setIsModalVisible(true)}
-                            size="lg"
-                            className="rounded-md h-11 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-black text-white shadow-lg px-6"
-                        >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Open Daily Closure
-                        </Button>
-                    )}
                 </div>
             </div>
 
@@ -337,6 +329,7 @@ export default function DailyClosurePage() {
                     handleVerifyClosure={handleVerifyClosure}
                     discrepancyReason={discrepancyReason}
                     setDiscrepancyReason={setDiscrepancyReason}
+                    activeShopId={activeShopId || undefined}
                 />
             ) : (
                 <Card className="p-12 text-center border-slate-200">

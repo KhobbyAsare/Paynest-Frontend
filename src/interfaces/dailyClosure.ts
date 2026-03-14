@@ -50,3 +50,14 @@ export interface VerifyClosureRequest {
   status: string,
   discrepancy_reason: string
 }
+
+export interface ProductSale {
+  product_name: string;
+  quantity: number;
+  total_sales: number;
+  unit_price: number;
+}
+
+export interface DailyClosureDetailResponse extends DailyClosureResponse {
+  sold_products: ProductSale[];
+}

@@ -26,6 +26,22 @@ export const GetCurrentClosure = async (shop_id: number) => {
     }
 }
 
+export const GetAllClosures = async (shop_id: number, startDate?: string, endDate?: string) => {
+    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+    let query = "";
+    if (startDate) query += `?start_date=${startDate}`;
+    if (endDate) query += `${query ? '&' : '?'}end_date=${endDate}`;
+    
+    try {
+        const response = await axios.get(`${url}/daily-closures/all/${shop_id}${query}`, {
+            headers: getAPIHeaders(),
+        })
+        return response.data
+    } catch (error: unknown) {
+        throw error;
+    }
+}
+
 export const SubmitDailyClosure = async (closure_id: number, data: SubmitClosureRequest) => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
@@ -42,6 +58,18 @@ export const VerifyDailyClosure = async (closure_id: number, data: VerifyClosure
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.post(`${url}/daily-closures/${closure_id}/verify`, data, {
+            headers: getAPIHeaders(),
+        })
+        return response.data
+    } catch (error: unknown) {
+        throw error;
+    }
+}
+
+export const GetClosureDetails = async (closureId: number) => {
+    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+    try {
+        const response = await axios.get(`${url}/daily-closures/${closureId}/details`, {
             headers: getAPIHeaders(),
         })
         return response.data
