@@ -112,6 +112,7 @@ export default function InventoryPage() {
     const activeFilterCount = [filter.lowStock, filter.outOfStock, filter.needsReorder].filter(Boolean).length;
 
     const filteredInventory = inventory.filter(item =>
+        (item.product_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.product_id.toString().includes(searchTerm)
     );
 
@@ -171,7 +172,7 @@ export default function InventoryPage() {
                         <div className="relative max-w-xs w-full">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
                             <Input
-                                placeholder="Search by Product ID..."
+                                placeholder="Search products..."
                                 className="pl-9 rounded-lg"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -238,7 +239,7 @@ export default function InventoryPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-slate-50/50">
-                            <TableHead className="px-6">Product ID</TableHead>
+                            <TableHead className="px-6">Product</TableHead>
                             <TableHead className="px-6">Stock Level</TableHead>
                             <TableHead className="px-6">Location</TableHead>
                             <TableHead className="px-6">Reorder Point</TableHead>
@@ -263,9 +264,12 @@ export default function InventoryPage() {
                         ) : (
                             filteredInventory.map((item) => (
                                 <TableRow key={item.id} className="hover:bg-slate-50/50">
-                                    {/* Product ID */}
+                                    {/* Product */}
                                     <TableCell className="px-6 font-medium text-slate-700">
-                                        #{item.product_id}
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-slate-900">{item.product_name || 'Unknown Product'}</span>
+                                            <span className="text-[10px] text-slate-400 font-mono italic">ID: #{item.product_id}</span>
+                                        </div>
                                     </TableCell>
 
                                     {/* Stock Level */}

@@ -1,3 +1,5 @@
+import { InventoryResponse } from "./inventory";
+
 export interface ProductRequest {
     name: string,
     description: string,
@@ -30,7 +32,8 @@ export interface ProductResponse {
     organization_id: number,
     shop_id: number,
     image_url?: string,
-    stock_quantity?: number,
+    stock_quantity: number,
+    inventory?: InventoryResponse,
     category?: string,
     created_at: string,
     updated_at: string

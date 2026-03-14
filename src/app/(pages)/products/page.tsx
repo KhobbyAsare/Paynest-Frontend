@@ -1011,6 +1011,64 @@ export default function ProductsPage() {
                                     </span>
                                 </div>
                             </div>
+
+                            {/* Inventory Information Section */}
+                            {viewingProduct.inventory && (
+                                <div className="pt-4 border-t border-slate-100">
+                                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                                        <Package className="h-4 w-4 text-primary" />
+                                        Inventory & Stock Levels
+                                    </h4>
+                                    
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                                        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                                            <p className="text-[10px] text-emerald-600 font-medium uppercase tracking-wider mb-1">Current Stock</p>
+                                            <p className="text-xl font-bold text-emerald-700">{viewingProduct.inventory.current_stock} <span className="text-xs font-normal text-emerald-500">{viewingProduct.inventory.unit_of_measurement || 'units'}</span></p>
+                                        </div>
+                                        <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                                            <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wider mb-1">Min Level</p>
+                                            <p className="text-xl font-bold text-amber-700">{viewingProduct.inventory.minimum_stock}</p>
+                                        </div>
+                                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                                            <p className="text-[10px] text-blue-600 font-medium uppercase tracking-wider mb-1">Reorder Point</p>
+                                            <p className="text-xl font-bold text-blue-700">{viewingProduct.inventory.reorder_point}</p>
+                                        </div>
+                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">Max Capacity</p>
+                                            <p className="text-xl font-bold text-slate-700">{viewingProduct.inventory.maximum_stock || '—'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 bg-slate-50/50 rounded-xl p-4 border border-slate-100">
+                                        <div className="space-y-3">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Storage Location</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-xs font-medium text-slate-600">Aisle {viewingProduct.inventory.aisle || 'N/A'}</span>
+                                                    <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-xs font-medium text-slate-600">Shelf {viewingProduct.inventory.shelf || 'N/A'}</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-slate-700 font-medium mt-2">{viewingProduct.inventory.bin_location || 'No specific bin location assigned'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3 text-right">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Unit of Measure</p>
+                                                <p className="text-sm font-semibold text-slate-700 mt-0.5">{viewingProduct.inventory.unit_of_measurement || 'Units'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Last Restocked</p>
+                                                <p className="text-sm font-semibold text-slate-700 mt-0.5">
+                                                    {viewingProduct.inventory.last_restocked 
+                                                        ? new Date(viewingProduct.inventory.last_restocked).toLocaleDateString()
+                                                        : 'Never'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Footer */}

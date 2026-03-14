@@ -5,28 +5,25 @@ import { useState, useEffect, useCallback } from 'react';
 import {
     Search,
     Calendar,
-    Download,
-    TrendingUp,
     ShoppingBag,
-    Tag,
-    Clock,
     CircleDollarSign,
     ChevronLeft,
     ChevronRight,
     RefreshCcw,
     Filter,
-    Eye,
-    DollarSign,
     BarChart3,
     Package,
     CreditCard,
-    ArrowUpRight,
-    ArrowDownRight,
-    Printer,
-    FileDown,
     Settings2
 } from 'lucide-react';
-import { DatePicker, Table, Card, Button, Input, Space, Tooltip, Tag as AntTag, Select, Statistic } from 'antd';
+import { DatePicker, Table, Card, Button, Input, Tag as AntTag } from 'antd';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { GetSoldItemsReport } from '@/(api-handlers)/orders_walkinsHandler';
@@ -77,7 +74,7 @@ export default function SalesReportPage() {
     };
 
     // Get unique categories for filter
-    const categories = Array.from(new Set(data.map(item => item.category_name).filter(Boolean)));
+    const categories = Array.from(new Set(data.map(item => item.category_name).filter((cat): cat is string => Boolean(cat))));
 
     const filteredData = data
         .filter(item =>
@@ -290,56 +287,30 @@ export default function SalesReportPage() {
                 </motion.div>
 
                 {/* KPI Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <dl className="mx-auto grid grid-cols-1 gap-px bg-gray-200 mt-8 mb-8 overflow-hidden rounded-2xl border border-gray-200 sm:grid-cols-2 lg:grid-cols-4 shadow-sm">
                     {summaryCards.map((card) => (
-                        <motion.div
+                        <div
                             key={card.title}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: card.delay }}
+                            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 bg-white px-4 py-8 sm:px-6 xl:px-8"
                         >
-                            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-                                <div className="relative">
-                                    {/* Background Icon */}
-                                    <card.icon className="absolute right-4 top-4 w-16 h-16 text-slate-100 group-hover:scale-110 transition-transform duration-500" />
-
-                                    <div className="relative z-10">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <div className={cn("p-2 rounded-lg", card.bgColor)}>
-                                                <card.icon className={cn("w-4 h-4", card.textColor)} />
-                                            </div>
-                                            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                                                {card.title}
-                                            </span>
-                                        </div>
-
-                                        <div className="flex items-end justify-between">
-                                            <div>
-                                                <div className="text-2xl font-bold text-slate-800">
-                                                    {card.prefix}{typeof card.value === 'number' ? card.value.toFixed(2) : card.value}
-                                                </div>
-                                                <div className="flex items-center gap-1 mt-2">
-                                                    {card.trendUp ? (
-                                                        <ArrowUpRight className="w-3 h-3 text-emerald-500" />
-                                                    ) : (
-                                                        <ArrowDownRight className="w-3 h-3 text-rose-500" />
-                                                    )}
-                                                    <span className={cn(
-                                                        "text-xs font-medium",
-                                                        card.trendUp ? "text-emerald-600" : "text-rose-600"
-                                                    )}>
-                                                        {card.trend}
-                                                    </span>
-                                                    <span className="text-xs text-slate-400 ml-1">vs yesterday</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Card>
-                        </motion.div>
+                            <dt className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                                <card.icon className={cn("size-5", card.textColor)} />
+                                {card.title}
+                            </dt>
+                            <dd
+                                className={cn(
+                                    'text-xs font-semibold',
+                                    card.trendUp ? 'text-emerald-600' : 'text-rose-600'
+                                )}
+                            >
+                                {card.trend}
+                            </dd>
+                            <dd className="w-full flex-none text-3xl font-bold tracking-tight text-gray-900 mt-2">
+                                {loading ? '...' : `${card.prefix || ''}${typeof card.value === 'number' ? card.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : card.value}`}
+                            </dd>
+                        </div>
                     ))}
-                </div>
+                </dl>
 
                 {/* Filters Bar */}
                 <motion.div
@@ -363,33 +334,41 @@ export default function SalesReportPage() {
 
                         <div className="flex items-center gap-3">
                             <Select
-                                placeholder="All Categories"
-                                className="w-40"
                                 value={categoryFilter}
-                                onChange={setCategoryFilter}
-                                suffixIcon={<Filter className="w-4 h-4" />}
+                                onValueChange={setCategoryFilter}
                             >
-                                <Select.Option value="all">All Categories</Select.Option>
-                                {categories.map(cat => (
-                                    <Select.Option key={cat} value={cat}>{cat}</Select.Option>
-                                ))}
+                                <SelectTrigger className="w-44 h-10 bg-white shadow-sm border-slate-200">
+                                    <div className="flex items-center gap-2">
+                                        <Filter className="w-4 h-4 text-slate-400" />
+                                        <SelectValue placeholder="All Categories" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Categories</SelectItem>
+                                    {categories.map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                </SelectContent>
                             </Select>
 
                             <Select
-                                placeholder="Sort by"
-                                className="w-40"
                                 value={sortBy}
-                                onChange={setSortBy}
-                                suffixIcon={<Settings2 className="w-4 h-4" />}
+                                onValueChange={setSortBy}
                             >
-                                <Select.Option value="date_desc">Latest First</Select.Option>
-                                <Select.Option value="date_asc">Oldest First</Select.Option>
-                                <Select.Option value="amount_desc">Highest Amount</Select.Option>
-                                <Select.Option value="amount_asc">Lowest Amount</Select.Option>
-                                <Select.Option value="qty_desc">Most Quantity</Select.Option>
+                                <SelectTrigger className="w-44 h-10 bg-white shadow-sm border-slate-200">
+                                    <div className="flex items-center gap-2">
+                                        <Settings2 className="w-4 h-4 text-slate-400" />
+                                        <SelectValue placeholder="Sort by" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="date_desc">Latest First</SelectItem>
+                                    <SelectItem value="date_asc">Oldest First</SelectItem>
+                                    <SelectItem value="amount_desc">Highest Amount</SelectItem>
+                                    <SelectItem value="amount_asc">Lowest Amount</SelectItem>
+                                    <SelectItem value="qty_desc">Most Quantity</SelectItem>
+                                </SelectContent>
                             </Select>
-
-
                         </div>
                     </div>
                 </motion.div>

@@ -1,6 +1,7 @@
 export interface InventoryResponse {
     id: number,
     product_id: number,
+    product_name?: string,
     shop_id: number,
     organization_id: number,
     current_stock: number,
