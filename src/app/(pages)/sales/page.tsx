@@ -391,18 +391,6 @@ export default function SalesPage() {
                                                 {isOrderMode ? "Place Order" : "Proceed to Payment"}
                                                 <ChevronRight className="w-5 h-5 ml-2" />
                                             </Button>
-
-                                            {/* Stats */}
-                                            <div className="flex items-center justify-between text-xs text-slate-400 pt-2">
-                                                <div className="flex items-center gap-1">
-                                                    <Users className="w-3 h-3" />
-                                                    <span>12 active orders</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <Sparkles className="w-3 h-3" />
-                                                    <span>Avg. prep time 15min</span>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>

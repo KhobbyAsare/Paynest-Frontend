@@ -76,7 +76,7 @@ const navigationItems: NavItem[] = [
         href: '#',
         icon: CalculatorIcon,
         current: false,
-        roles: ['superadmin', 'admin', 'manager', 'attendant'],
+        roles: ['admin', 'manager', 'attendant'],
         subItems: [
             { name: 'POS', href: '/sales', icon: CalculatorIcon, current: false, roles: ['attendant'] },
             { name: 'Orders & Walk-ins', href: '/orders', icon: ReceiptPercentIcon, current: false, roles: ['superadmin', 'admin', 'manager', 'attendant'] },

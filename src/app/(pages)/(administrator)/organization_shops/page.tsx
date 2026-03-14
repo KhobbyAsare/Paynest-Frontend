@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useEffect, useState } from 'react';
@@ -59,7 +60,7 @@ export default function OrganizationShops() {
                     type="primary"
                     icon={<Plus className="size-4" />}
                     onClick={() => setIsModalOpen(true)}
-                    className="bg-primary hover:bg-primary/90 flex items-center gap-2"
+                    className="bg-primary! hover:bg-primary/90! flex items-center gap-2"
                 >
                     Add New Shop
                 </Button>
@@ -187,7 +188,7 @@ export default function OrganizationShops() {
                             type="primary"
                             htmlType="submit"
                             loading={confirmLoading}
-                            className="bg-primary"
+                            className="bg-primary! hover:bg-primary/90!"
                         >
                             Create Shop
                         </Button>

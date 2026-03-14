@@ -26,11 +26,11 @@ import {
     ShoppingCart,
     ChevronRight,
     Loader2,
+    MapPin
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { handleErrorMessage } from "@/lib/handleErrorMessage";
 import { Input } from "@/components/ui/input";
-import { MapPin } from "lucide-react";
 
 interface SalesCompletionModalProps {
     isOpen: boolean;
@@ -55,6 +55,10 @@ export function SalesCompletionModal({
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
     const [deliveryAddress, setDeliveryAddress] = useState<string>("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [discountAmount, setDiscountAmount] = useState<number>(0);
+
+    const finalTotal = Math.max(0, total - discountAmount);
 
     useEffect(() => {
         if (isOpen && isOrderMode) {
@@ -96,7 +100,7 @@ export function SalesCompletionModal({
             const payment = {
                 method: paymentMethod,
                 status: "paid" as const,
-                amount_paid: total
+                amount_paid: finalTotal
             };
 
             if (isOrderMode) {
@@ -108,6 +112,7 @@ export function SalesCompletionModal({
                     items: items.map(({ product_id, quantity }) => ({ product_id, quantity })),
                     payment,
                     delivery_amount: 0,
+                    discount_amount: discountAmount,
                     is_delivered: false,
                     delivery_address: deliveryAddress || null,
                     actual_delivery_date: new Date().toISOString(),
@@ -124,6 +129,7 @@ export function SalesCompletionModal({
                     items,
                     payment,
                     delivery_amount: 0,
+                    discount_amount: discountAmount,
                     is_delivered: true,
                     delivery_address: null,
                     actual_delivery_date: null,
@@ -176,9 +182,24 @@ export function SalesCompletionModal({
                                 <span>Tax (4.0%)</span>
                                 <span>${tax.toFixed(2)}</span>
                             </div>
+                            <div className="flex justify-between items-center text-sm pt-2">
+                                <span className="text-slate-500">Discount Amount</span>
+                                <div className="relative w-24">
+                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={discountAmount || ""}
+                                        onChange={(e) => setDiscountAmount(Number(e.target.value))}
+                                        placeholder="0.00"
+                                        className="w-full h-8 pl-5 text-right font-medium text-sm bg-white border-slate-200"
+                                    />
+                                </div>
+                            </div>
                             <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-100">
                                 <span className="text-lg font-bold text-slate-800">Total Payable</span>
-                                <span className="text-2xl font-black text-primary-color">${total.toFixed(2)}</span>
+                                <span className="text-2xl font-black text-primary-color">${finalTotal.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>

@@ -19,6 +19,7 @@ export interface WalkInsRequest {
         amount_paid: number
     },
     delivery_amount: number,
+    discount_amount?: number,
     is_delivered: boolean,
     delivery_address: string | null,
     actual_delivery_date: null,
@@ -41,6 +42,7 @@ export interface OrderRequest {
         amount_paid: number
     },
     delivery_amount: number,
+    discount_amount?: number,
     is_delivered: boolean,
     delivery_address: string | null,
     actual_delivery_date: string,
