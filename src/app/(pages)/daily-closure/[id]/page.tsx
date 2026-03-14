@@ -61,7 +61,7 @@ export default function ClosureDetailPage() {
 
     const handleVerifySubmit = async (status: 'verified' | 'rejected') => {
         if (!closure) return;
-        
+
         setIsActionLoading(true);
         try {
             await VerifyDailyClosure(closure.id, {
@@ -152,7 +152,7 @@ export default function ClosureDetailPage() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
-                    "p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm bg-white",
+                    "p-3 rounded-md border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm bg-white",
                     closure.status === 'verified' ? "border-emerald-100 bg-emerald-50/20" :
                         closure.status === 'rejected' ? "border-rose-100 bg-rose-50/20" : "border-amber-100 bg-amber-50/20"
                 )}
@@ -181,10 +181,10 @@ export default function ClosureDetailPage() {
                                 closure.status === 'rejected' ? "Submission Rejected" : "Pending Administrator Review"}
                         </h2>
                         <p className="text-xs text-slate-500">
-                            {closure.status === 'verified' ? 
-                                `Verified & Approved by ID#${closure.verified_by}` : 
-                                closure.closed_at ? `Submitted by Attendant on ${format(new Date(closure.closed_at), 'PPP p')}` : 
-                                "Awaiting end-of-day submission"}
+                            {closure.status === 'verified' ?
+                                `Verified & Approved by ID#${closure.verified_by}` :
+                                closure.closed_at ? `Submitted by Attendant on ${format(new Date(closure.closed_at), 'PPP p')}` :
+                                    "Awaiting end-of-day submission"}
                         </p>
                     </div>
                 </div>
@@ -199,11 +199,11 @@ export default function ClosureDetailPage() {
                             {closure.cash_difference > 0 ? "+" : ""}₵{closure.cash_difference.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </div>
                     </div>
-                    
+
                     {(closure.status === 'submitted' || closure.status === 'discrepancy') && (
                         <div className="flex gap-2">
-                            <Button 
-                                size="sm" 
+                            <Button
+                                size="sm"
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
                                 loading={isActionLoading}
                                 onClick={() => {
@@ -218,9 +218,9 @@ export default function ClosureDetailPage() {
                                 <CheckCircle className="w-4 h-4 mr-1" />
                                 Approve
                             </Button>
-                            <Button 
-                                size="sm" 
-                                variant="outline" 
+                            <Button
+                                size="sm"
+                                variant="outline"
                                 className="border-rose-200 text-rose-600 hover:bg-rose-50"
                                 loading={isActionLoading}
                                 onClick={() => {
@@ -229,8 +229,8 @@ export default function ClosureDetailPage() {
                                         content: (
                                             <div className="space-y-3 pt-4">
                                                 <p>Provide a reason for rejection:</p>
-                                                <Input.TextArea 
-                                                    value={discrepancyReason} 
+                                                <Input.TextArea
+                                                    value={discrepancyReason}
                                                     onChange={e => setDiscrepancyReason(e.target.value)}
                                                     placeholder="e.g. Cash count doesn't match..."
                                                 />
@@ -293,7 +293,7 @@ export default function ClosureDetailPage() {
                                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">1. Expected Cash Result</h3>
                                 <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded uppercase">Formula: Bal + Sales</span>
                             </div>
-                            
+
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center group">
                                     <div className="flex items-center gap-3">
