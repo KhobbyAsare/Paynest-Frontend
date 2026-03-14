@@ -80,6 +80,9 @@ export interface OrderWalkInsResponse {
     order_date: string,
     order_time: string,
     close_at: string,
+    preparing_at?: string,
+    ready_at?: string,
+    transported_at?: string,
     created_at: string,
     updated_at: string,
     customer: {

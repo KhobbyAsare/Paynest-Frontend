@@ -452,6 +452,28 @@ export default function OrderDetailsPage() {
                                                                     )}>
                                                                         {config.label}
                                                                     </span>
+                                                                    {/* Status Timestamp */}
+                                                                    {(() => {
+                                                                        const timestampField = {
+                                                                            initiated: 'created_at',
+                                                                            preparing: 'preparing_at',
+                                                                            ready: 'ready_at',
+                                                                            transported: 'transported_at',
+                                                                            delivered: 'actual_delivery_date'
+                                                                        }[key];
+                                                                        const ts = order[timestampField as keyof OrderWalkInsResponse];
+                                                                        if (!ts) return null;
+                                                                        return (
+                                                                            <div className="flex flex-col items-center mt-1">
+                                                                                <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap">
+                                                                                    {format(new Date(ts as string), 'HH:mm')}
+                                                                                </span>
+                                                                                <span className="text-[9px] text-slate-300 whitespace-nowrap">
+                                                                                    {format(new Date(ts as string), 'MMM d')}
+                                                                                </span>
+                                                                            </div>
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             </TooltipTrigger>
                                                             <TooltipContent side="bottom" className="max-w-xs">
@@ -460,6 +482,26 @@ export default function OrderDetailsPage() {
                                                         </Tooltip>
                                                     );
                                                 })}
+
+                                                {/* Final 'Closed' status if applicable */}
+                                                {order.close_at && (
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="relative z-10 w-10 h-10 rounded-full border-4 bg-slate-100 border-slate-300 flex items-center justify-center">
+                                                            <XCircle className="w-4 h-4 text-slate-500" />
+                                                        </div>
+                                                        <span className="text-xs font-medium mt-2 text-slate-500">
+                                                            Closed
+                                                        </span>
+                                                        <div className="flex flex-col items-center mt-1">
+                                                            <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap">
+                                                                {format(new Date(order.close_at), 'HH:mm')}
+                                                            </span>
+                                                            <span className="text-[9px] text-slate-300 whitespace-nowrap">
+                                                                {format(new Date(order.close_at), 'MMM d')}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </CardContent>

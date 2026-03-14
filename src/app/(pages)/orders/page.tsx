@@ -278,8 +278,9 @@ export default function OrdersPage() {
                                                     {getStatusIcon(order.order_status)}
                                                     {statusConfig[order.order_status]?.label}
                                                 </Badge>
+                                                
                                                 {order.delivery_address && (
-                                                    <span className="text-[10px] text-slate-400 truncate max-w-[120px]" title={order.delivery_address}>
+                                                    <span className="text-[10px] text-slate-400 truncate max-w-[120px] mt-1" title={order.delivery_address}>
                                                         {order.delivery_address}
                                                     </span>
                                                 )}
