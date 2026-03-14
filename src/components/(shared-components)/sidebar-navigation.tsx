@@ -159,9 +159,7 @@ const navigationItems: NavItem[] = [
         current: false,
         roles: ['admin'],
         subItems: [
-            { name: 'Revenue Reports', href: '/financials/revenue', icon: BanknotesIcon, current: false, roles: ['superadmin', 'admin'] },
-            { name: 'Expense Tracking', href: '/financials/expenses', icon: ReceiptPercentIcon, current: false, roles: ['superadmin', 'admin'] },
-            { name: 'Profit & Loss', href: '/financials/profit-loss', icon: ChartPieIcon, current: false, roles: ['superadmin', 'admin'] },
+            { name: 'Organization Finance', href: '/finance', icon: ChartPieIcon, current: false, roles: ['superadmin', 'admin'] },
         ]
     },
     {
