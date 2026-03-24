@@ -13,3 +13,14 @@ export const createEmployeeProfile = async (employeeProfileRequest: EmployeeProf
         throw error;
     }
 }
+
+export const updateEmployeeProfile = async (userId: number, employeeProfileRequest: any) => {
+    try {
+        const response = await axios.put(`${process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL}/employee_profile/${userId}`, employeeProfileRequest, {
+            headers: getAPIHeaders(),
+        })
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+}

@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { Input, Card, Button, Modal, Typography, Tooltip } from 'antd';
-import { SearchOutlined, UserAddOutlined, CopyOutlined, EyeOutlined } from '@ant-design/icons';
+import { SearchOutlined, UserAddOutlined, CopyOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
 import { getOrganizationUsers } from '@/(api-handlers)/userHandler';
 import { generateInvitationCode } from '@/(api-handlers)/organizationHandler';
 import { UserResponse } from '@/interfaces/loginInterface';
@@ -183,6 +183,16 @@ export default function UsersAdministratorView() {
                                                             />
                                                         </Link>
                                                     </Tooltip>
+                                                    {u?.employee_profile && (
+                                                        <Tooltip title="Edit Profile">
+                                                            <Link href={`/users/edit-employee-profile/${u.id}`}>
+                                                                <Button
+                                                                    type="text"
+                                                                    icon={<EditOutlined className="text-primary text-lg" />}
+                                                                />
+                                                            </Link>
+                                                        </Tooltip>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))

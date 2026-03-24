@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { Input, Card, message, Button, Tooltip } from 'antd';
-import { SearchOutlined, EyeOutlined } from '@ant-design/icons';
+import { SearchOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
 import { getAllUsers } from '@/(api-handlers)/userHandler';
 import { UserResponse } from '@/interfaces/loginInterface';
 import PageHeader from '@/components/(shared-components)/PageHeader';
@@ -140,6 +140,16 @@ export default function SuperAdminPage() {
                                                             />
                                                         </Link>
                                                     </Tooltip>
+                                                    {user?.employee_profile && (
+                                                        <Tooltip title="Edit Profile">
+                                                            <Link href={`/users/edit-employee-profile/${user.id}`}>
+                                                                <Button
+                                                                    type="text"
+                                                                    icon={<EditOutlined className="text-primary text-lg" />}
+                                                                />
+                                                            </Link>
+                                                        </Tooltip>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))
