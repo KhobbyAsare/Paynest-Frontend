@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import SplitText from "@/components/(shared-components)/SplitText";
@@ -64,6 +65,11 @@ export default function LoginPage() {
                     path: '/',
                 });
 
+                setCookie('user_role', response.user?.role || 'attendant', {
+                    maxAge: 30 * 24 * 60 * 60,
+                    path: '/',
+                });
+
                 const { setAuth, updateUser } = useAuthStore.getState();
                 setAuth(response);
 
@@ -75,7 +81,15 @@ export default function LoginPage() {
                 }
 
                 toast.success("Login successful!");
-                router.push("/dashboard")
+
+                const role = response.user?.role;
+                if (role === 'attendant') {
+                    router.push("/sales");
+                } else if (role === 'manager') {
+                    router.push("/orders");
+                } else {
+                    router.push("/dashboard");
+                }
             }
         } catch (error: any) {
             handleErrorMessage(error, "Login failed. Please check your credentials.");
@@ -120,7 +134,7 @@ export default function LoginPage() {
                                 )}
                                 {emailOrUsernameValue && !errors.email_or_username && (
                                     <p className="mt-1 text-xs text-gray-500">
-                                        You're logging in with {isEmail(emailOrUsernameValue) ? 'email' : 'username'}
+                                        You&apos;re logging in with {isEmail(emailOrUsernameValue) ? 'email' : 'username'}
                                     </p>
                                 )}
                             </div>

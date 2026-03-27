@@ -69,7 +69,7 @@ const navigationItems: NavItem[] = [
         href: '/dashboard',
         icon: HomeIcon,
         current: true,
-        roles: ['superadmin', 'admin', 'manager', 'attendant']
+        roles: ['superadmin', 'admin']
     },
     {
         name: 'Sales',
