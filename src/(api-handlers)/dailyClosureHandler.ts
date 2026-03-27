@@ -37,7 +37,7 @@ export const GetAllClosures = async (shop_id?: number, startDate?: string, endDa
             },
             headers: getAPIHeaders(),
         })
-        return response.data
+        return response.data.items
     } catch (error: unknown) {
         throw error;
     }

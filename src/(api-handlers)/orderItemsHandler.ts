@@ -34,7 +34,7 @@ export const GetAllOrderItems = async (shopId?: number): Promise<OrderItemRespon
             params: { shop_id: shopId },
             headers: getAPIHeaders(),
         })
-        return response.data
+        return response.data.items
     } catch (error: unknown) {
         throw error;
     }

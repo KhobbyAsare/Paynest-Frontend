@@ -9,7 +9,7 @@ export const getAllOrganizations = async (): Promise<OrganizationResponse[]> => 
         const response = await axios.get(`${url}/organization/all/`, {
             headers: getAPIHeaders(),
         })
-        return response.data
+        return response.data.items
     } catch (error: any) {
         throw error;
     }

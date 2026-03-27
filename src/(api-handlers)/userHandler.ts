@@ -10,7 +10,7 @@ export const getAllUsers = async (): Promise<UserResponse[]> => {
         const response = await axios.get(`${url}/user/all`, {
             headers: getAPIHeaders(),
         })
-        return response.data
+        return response.data.items
     } catch (error: any) {
         throw error;
     }
@@ -36,7 +36,7 @@ export const getOrganizationUsers = async (): Promise<UserResponse[]> => {
         const response = await axios.get(`${url}/user/users/organization`, {
             headers: getAPIHeaders(),
         })
-        return response.data
+        return response.data.items
     } catch (error: any) {
         throw error;
     }
@@ -46,6 +46,30 @@ export const getUserByID = async (id: string | number): Promise<UserResponse> =>
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.get(`${url}/user/${id}`, {
+            headers: getAPIHeaders(),
+        })
+        return response.data
+    } catch (error: any) {
+        throw error;
+    }
+}
+
+export const updateUserProfile = async (data: { first_name?: string; last_name?: string; phone_number?: string; username?: string }): Promise<UserResponse> => {
+    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+    try {
+        const response = await axios.put(`${url}/user/me`, data, {
+            headers: getAPIHeaders(),
+        })
+        return response.data
+    } catch (error: any) {
+        throw error;
+    }
+}
+
+export const changePassword = async (data: { current_password: string; new_password: string }): Promise<{ message: string }> => {
+    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+    try {
+        const response = await axios.post(`${url}/user/me/change-password`, data, {
             headers: getAPIHeaders(),
         })
         return response.data

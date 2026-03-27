@@ -23,7 +23,7 @@ export const GetProducts = async (shopId?: number): Promise<ProductResponse[]> =
             params: { shop_id: shopId },
             headers: getAPIHeaders(),
         })
-        return response.data
+        return response.data.items
     } catch (error: unknown) {
         throw error;
     }

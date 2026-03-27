@@ -29,7 +29,8 @@ import {
     CalculatorIcon,
     ChevronDoubleLeftIcon,
     ChevronDoubleRightIcon,
-    ShoppingCartIcon
+    ShoppingCartIcon,
+    ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline'
 import Image from 'next/image'
 import { Wallet, LogOut } from 'lucide-react'
@@ -137,7 +138,8 @@ const navigationItems: NavItem[] = [
         roles: ['manager', 'attendant'],
         subItems: [
             { name: 'All Inventory', href: '/inventory', icon: CreditCardIcon, current: false, roles: ['manager', 'attendant'] },
-            { name: 'Create Inventory', href: '/inventory/create', icon: PlusCircleIcon, current: false, roles: ['manager', 'attendant'] }
+            { name: 'Create Inventory', href: '/inventory/create', icon: PlusCircleIcon, current: false, roles: ['manager', 'attendant'] },
+            { name: 'Stock Movements', href: '/stock-movements', icon: ArrowsRightLeftIcon, current: false, roles: ['manager', 'attendant'] },
         ]
     },
     {
