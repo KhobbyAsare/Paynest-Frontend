@@ -26,14 +26,18 @@ export const GetPaymentsByOrderId = async (order_id: number): Promise<PaymentRes
     }
 }
 
-export const GetAllPayments = async (shopId?: number): Promise<PaymentResponse[]> => {
+export const GetAllPayments = async (
+    shopId?: number,
+    skip = 0,
+    limit = 50
+): Promise<{ items: PaymentResponse[]; total: number }> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.get(`${url}/payments/`, {
-            params: { shop_id: shopId },
+            params: { shop_id: shopId, skip, limit },
             headers: getAPIHeaders(),
         })
-        return response.data.items
+        return response.data
     } catch (error: unknown) {
         throw error;
     }

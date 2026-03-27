@@ -255,7 +255,7 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
         setIsMounted(true);
     }, []);
 
-    // Poll for new notifications every 45 seconds
+    // Poll for new notifications every 20 seconds + immediate refresh on tab focus
     useEffect(() => {
         if (!accessToken) return;
         const fetchNotifs = async () => {
@@ -268,8 +268,13 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
             }
         };
         fetchNotifs();
-        const interval = setInterval(fetchNotifs, 45_000);
-        return () => clearInterval(interval);
+        const interval = setInterval(fetchNotifs, 20_000);
+        const onVisible = () => { if (document.visibilityState === 'visible') fetchNotifs(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
     }, [accessToken]);
 
     // Close drawer when clicking outside

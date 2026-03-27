@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/(shared-components)/PageHeader';
+import Pagination from '@/components/(shared-components)/Pagination';
 import { GetWalkinOrdersList, CloseOrder, UpdateOrderStatus } from '@/(api-handlers)/orders_walkinsHandler';
 import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
 import { useAuthStore } from '@/(zustand-store)/authStore';
@@ -63,13 +64,19 @@ const paymentStatusConfig = {
     failed: { label: 'Failed', color: 'bg-gray-100 text-gray-700 border-gray-200' },
 };
 
+const PAGE_SIZE = 20;
+
 export default function OrdersPage() {
     const router = useRouter();
     const [orders, setOrders] = useState<OrderWalkInsResponse[]>([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
     const [loading, setLoading] = useState<boolean>(true);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
-    
+
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+
     // Shop filtering
     const { user } = useAuthStore();
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
@@ -91,32 +98,29 @@ export default function OrdersPage() {
         fetchShops();
     }, [fetchShops]);
 
-    const fetchOrders = useCallback(async () => {
+    const fetchOrders = useCallback(async (p: number) => {
         setLoading(true);
         try {
             const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
-            const data = await GetWalkinOrdersList(shopIdParams);
-            // Sort by most recent
-            const sortedData = [...data].sort((a, b) =>
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            );
-            setOrders(sortedData);
+            const data = await GetWalkinOrdersList(shopIdParams, (p - 1) * PAGE_SIZE, PAGE_SIZE);
+            setOrders(data.items);
+            setTotal(data.total);
         } catch (error: unknown) {
             handleErrorMessage(error, 'Failed to fetch orders');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [selectedShopId]);
 
     useEffect(() => {
-        fetchOrders();
-    }, [fetchOrders, selectedShopId]);
+        fetchOrders(page);
+    }, [page, fetchOrders, selectedShopId]);
 
     const handleUpdateStatus = async (id: number, status: OrderStatus) => {
         try {
             await UpdateOrderStatus(id, status);
             toast.success(`Order status updated to ${status}`);
-            fetchOrders();
+            fetchOrders(page);
         } catch (error) {
             handleErrorMessage(error, 'Failed to update order status');
         }
@@ -126,7 +130,7 @@ export default function OrdersPage() {
         try {
             await CloseOrder(id);
             toast.success('Order closed successfully');
-            fetchOrders();
+            fetchOrders(page);
         } catch (error) {
             handleErrorMessage(error, 'Failed to close order');
         }
@@ -157,7 +161,7 @@ export default function OrdersPage() {
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={fetchOrders}
+                        onClick={() => fetchOrders(page)}
                         className="rounded-xl border-slate-200"
                         disabled={loading}
                     >
@@ -325,7 +329,7 @@ export default function OrdersPage() {
                                         {/* Total Amount */}
                                         <TableCell className="px-6 py-4">
                                             <div className="flex flex-col">
-                                                <span className="font-black text-slate-900">${(order.total_amount ?? order.amount_paid ?? 0).toFixed(2)}</span>
+                                                <span className="font-black text-slate-900">GHS {(order.total_amount ?? order.amount_paid ?? 0).toFixed(2)}</span>
                                                 <span className="text-[10px] text-slate-400 uppercase font-medium">{order.items?.length ?? 0} Items</span>
                                             </div>
                                         </TableCell>
@@ -452,7 +456,7 @@ export default function OrdersPage() {
                 {/* Footer */}
                 {!loading && filteredOrders.length > 0 && (
                     <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                        <span>Showing {filteredOrders.length} matching order{filteredOrders.length !== 1 ? 's' : ''}</span>
+                        <span>Showing {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} on this page</span>
                         <div className="flex items-center gap-1.5 uppercase font-bold tracking-widest text-[9px]">
                             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                             Live Order Data
@@ -460,6 +464,14 @@ export default function OrdersPage() {
                     </div>
                 )}
             </Card>
+
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                isLoading={loading}
+                total={total}
+            />
         </div>
     );
 }

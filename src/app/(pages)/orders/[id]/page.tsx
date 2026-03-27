@@ -579,7 +579,7 @@ export default function OrderDetailsPage() {
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell className="px-6 py-5 text-right font-medium text-slate-600">
-                                                                ${price.toFixed(2)}
+                                                                GHS {price.toFixed(2)}
                                                             </TableCell>
                                                             <TableCell className="px-6 py-5 text-center">
                                                                 <Badge variant="secondary" className="rounded-full px-3">
@@ -587,7 +587,7 @@ export default function OrderDetailsPage() {
                                                                 </Badge>
                                                             </TableCell>
                                                             <TableCell className="px-6 py-5 text-right font-bold text-slate-900">
-                                                                ${subtotal.toFixed(2)}
+                                                                GHS {subtotal.toFixed(2)}
                                                             </TableCell>
                                                         </TableRow>
                                                     );
@@ -604,7 +604,7 @@ export default function OrderDetailsPage() {
                                                     <div className="flex justify-between items-center text-sm">
                                                         <span className="text-slate-500">Subtotal</span>
                                                         <span className="font-medium text-slate-700">
-                                                            ${order.subtotal.toFixed(2)}
+                                                            GHS {order.subtotal.toFixed(2)}
                                                         </span>
                                                     </div>
                                                 )}
@@ -613,7 +613,7 @@ export default function OrderDetailsPage() {
                                                     <div className="flex justify-between items-center text-sm">
                                                         <span className="text-slate-500">Tax</span>
                                                         <span className="font-medium text-slate-700">
-                                                            ${order.tax_amount.toFixed(2)}
+                                                            GHS {order.tax_amount.toFixed(2)}
                                                         </span>
                                                     </div>
                                                 )}
@@ -625,7 +625,7 @@ export default function OrderDetailsPage() {
                                                             Discount
                                                         </span>
                                                         <span className="font-medium text-emerald-600">
-                                                            -${order.discount_amount.toFixed(2)}
+                                                            -GHS {order.discount_amount.toFixed(2)}
                                                         </span>
                                                     </div>
                                                 )}
@@ -633,7 +633,7 @@ export default function OrderDetailsPage() {
                                                 <div className="flex justify-between items-center text-sm">
                                                     <span className="text-slate-500">Delivery</span>
                                                     <span className="font-medium text-slate-700">
-                                                        ${order.delivery_amount.toFixed(2)}
+                                                        GHS {order.delivery_amount.toFixed(2)}
                                                     </span>
                                                 </div>
 
@@ -642,7 +642,7 @@ export default function OrderDetailsPage() {
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-base font-semibold text-slate-700">Total</span>
                                                     <span className="text-2xl font-bold text-slate-900">
-                                                        ${order.total_amount.toFixed(2)}
+                                                        GHS {order.total_amount.toFixed(2)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -829,7 +829,7 @@ export default function OrderDetailsPage() {
                                         <div className="space-y-4">
                                             <div>
                                                 <p className="text-3xl font-bold mb-1">
-                                                    ${order.amount_paid.toFixed(2)}
+                                                    GHS {order.amount_paid.toFixed(2)}
                                                 </p>
                                                 <p className="text-xs text-white/60 flex items-center gap-1">
                                                     <PaymentMethodIcon className="w-3 h-3" />
@@ -841,7 +841,7 @@ export default function OrderDetailsPage() {
                                                 <div className="p-3 bg-white/10 rounded-lg">
                                                     <p className="text-xs text-white/60 mb-1">Amount Due</p>
                                                     <p className="text-lg font-bold text-amber-300">
-                                                        ${order.amount_due.toFixed(2)}
+                                                        GHS {order.amount_due.toFixed(2)}
                                                     </p>
                                                 </div>
                                             )}

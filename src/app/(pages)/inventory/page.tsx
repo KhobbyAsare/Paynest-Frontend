@@ -134,7 +134,7 @@ export default function InventoryPage() {
         },
         {
             name: 'Inventory Value',
-            value: `$${stats.total_inventory_value.toLocaleString()}`,
+            value: `GHS ${stats.total_inventory_value.toLocaleString()}`,
             change: '+2.5%',
             changeType: 'positive',
             icon: <DollarSign className="size-5 text-emerald-600" />

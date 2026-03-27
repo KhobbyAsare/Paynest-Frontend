@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Search, RefreshCcw, ArrowUpDown, TrendingUp, TrendingDown, Activity, Package } from 'lucide-react';
 import PageHeader from '@/components/(shared-components)/PageHeader';
+import Pagination from '@/components/(shared-components)/Pagination';
 import { GetStockMovement, GetStockMovementSummary } from '@/(api-handlers)/stockMovementHandler';
 import { StockMovementResponse, StockMovementSummary } from '@/interfaces/StockMovements';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
@@ -39,21 +40,28 @@ const movementTypeConfig: Record<string, { label: string; color: string; bg: str
     damage:       { label: 'Damage',       color: 'text-rose-700',    bg: 'bg-rose-50 border-rose-200' },
 };
 
+const PAGE_SIZE = 50;
+
 export default function StockMovementsPage() {
     const [movements, setMovements] = useState<StockMovementResponse[]>([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
     const [summary, setSummary] = useState<StockMovementSummary | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<string>('all');
 
-    const fetchData = useCallback(async () => {
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+
+    const fetchData = useCallback(async (p: number) => {
         setLoading(true);
         try {
             const [movData, sumData] = await Promise.all([
-                GetStockMovement(),
+                GetStockMovement((p - 1) * PAGE_SIZE, PAGE_SIZE),
                 GetStockMovementSummary(),
             ]);
-            setMovements(movData);
+            setMovements(movData.items);
+            setTotal(movData.total);
             setSummary(sumData);
         } catch (error: unknown) {
             handleErrorMessage(error);
@@ -63,8 +71,8 @@ export default function StockMovementsPage() {
     }, []);
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        fetchData(page);
+    }, [page, fetchData]);
 
     const statsConfig = summary ? [
         {
@@ -155,7 +163,7 @@ export default function StockMovementsPage() {
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={fetchData}
+                        onClick={() => fetchData(page)}
                         className="rounded-lg border-slate-200"
                         title="Refresh"
                     >
@@ -246,10 +254,18 @@ export default function StockMovementsPage() {
 
                 {!loading && filtered.length > 0 && (
                     <div className="px-6 py-3 border-t border-slate-100 text-xs text-slate-400">
-                        Showing {filtered.length} of {movements.length} movement{movements.length !== 1 ? 's' : ''}
+                        Showing {filtered.length} movement{filtered.length !== 1 ? 's' : ''} on this page
                     </div>
                 )}
             </Card>
+
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                isLoading={loading}
+                total={total}
+            />
         </div>
     );
 }

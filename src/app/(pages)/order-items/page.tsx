@@ -115,12 +115,12 @@ export default function OrderItemsPage() {
         setLoading(true);
         try {
             const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
-            const [productsData, ordersData] = await Promise.all([
+            const [productsData, ordersData]: [any, any] = await Promise.all([
                 GetProducts(shopIdParams),
                 GetWalkinOrdersList(shopIdParams)
             ]);
             setProducts(productsData);
-            setOrders(ordersData);
+            setOrders(ordersData.items || []);
 
             if (searchOrderId && !isNaN(Number(searchOrderId))) {
                 const itemsData = await GetOrderItems(Number(searchOrderId));
@@ -423,7 +423,7 @@ export default function OrderItemsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Shops</SelectItem>
-                                {shops.map((shop) => (
+                                {Array.isArray(shops) && shops.map((shop) => (
                                     <SelectItem key={shop.id} value={shop.id.toString()}>
                                         {shop.name}
                                     </SelectItem>
@@ -526,7 +526,7 @@ export default function OrderItemsPage() {
                                                     <SelectValue placeholder="Search and select order..." />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {orders.map(o => (
+                                                    {Array.isArray(orders) && orders.map(o => (
                                                         <SelectItem key={o.id} value={o.id.toString()}>
                                                             {`Order #${o.order_number || o.id} - ${o.order_status} (₵${o.total_amount})`}
                                                         </SelectItem>

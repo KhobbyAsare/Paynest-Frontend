@@ -34,23 +34,16 @@ export default function SuperAdminView() {
         try {
             const offset = (currentPage - 1) * pageSize;
             const data = await getAllAuditLogs(
-                organizationId as any,
-                userId as any,
-                action,
-                entityType,
-                entityId,
+                organizationId,
+                userId,
+                action || undefined,
+                entityType || undefined,
+                entityId || undefined,
                 pageSize,
                 offset
             );
-            setAuditLogs(data);
-            // Since the API doesn't return total count in the array, 
-            // we'll have to manage it or wait for backend update.
-            // For now, if we get a full page, assume there might be more.
-            if (data.length === pageSize) {
-                setTotal(currentPage * pageSize + pageSize);
-            } else {
-                setTotal((currentPage - 1) * pageSize + data.length);
-            }
+            setAuditLogs(data.items);
+            setTotal(data.total);
         } catch (error: any) {
             message.error('Failed to fetch audit logs');
             console.error(error);

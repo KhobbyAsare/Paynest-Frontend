@@ -198,7 +198,7 @@ export default function SalesPage() {
                                         "text-[10px] font-semibold uppercase tracking-wider",
                                         showCheckout ? "text-white/70" : "text-slate-400"
                                     )}>Invoice</p>
-                                    <p className="text-sm font-bold">${total.toFixed(2)}</p>
+                                    <p className="text-sm font-bold">GHS {total.toFixed(2)}</p>
                                 </div>
                                 <ChevronRight className={cn(
                                     "w-4 h-4 transition-transform duration-300",
@@ -349,16 +349,16 @@ export default function SalesPage() {
                                             <div className="space-y-2">
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-slate-400">Subtotal</span>
-                                                    <span className="text-slate-800 font-medium">${subTotal.toFixed(2)}</span>
+                                                    <span className="text-slate-800 font-medium">GHS {subTotal.toFixed(2)}</span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-slate-400">Tax (4%)</span>
-                                                    <span className="text-slate-800 font-medium">${tax.toFixed(2)}</span>
+                                                    <span className="text-slate-800 font-medium">GHS {tax.toFixed(2)}</span>
                                                 </div>
                                                 <div className="pt-2 mt-2 border-t border-slate-200 flex justify-between items-center">
                                                     <span className="text-slate-600 font-semibold">Total</span>
                                                     <span className="text-2xl font-bold text-primary-color">
-                                                        ${total.toFixed(2)}
+                                                        GHS {total.toFixed(2)}
                                                     </span>
                                                 </div>
                                             </div>

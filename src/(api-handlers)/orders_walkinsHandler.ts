@@ -14,11 +14,15 @@ export const CreateWalkIns = async (product_data: WalkInsRequest | OrderRequest)
     }
 }
 
-export const GetWalkinOrdersList = async (shopId?: number): Promise<OrderWalkInsResponse[]> => {
+export const GetWalkinOrdersList = async (
+    shopId?: number,
+    skip = 0,
+    limit = 50
+): Promise<{ items: OrderWalkInsResponse[]; total: number }> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.get(`${url}/orders/`, {
-            params: { shop_id: shopId },
+            params: { shop_id: shopId, skip, limit },
             headers: getAPIHeaders(),
         })
         return response.data

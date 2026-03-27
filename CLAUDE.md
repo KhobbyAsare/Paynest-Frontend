@@ -217,7 +217,7 @@ Navigation items in `sidebar-navigation.tsx` are filtered by role. Pages additio
 ## In-App Notification System
 
 ### Bell (sidebar, all pages)
-- Lives in `sidebar-navigation.tsx` — polls `GET /notifications/me?limit=15` every **45 seconds**
+- Lives in `sidebar-navigation.tsx` — polls `GET /notifications/me?limit=15` every **20 seconds** + immediately on `visibilitychange` (tab focus)
 - Shows unread badge count on `BellIcon`; clicking opens a dropdown of the 15 most recent notifications
 - "Mark all read" button calls `PUT /notifications/me/read-all`
 - Clicking a notification marks it read + navigates to linked order/report
@@ -293,9 +293,17 @@ export default function ResourcePage() {
 
 ## Known Gaps / TODO
 
-- [ ] Pagination on all data tables (currently loads all records — notifications page is the exception, it is paginated)
-- [ ] Real-time notifications — currently polling every 45s; could be upgraded to WebSocket
 - [ ] Email notifications — backend SMTP credentials not configured yet (infrastructure is ready)
 - [ ] Receipt printer hardware integration (current solution uses browser print)
 - [ ] Employee performance and monthly financial report detail views
 - [ ] SMS notifications (no provider integrated)
+- [ ] SSE/WebSocket real-time notifications (polling reduced to 20s + visibilitychange trigger)
+
+## Completed
+
+- [x] Currency: all `$` replaced with `GHS` across sales, orders, inventory pages
+- [x] Pagination: orders, payments, stock-movements pages paginated; shared `Pagination.tsx` component at `src/components/(shared-components)/Pagination.tsx`
+- [x] Polling enhanced: sidebar bell polls every 20s + immediate refresh on `visibilitychange`
+- [x] Frontend tests: vitest + React Testing Library; run with `npm test` after `npm install`
+  - `src/lib/utils.test.ts` — cn() utility
+  - `src/components/(shared-components)/Pagination.test.tsx` — Pagination component

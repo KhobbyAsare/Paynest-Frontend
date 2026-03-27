@@ -119,19 +119,21 @@ export default function PaymentsPage() {
         setLoading(true);
         try {
             const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
-            const [ordersData, usersData] = await Promise.all([
+            const [ordersData, usersData]: [any, UserResponse[]] = await Promise.all([
                 GetWalkinOrdersList(shopIdParams),
                 getOrganizationUsers()
             ]);
-            setOrders(ordersData);
+            
+            const ordersList = ordersData.items || [];
+            setOrders(ordersList);
             setUsers(usersData);
 
             // If we have orders, and current selectedOrderId is not in the new orders list, select the first one
-            if (ordersData.length > 0) {
-                if (!selectedOrderId || !ordersData.find(o => o.id === selectedOrderId)) {
+            if (ordersList.length > 0) {
+                if (!selectedOrderId || !ordersList.find((o: any) => o.id === selectedOrderId)) {
                     // We don't auto-select if we are in "View All" mode (which we'll add)
                     if (selectedOrderId !== -1) {
-                        setSelectedOrderId(ordersData[0].id);
+                        setSelectedOrderId(ordersList[0].id);
                     }
                 }
             } else {
@@ -155,7 +157,7 @@ export default function PaymentsPage() {
                 // Fetch all payments for organization or shop
                 const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
                 const paymentsData = await GetAllPayments(shopIdParams);
-                setPayments(paymentsData);
+                setPayments(paymentsData.items);
             }
         } catch (error) {
             console.error("Failed to fetch payments:", error);
@@ -429,7 +431,7 @@ export default function PaymentsPage() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="-1">All Payments (Wide Search)</SelectItem>
-                            {orders.map(o => (
+                            {Array.isArray(orders) && orders.map(o => (
                                 <SelectItem key={o.id} value={o.id.toString()}>
                                     {`Order #${o.order_number || o.id} (₵${o.total_amount})`}
                                 </SelectItem>
@@ -450,7 +452,7 @@ export default function PaymentsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Shops</SelectItem>
-                                {shops.map((shop) => (
+                                {Array.isArray(shops) && shops.map((shop) => (
                                     <SelectItem key={shop.id} value={shop.id.toString()}>
                                         {shop.name}
                                     </SelectItem>
@@ -559,7 +561,7 @@ export default function PaymentsPage() {
                                                 <SelectValue placeholder="Link to order..." />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {orders.map(o => (
+                                                {Array.isArray(orders) && orders.map(o => (
                                                     <SelectItem key={o.id} value={o.id.toString()}>
                                                         {`Order #${o.order_number || o.id} (₵${o.total_amount})`}
                                                     </SelectItem>

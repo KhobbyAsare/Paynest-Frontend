@@ -98,7 +98,7 @@ export function ProductCard({ product, quantity, onUpdateQuantity }: Readonly<Pr
                     </h3>
                     <div className="shrink-0">
                         <span className="text-lg font-bold text-slate-900">
-                            ${product.selling_price.toFixed(2)}
+                            GHS {product.selling_price.toFixed(2)}
                         </span>
                     </div>
                 </div>
