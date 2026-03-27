@@ -46,6 +46,7 @@ paynest-frontend-app/
 │   │   │   ├── product_categories/ # Category management
 │   │   │   ├── products/        # Product listing
 │   │   │   ├── report/          # Report request, list, pending, detail
+│   │   │   ├── notifications/   # In-app notification feed (all roles, paginated)
 │   │   │   ├── sales/           # Main POS interface (cart + checkout + barcode scanner)
 │   │   │   ├── sales-report/    # Sales analytics
 │   │   │   ├── settings/
@@ -180,6 +181,7 @@ Available handlers: `productsHandler`, `customersHandler`, `ordersHandler`, `inv
 
 ### Notable handlers
 - `userHandler.ts` — includes `getNotificationPreferences()` and `updateNotificationPreferences()` connected to `GET/PUT /user/me/notification-preferences`
+- `notificationsHandler.ts` — `getNotifications(limit, offset)`, `markNotificationRead(id)`, `markAllNotificationsRead()` connected to `GET/PUT /notifications/me`
 - `productsHandler.ts` — includes `GetProductByBarcode(barcode)` connected to `GET /products/barcode/{barcode}`
 
 ---
@@ -207,8 +209,30 @@ Navigation items in `sidebar-navigation.tsx` are filtered by role. Pages additio
 ### Receipt Printing (`SalesCompletionModal.tsx`)
 - After checkout, cart items are captured before `clearCart()` is called
 - Receipt view shows: items + quantities + prices, subtotal/discount/tax/total in GHS, payment method, org name, timestamp
-- Print via `window.print()` with `@media print` CSS injected into `<head>` to hide everything except the receipt div
+- Print via `window.print()` with `@media print` CSS using `visibility: hidden` approach to isolate `#receipt-print-area` (works inside Radix Dialog portals)
 - Currency displayed as `GHS` throughout (Ghana Cedis)
+
+---
+
+## In-App Notification System
+
+### Bell (sidebar, all pages)
+- Lives in `sidebar-navigation.tsx` — polls `GET /notifications/me?limit=15` every **45 seconds**
+- Shows unread badge count on `BellIcon`; clicking opens a dropdown of the 15 most recent notifications
+- "Mark all read" button calls `PUT /notifications/me/read-all`
+- Clicking a notification marks it read + navigates to linked order/report
+- Dropdown footer has **"View all notifications →"** (→ `/notifications`) and **"Settings"** (→ `/settings/notifications`)
+
+### Notification feed page (`/notifications`)
+- Full paginated list — **20 per page**, uses `offset`-based pagination
+- Per-type colour-coded icons: new_order (blue), low_stock (amber), report_ready (violet), daily_closure (emerald), system_alert (rose)
+- Unread items highlighted with blue dot + bold title
+- Refresh button, "Mark all read" button in toolbar
+- Clicking navigates to the linked entity (order/report)
+
+### Notification preferences (`/settings/notifications`)
+- 6 event types × (email + in-app) = 12 boolean toggles
+- Saved via `PUT /user/me/notification-preferences`
 
 ---
 
@@ -269,8 +293,9 @@ export default function ResourcePage() {
 
 ## Known Gaps / TODO
 
-- [ ] Pagination on all data tables (currently loads all records)
-- [ ] Real-time notifications (WebSocket or polling) — preferences saved, delivery not implemented
-- [ ] Email notifications — backend SMTP not configured yet
+- [ ] Pagination on all data tables (currently loads all records — notifications page is the exception, it is paginated)
+- [ ] Real-time notifications — currently polling every 45s; could be upgraded to WebSocket
+- [ ] Email notifications — backend SMTP credentials not configured yet (infrastructure is ready)
 - [ ] Receipt printer hardware integration (current solution uses browser print)
 - [ ] Employee performance and monthly financial report detail views
+- [ ] SMS notifications (no provider integrated)

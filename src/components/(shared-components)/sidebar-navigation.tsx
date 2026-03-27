@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, JSX } from 'react'
+import { useState, useEffect, useMemo, useRef, JSX } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel } from '@headlessui/react'
 import {
     Bars3Icon,
@@ -33,11 +33,17 @@ import {
     ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline'
 import Image from 'next/image'
-import { Wallet, LogOut } from 'lucide-react'
+import { Wallet, LogOut, CheckCheck } from 'lucide-react'
 import SplitText from './SplitText'
 import { useAuthStore } from "@/(zustand-store)/authStore"
 import { useRouter, usePathname } from 'next/navigation'
 import { LogoutHandler } from '@/(api-handlers)/logoutHandler'
+import {
+    getNotifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    AppNotification,
+} from '@/(api-handlers)/notificationsHandler'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -191,6 +197,13 @@ const navigationItems: NavItem[] = [
     },
 
     {
+        name: 'Notifications',
+        href: '/notifications',
+        icon: BellIcon,
+        current: false,
+        roles: ['superadmin', 'admin', 'manager', 'attendant'],
+    },
+    {
         name: 'Audit Logs',
         href: '/audit-log',
         icon: DocumentTextIcon,
@@ -217,11 +230,23 @@ const roleLabels = {
     attendant: 'Attendant'
 };
 
+const NOTIF_TYPE_LABELS: Record<string, string> = {
+    new_order: 'New Order',
+    low_stock: 'Low Stock',
+    report_ready: 'Report',
+    daily_closure: 'Daily Closure',
+    system_alert: 'System',
+};
+
 export default function Sidebar({ children }: Readonly<{ children: React.ReactNode }>) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
     const [isMounted, setIsMounted] = useState(false);
+    const [notifOpen, setNotifOpen] = useState(false);
+    const [notifications, setNotifications] = useState<AppNotification[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const notifRef = useRef<HTMLDivElement>(null);
     const { user, clearAuth, accessToken } = useAuthStore();
     const router = useRouter();
     const pathname = usePathname();
@@ -229,6 +254,140 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    // Poll for new notifications every 45 seconds
+    useEffect(() => {
+        if (!accessToken) return;
+        const fetchNotifs = async () => {
+            try {
+                const data = await getNotifications();
+                setNotifications(data.notifications);
+                setUnreadCount(data.unread_count);
+            } catch {
+                // Silently ignore — don't toast on background poll failures
+            }
+        };
+        fetchNotifs();
+        const interval = setInterval(fetchNotifs, 45_000);
+        return () => clearInterval(interval);
+    }, [accessToken]);
+
+    // Close drawer when clicking outside
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+                setNotifOpen(false);
+            }
+        };
+        if (notifOpen) document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [notifOpen]);
+
+    const handleNotifClick = async (notif: AppNotification) => {
+        if (!notif.is_read) {
+            try {
+                await markNotificationRead(notif.id);
+                setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            } catch { /* ignore */ }
+        }
+        if (notif.entity_type === 'order' && notif.entity_id) {
+            router.push(`/orders/${notif.entity_id}`);
+            setNotifOpen(false);
+        } else if (notif.entity_type === 'report' && notif.entity_id) {
+            router.push(`/report/${notif.entity_id}`);
+            setNotifOpen(false);
+        }
+    };
+
+    const handleMarkAllRead = async () => {
+        try {
+            await markAllNotificationsRead();
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            setUnreadCount(0);
+        } catch {
+            toast.error('Failed to mark all as read');
+        }
+    };
+
+    const renderNotifBell = () => (
+        <div className="relative" ref={notifRef}>
+            <button
+                onClick={() => setNotifOpen(o => !o)}
+                className="relative p-2 rounded-lg text-white hover:bg-white/10 transition-colors"
+                aria-label="Notifications"
+            >
+                <BellIcon className="size-6" />
+                {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-primary">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                )}
+            </button>
+
+            {notifOpen && (
+                <div className="absolute right-0 top-10 w-80 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                        <span className="text-sm font-semibold text-slate-800">Notifications</span>
+                        {unreadCount > 0 && (
+                            <button
+                                onClick={handleMarkAllRead}
+                                className="flex items-center gap-1 text-xs text-primary hover:underline"
+                            >
+                                <CheckCheck className="size-3.5" />
+                                Mark all read
+                            </button>
+                        )}
+                    </div>
+                    <ul className="max-h-80 overflow-y-auto divide-y divide-slate-50">
+                        {notifications.length === 0 ? (
+                            <li className="px-4 py-8 text-center text-sm text-slate-400">No notifications yet</li>
+                        ) : (
+                            notifications.map(notif => (
+                                <li
+                                    key={notif.id}
+                                    onClick={() => handleNotifClick(notif)}
+                                    className={`px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors ${!notif.is_read ? 'bg-blue-50/50' : ''}`}
+                                >
+                                    <div className="flex items-start gap-2">
+                                        {!notif.is_read && (
+                                            <span className="mt-1.5 size-2 rounded-full bg-blue-500 shrink-0" />
+                                        )}
+                                        <div className={`flex-1 min-w-0 ${notif.is_read ? 'ml-4' : ''}`}>
+                                            <p className="text-xs font-semibold text-slate-800 truncate">{notif.title}</p>
+                                            <p className="text-xs text-slate-500 truncate">{notif.message}</p>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">
+                                                {NOTIF_TYPE_LABELS[notif.type] ?? notif.type} ·{' '}
+                                                {new Date(notif.created_at).toLocaleString('en-GB', {
+                                                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                                                })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))
+                        )}
+                    </ul>
+                    <div className="border-t border-slate-100 px-4 py-2 flex items-center justify-between">
+                        <Link
+                            href="/notifications"
+                            onClick={() => setNotifOpen(false)}
+                            className="text-xs font-medium text-primary hover:underline transition-colors"
+                        >
+                            View all notifications →
+                        </Link>
+                        <Link
+                            href="/settings/notifications"
+                            onClick={() => setNotifOpen(false)}
+                            className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            Settings
+                        </Link>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 
     const userRole = (user?.role as 'superadmin' | 'admin' | 'manager' | 'attendant') || 'attendant';
 
@@ -558,6 +717,54 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
                 </div>
                 <div className="flex items-center gap-x-3">
                     {renderRoleBadge()}
+                    {/* Bell on mobile */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setNotifOpen(o => !o)}
+                            className="relative p-1.5 text-gray-600 hover:text-primary transition-colors"
+                            aria-label="Notifications"
+                        >
+                            <BellIcon className="size-6" />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                            )}
+                        </button>
+                        {notifOpen && (
+                            <div className="absolute right-0 top-9 w-72 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                                    <span className="text-sm font-semibold text-slate-800">Notifications</span>
+                                    {unreadCount > 0 && (
+                                        <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs text-primary hover:underline">
+                                            <CheckCheck className="size-3" />Mark all read
+                                        </button>
+                                    )}
+                                </div>
+                                <ul className="max-h-72 overflow-y-auto divide-y divide-slate-50">
+                                    {notifications.length === 0 ? (
+                                        <li className="px-4 py-6 text-center text-sm text-slate-400">No notifications yet</li>
+                                    ) : (
+                                        notifications.map(notif => (
+                                            <li key={notif.id} onClick={() => handleNotifClick(notif)}
+                                                className={`px-4 py-3 cursor-pointer hover:bg-slate-50 ${!notif.is_read ? 'bg-blue-50/50' : ''}`}>
+                                                <div className="flex items-start gap-2">
+                                                    {!notif.is_read && <span className="mt-1.5 size-2 rounded-full bg-blue-500 shrink-0" />}
+                                                    <div className={`flex-1 min-w-0 ${notif.is_read ? 'ml-4' : ''}`}>
+                                                        <p className="text-xs font-semibold text-slate-800 truncate">{notif.title}</p>
+                                                        <p className="text-xs text-slate-500 truncate">{notif.message}</p>
+                                                        <p className="text-[10px] text-slate-400 mt-0.5">
+                                                            {new Date(notif.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        ))
+                                    )}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
                     <div className="relative">
                         <span className="sr-only">Your profile</span>
                         <Image
@@ -576,16 +783,21 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
                 isCollapsed ? "lg:pl-20" : "lg:pl-72"
             )}>
                 <div>
-                    <div className="sticky top-0 z-50 bg-primary text-white p-4">
-                        <h1 className="text-2xl font-bold text-gray-100">
-                            Welcome back, {user?.first_name}!
-                        </h1>
-                        <p className="text-gray-300">
-                            {userRole === 'superadmin' && 'Manage the entire system and oversee all operations.'}
-                            {userRole === 'admin' && 'Manage users, transactions, and financial reports.'}
-                            {userRole === 'manager' && 'Oversee daily operations and team performance.'}
-                            {userRole === 'attendant' && 'Handle customer transactions and queue management.'}
-                        </p>
+                    <div className="sticky top-0 z-50 bg-primary text-white p-4 flex items-start justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-100">
+                                Welcome back, {user?.first_name}!
+                            </h1>
+                            <p className="text-gray-300">
+                                {userRole === 'superadmin' && 'Manage the entire system and oversee all operations.'}
+                                {userRole === 'admin' && 'Manage users, transactions, and financial reports.'}
+                                {userRole === 'manager' && 'Oversee daily operations and team performance.'}
+                                {userRole === 'attendant' && 'Handle customer transactions and queue management.'}
+                            </p>
+                        </div>
+                        <div className="shrink-0 mt-1">
+                            {renderNotifBell()}
+                        </div>
                     </div>
                     <div className="p-4 lg:p-4 lg:pt-0 min-h-[80vh] container mx-auto">
                         {children}
