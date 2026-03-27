@@ -12,7 +12,8 @@ import {
     ShoppingBag,
     TrendingUp,
     Users,
-    Sparkles
+    Sparkles,
+    ScanBarcode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GetProducts } from "@/(api-handlers)/productsHandler";
@@ -28,6 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSalesStore } from "@/(zustand-store)/salesStore";
 import { Switch } from "@/components/ui/switch";
 import { SalesCompletionModal } from "./components/SalesCompletionModal";
+import { BarcodeScannerModal } from "./components/BarcodeScannerModal";
 
 export default function SalesPage() {
     const [products, setProducts] = useState<ProductResponse[]>([]);
@@ -37,6 +39,7 @@ export default function SalesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [showCheckout, setShowCheckout] = useState(false);
     const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     const {
         cart,
@@ -157,6 +160,15 @@ export default function SalesPage() {
                         </div>
 
                         <div className="flex items-center gap-3">
+                            {/* Barcode Scanner Button */}
+                            <button
+                                onClick={() => setIsScannerOpen(true)}
+                                title="Scan Barcode"
+                                className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all"
+                            >
+                                <ScanBarcode className="w-5 h-5" />
+                            </button>
+
                             {/* Sidebar Toggle / Cart Button */}
                             <button
                                 onClick={() => setShowCheckout(!showCheckout)}
@@ -427,6 +439,15 @@ export default function SalesPage() {
                 total={total}
                 subTotal={subTotal}
                 tax={tax}
+            />
+
+            <BarcodeScannerModal
+                isOpen={isScannerOpen}
+                onClose={() => setIsScannerOpen(false)}
+                onProductFound={(product) => {
+                    addToCart(product);
+                    setIsScannerOpen(false);
+                }}
             />
         </div>
     );

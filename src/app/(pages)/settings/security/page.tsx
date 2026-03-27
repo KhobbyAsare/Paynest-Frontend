@@ -49,12 +49,12 @@ export default function SecuritySettingsPage() {
 
     return (
         <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
-            <PageHeader
-                title="Security Settings"
-                description="Manage your password and account security."
-            />
+            <div className="mt-8 max-w-2xl mx-auto">
+                <PageHeader
+                    title="Security Settings"
+                    description="Manage your password and account security."
+                />
 
-            <div className="mt-8 max-w-2xl">
                 <Card className="p-6 rounded-2xl border-slate-100 shadow-sm">
                     <div className="flex items-center gap-3 mb-6 pb-5 border-b border-slate-100">
                         <div className="size-10 rounded-full bg-green-100 flex items-center justify-center">

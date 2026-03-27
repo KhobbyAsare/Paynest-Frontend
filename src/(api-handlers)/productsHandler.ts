@@ -64,6 +64,18 @@ export const DeleteProduct = async (product_id: number): Promise<void> => {
     }
 }
 
+export const GetProductByBarcode = async (barcode: string): Promise<ProductResponse> => {
+    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+    try {
+        const response = await axios.get(`${url}/products/barcode/${encodeURIComponent(barcode)}`, {
+            headers: getAPIHeaders(),
+        })
+        return response.data
+    } catch (error: unknown) {
+        throw error;
+    }
+}
+
 export const GetProductsByCategory = async (category_id: number): Promise<ProductResponse[]> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {

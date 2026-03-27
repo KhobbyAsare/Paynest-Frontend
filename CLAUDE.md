@@ -10,9 +10,11 @@ Paynest is a **multi-tenant cloud POS (Point of Sale)** system. This is the Next
 - **State:** Zustand 5 (authStore + salesStore)
 - **Forms:** React Hook Form + Zod validation
 - **HTTP:** Axios with JWT Bearer token injection
+- **Charts:** Recharts (dashboard analytics)
 - **Animations:** Framer Motion + GSAP
 - **Icons:** lucide-react (primary), @heroicons/react, @ant-design/icons
 - **Notifications:** react-hot-toast
+- **Barcode:** html5-qrcode (camera-based scanner in POS)
 
 ---
 
@@ -30,8 +32,10 @@ paynest-frontend-app/
 │   │   ├── (pages)/             # Protected routes (wrapped by sidebar layout)
 │   │   │   ├── (administrator)/ # Admin-only pages
 │   │   │   ├── (superadmin)/    # SuperAdmin-only pages
+│   │   │   │   ├── users/roles/ # Roles & permissions matrix
+│   │   │   │   └── organizations/
 │   │   │   ├── customers/       # Customer list, create, edit
-│   │   │   ├── dashboard/       # Role-based dashboard
+│   │   │   ├── dashboard/       # Role-based dashboard (with recharts)
 │   │   │   ├── daily-closure/   # Daily closure workflow
 │   │   │   ├── finance/         # Financial overview
 │   │   │   ├── inventory/       # Inventory list + create
@@ -41,8 +45,16 @@ paynest-frontend-app/
 │   │   │   ├── payments/        # Payments list
 │   │   │   ├── product_categories/ # Category management
 │   │   │   ├── products/        # Product listing
-│   │   │   ├── sales/           # Main POS interface (cart + checkout)
-│   │   │   └── sales-report/    # Sales analytics
+│   │   │   ├── report/          # Report request, list, pending, detail
+│   │   │   ├── sales/           # Main POS interface (cart + checkout + barcode scanner)
+│   │   │   ├── sales-report/    # Sales analytics
+│   │   │   ├── settings/
+│   │   │   │   ├── notifications/ # Notification preferences (connected to API)
+│   │   │   │   ├── security/    # Change password
+│   │   │   │   ├── system/      # SuperAdmin-only system info page
+│   │   │   │   └── profile/     # Edit profile info
+│   │   │   ├── stock-movements/ # Stock movement history
+│   │   │   └── users/           # User list + detail pages
 │   │   ├── layout.tsx           # Root layout (fonts, toast provider)
 │   │   └── page.tsx             # Root redirect
 │   ├── components/
@@ -57,7 +69,7 @@ paynest-frontend-app/
 │   │       ├── ProductCard.tsx
 │   │       ├── CartItem.tsx
 │   │       ├── CategoryItem.tsx
-│   │       └── SalesCompletionModal.tsx
+│   │       └── SalesCompletionModal.tsx  # Checkout + receipt printing
 │   ├── interfaces/              # TypeScript interfaces for all API types
 │   ├── lib/
 │   │   ├── utils.ts             # cn() Tailwind merge helper
@@ -162,26 +174,41 @@ export const GetProducts = async (): Promise<ProductInterface[]> => {
   const res = await axios.get(`${BASE_URL}/products/`, { headers: getAPIHeaders() })
   return res.data
 }
-
-export const CreateProduct = async (data: CreateProductInterface): Promise<ProductInterface> => {
-  const res = await axios.post(`${BASE_URL}/products/`, data, { headers: getAPIHeaders() })
-  return res.data
-}
 ```
 
 Available handlers: `productsHandler`, `customersHandler`, `ordersHandler`, `inventoryHandler`, `paymentsHandler`, `dailyClosureHandler`, `reportHandler`, `financeHandler`, `auditLogHandler`, `organizationHandler`, `userHandler`, `employeeProfileHandler`, `stockMovementHandler`, and more.
+
+### Notable handlers
+- `userHandler.ts` — includes `getNotificationPreferences()` and `updateNotificationPreferences()` connected to `GET/PUT /user/me/notification-preferences`
+- `productsHandler.ts` — includes `GetProductByBarcode(barcode)` connected to `GET /products/barcode/{barcode}`
 
 ---
 
 ## Role-Based Access
 
 Four roles, accessed from `authStore.user.role`:
-- `SUPERADMIN` — full access including organizations and audit logs
+- `SUPERADMIN` — full access including organizations, audit logs, system info, roles matrix
 - `ADMIN` — org-level management, reports, user management
 - `MANAGER` — operations, reports (own), inventory
 - `ATTENDANT` — POS sales only
 
-Navigation items in `sidebar-navigation.tsx` are filtered by role. Pages additionally guard with role checks.
+Navigation items in `sidebar-navigation.tsx` are filtered by role. Pages additionally guard with role checks and redirect to `/dashboard` if unauthorized.
+
+---
+
+## POS Features (Sales Page)
+
+### Barcode Scanner (`BarcodeScannerModal.tsx`)
+- Two modes: **Camera** (html5-qrcode, environment-facing) and **Manual** (text input, also works with USB barcode scanners)
+- Camera lifecycle managed in `useEffect` — scanner started when modal opens, stopped on close
+- Check `scanner.getState() === 2` before calling `scanner.stop()` to avoid errors
+- On successful scan: calls `GetProductByBarcode(barcode)` → `onProductFound(product)` → product added to cart
+
+### Receipt Printing (`SalesCompletionModal.tsx`)
+- After checkout, cart items are captured before `clearCart()` is called
+- Receipt view shows: items + quantities + prices, subtotal/discount/tax/total in GHS, payment method, org name, timestamp
+- Print via `window.print()` with `@media print` CSS injected into `<head>` to hide everything except the receipt div
+- Currency displayed as `GHS` throughout (Ghana Cedis)
 
 ---
 
@@ -236,17 +263,14 @@ export default function ResourcePage() {
 - **Loading states:** Show `<Loading />` component while fetching
 - **Empty states:** Use `<EmptyState />` component when list is empty
 - **Forms:** React Hook Form + Zod schema + `@hookform/resolvers/zod`
+- **Currency:** Always display as `GHS` (not `$` or `₵`)
 
 ---
 
 ## Known Gaps / TODO
 
-- [ ] Settings pages (profile, change password, notifications)
-- [ ] Stock movements UI page (`/stock-movements`) — backend + handler ready
 - [ ] Pagination on all data tables (currently loads all records)
-- [ ] Finance page — complete all data sections
-- [ ] Sales-report page — complete analytics
-- [ ] Organization management UI — complete CRUD for SuperAdmin
-- [ ] Receipt printing from POS
-- [ ] Barcode scanning input
-- [ ] Real-time notifications (WebSocket or polling)
+- [ ] Real-time notifications (WebSocket or polling) — preferences saved, delivery not implemented
+- [ ] Email notifications — backend SMTP not configured yet
+- [ ] Receipt printer hardware integration (current solution uses browser print)
+- [ ] Employee performance and monthly financial report detail views

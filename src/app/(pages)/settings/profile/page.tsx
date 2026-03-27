@@ -63,12 +63,12 @@ export default function ProfileSettingsPage() {
 
     return (
         <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
-            <PageHeader
-                title="Profile Settings"
-                description="Update your personal information."
-            />
+            <div className="mt-8 max-w-2xl mx-auto">
+                <PageHeader
+                    title="Profile Settings"
+                    description="Update your personal information."
+                />
 
-            <div className="mt-8 max-w-2xl">
                 <Card className="p-6 rounded-2xl border-slate-100 shadow-sm">
                     {/* Avatar/info header */}
                     <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
