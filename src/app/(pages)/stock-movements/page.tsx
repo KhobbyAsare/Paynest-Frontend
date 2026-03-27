@@ -103,7 +103,7 @@ export default function StockMovementsPage() {
         const matchesType = typeFilter === 'all' || m.movement_type === typeFilter;
         const matchesSearch =
             m.reason?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            m.product_id.toString().includes(searchTerm) ||
+            m.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             m.reference_type?.toLowerCase().includes(searchTerm.toLowerCase());
         return matchesType && matchesSearch;
     });
@@ -212,8 +212,11 @@ export default function StockMovementsPage() {
                                                 {cfg.label}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="px-6 text-slate-700 text-sm">
-                                            <span className="font-mono text-xs text-slate-400">#{m.product_id}</span>
+                                        <TableCell className="px-6">
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-slate-800 text-sm">{m.product_name || 'Unknown Product'}</span>
+                                                <span className="font-mono text-[10px] text-slate-400">ID: #{m.product_id}</span>
+                                            </div>
                                         </TableCell>
                                         <TableCell className="px-6">
                                             <span className={cn(

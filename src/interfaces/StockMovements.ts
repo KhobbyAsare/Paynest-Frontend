@@ -2,6 +2,7 @@ export interface StockMovementResponse {
     id: number,
     inventory_id: number,
     product_id: number,
+    product_name: string | null,
     shop_id: number,
     organization_id: number,
     movement_type: "purchase" | "sale" | "return" | "adjustment" | "transfer_in" | "transfer_out" | "damage",
