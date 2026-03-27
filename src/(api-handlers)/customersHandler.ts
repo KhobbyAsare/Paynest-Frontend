@@ -14,14 +14,18 @@ export const CreateCustomer = async (inventory_data: CreateCustomerRequest): Pro
     }
 }
 
-export const GetAllCustomers = async (shopId?: number): Promise<CustomerResponse[]> => {
+export const GetAllCustomers = async (
+    shopId?: number,
+    skip = 0,
+    limit = 20,
+): Promise<{ items: CustomerResponse[]; total: number }> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.get(`${url}/customers/`, {
-            params: { shop_id: shopId },
+            params: { shop_id: shopId, skip, limit },
             headers: getAPIHeaders(),
         })
-        return response.data.items
+        return response.data
     } catch (error: unknown) {
         throw error;
     }

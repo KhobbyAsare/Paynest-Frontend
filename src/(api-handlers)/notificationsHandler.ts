@@ -40,3 +40,30 @@ export const markAllNotificationsRead = async (): Promise<void> => {
         headers: getAPIHeaders(),
     });
 };
+
+/**
+ * Opens an SSE connection to /notifications/me/stream.
+ * Auth is via ?token=<jwt> because EventSource cannot send custom headers.
+ * Returns the EventSource instance so the caller can close it on cleanup.
+ */
+export const createNotificationStream = (
+    token: string,
+    onNotifications: (notifs: AppNotification[]) => void,
+    onError?: () => void,
+): EventSource => {
+    const url = `${BASE_URL}/notifications/me/stream?token=${encodeURIComponent(token)}`;
+    const es = new EventSource(url);
+    es.onmessage = (e) => {
+        try {
+            const data = JSON.parse(e.data) as AppNotification[];
+            if (Array.isArray(data) && data.length > 0) {
+                onNotifications(data);
+            }
+        } catch { /* malformed frame — ignore */ }
+    };
+    es.onerror = () => {
+        onError?.();
+        es.close();
+    };
+    return es;
+};

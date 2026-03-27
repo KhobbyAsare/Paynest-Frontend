@@ -295,15 +295,14 @@ export default function ResourcePage() {
 
 - [ ] Email notifications — backend SMTP credentials not configured yet (infrastructure is ready)
 - [ ] Receipt printer hardware integration (current solution uses browser print)
-- [ ] Employee performance and monthly financial report detail views
 - [ ] SMS notifications (no provider integrated)
-- [ ] SSE/WebSocket real-time notifications (polling reduced to 20s + visibilitychange trigger)
 
 ## Completed
 
 - [x] Currency: all `$` replaced with `GHS` across sales, orders, inventory pages
-- [x] Pagination: orders, payments, stock-movements pages paginated; shared `Pagination.tsx` component at `src/components/(shared-components)/Pagination.tsx`
+- [x] Pagination: orders, payments, stock-movements, customers, audit-log pages paginated; shared `Pagination.tsx` component at `src/components/(shared-components)/Pagination.tsx`
 - [x] Polling enhanced: sidebar bell polls every 20s + immediate refresh on `visibilitychange`
 - [x] Frontend tests: vitest + React Testing Library; run with `npm test` after `npm install`
   - `src/lib/utils.test.ts` — cn() utility
   - `src/components/(shared-components)/Pagination.test.tsx` — Pagination component
+- [x] Report detail views: `/report/[id]` page fetches `/reports/{id}/preview` for completed `employee_performance` and `monthly_financial` reports and renders an inline data table + summary stats card

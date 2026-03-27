@@ -3,12 +3,12 @@
 import { useEffect, useState, use } from 'react';
 import {
     FileText, Download, Calendar, Clock, CheckCircle, XCircle,
-    ArrowLeft, Printer, HardDrive, Info, Eye, Settings,
+    ArrowLeft, Printer, HardDrive, Info, Eye, Settings, BarChart2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ReportResponse, ReportStatus } from '@/interfaces/report';
-import { getReportByID, downloadReport } from '@/(api-handlers)/reportHandler';
+import { getReportByID, downloadReport, getReportPreview, ReportPreviewData } from '@/(api-handlers)/reportHandler';
 import EmptyState from '@/components/(shared-components)/EmptyState';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import toast from 'react-hot-toast';
@@ -61,12 +61,23 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
     const [report, setReport] = useState<ReportResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState(false);
+    const [previewData, setPreviewData] = useState<ReportPreviewData | null>(null);
+
+    const PREVIEW_TYPES = ['employee_performance', 'monthly_financial'];
 
     useEffect(() => {
         const fetchReport = async () => {
             setLoading(true);
             try {
-                setReport(await getReportByID(Number.parseInt(id)));
+                const r = await getReportByID(Number.parseInt(id));
+                setReport(r);
+                if (r.status === 'completed' && PREVIEW_TYPES.includes(r.report_type)) {
+                    try {
+                        setPreviewData(await getReportPreview(r.id));
+                    } catch {
+                        // preview is optional — don't block the page
+                    }
+                }
             } catch (error: unknown) {
                 handleErrorMessage(error, 'Failed to fetch report details');
             } finally {
@@ -240,6 +251,60 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                             </div>
                         </div>
                     </div>
+
+                    {/* Data Preview */}
+                    {previewData && (
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-50 flex items-center gap-2 bg-slate-50/50">
+                                <BarChart2 className="size-4 text-primary" />
+                                <span className="font-semibold text-slate-700">{previewData.title}</span>
+                                <span className="ml-auto text-xs text-slate-400">{previewData.period}</span>
+                            </div>
+
+                            {/* Summary stats */}
+                            <div className="px-6 pt-5 pb-4 grid grid-cols-2 md:grid-cols-3 gap-4 border-b border-slate-100">
+                                {Object.entries(previewData.summary).map(([key, val]) => (
+                                    <div key={key} className="space-y-0.5">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                            {key.replace(/_/g, ' ')}
+                                        </p>
+                                        <p className="text-sm font-semibold text-slate-800">{String(val)}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Data table */}
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                    <thead>
+                                        <tr className="bg-slate-50/70">
+                                            {previewData.headers.map(h => (
+                                                <th key={h} className="px-4 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wide text-[10px]">
+                                                    {h}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {previewData.rows.slice(0, 15).map((row, i) => (
+                                            <tr key={i} className="border-t border-slate-50 hover:bg-slate-50/50">
+                                                {row.map((cell, j) => (
+                                                    <td key={j} className="px-4 py-2.5 text-slate-700">{String(cell)}</td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                        {previewData.rows.length > 15 && (
+                                            <tr className="border-t border-slate-50">
+                                                <td colSpan={previewData.headers.length} className="px-4 py-2.5 text-slate-400 text-center italic">
+                                                    + {previewData.rows.length - 15} more rows — download the full report for complete data
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Activity Timeline */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">

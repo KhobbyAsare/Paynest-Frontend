@@ -42,6 +42,7 @@ import {
     getNotifications,
     markNotificationRead,
     markAllNotificationsRead,
+    createNotificationStream,
     AppNotification,
 } from '@/(api-handlers)/notificationsHandler'
 import toast from 'react-hot-toast'
@@ -255,9 +256,10 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
         setIsMounted(true);
     }, []);
 
-    // Poll for new notifications every 20 seconds + immediate refresh on tab focus
+    // SSE primary + polling fallback for notifications
     useEffect(() => {
         if (!accessToken) return;
+
         const fetchNotifs = async () => {
             try {
                 const data = await getNotifications();
@@ -267,12 +269,46 @@ export default function Sidebar({ children }: Readonly<{ children: React.ReactNo
                 // Silently ignore — don't toast on background poll failures
             }
         };
+
+        // Baseline fetch on mount/login
         fetchNotifs();
-        const interval = setInterval(fetchNotifs, 20_000);
-        const onVisible = () => { if (document.visibilityState === 'visible') fetchNotifs(); };
+
+        let es: EventSource | null = null;
+        let fallbackInterval: ReturnType<typeof setInterval> | null = null;
+
+        try {
+            es = createNotificationStream(
+                accessToken,
+                (incoming) => {
+                    // Merge new notifications into the top of the list (cap at 15)
+                    setNotifications(prev => {
+                        const existingIds = new Set(prev.map(n => n.id));
+                        const fresh = incoming.filter(n => !existingIds.has(n.id));
+                        return [...fresh, ...prev].slice(0, 15);
+                    });
+                    const newUnread = incoming.filter(n => !n.is_read).length;
+                    if (newUnread > 0) setUnreadCount(prev => prev + newUnread);
+                },
+                () => {
+                    // SSE connection failed — fall back to 20s polling
+                    if (!fallbackInterval) {
+                        fallbackInterval = setInterval(fetchNotifs, 20_000);
+                    }
+                },
+            );
+        } catch {
+            // EventSource not available (unlikely in modern browsers) — fall back
+            fallbackInterval = setInterval(fetchNotifs, 20_000);
+        }
+
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') fetchNotifs();
+        };
         document.addEventListener('visibilitychange', onVisible);
+
         return () => {
-            clearInterval(interval);
+            es?.close();
+            if (fallbackInterval) clearInterval(fallbackInterval);
             document.removeEventListener('visibilitychange', onVisible);
         };
     }, [accessToken]);

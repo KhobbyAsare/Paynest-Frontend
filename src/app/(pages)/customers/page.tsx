@@ -15,6 +15,7 @@ import { CustomerResponse } from '@/interfaces/customers';
 import { OrganizationShopResponse } from '@/interfaces/organizationShops';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import PageHeader from '@/components/(shared-components)/PageHeader';
+import Pagination from '@/components/(shared-components)/Pagination';
 import EmptyState from '@/components/(shared-components)/EmptyState';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -71,11 +72,17 @@ function CustomerAvatar({ firstName, lastName }: Readonly<{ firstName: string; l
     );
 }
 
+const PAGE_SIZE = 20;
+
 export default function CustomerListPage() {
     const router = useRouter();
     const [customers, setCustomers] = useState<CustomerResponse[]>([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
     const [loading, setLoading] = useState<boolean>(true);
     const [searchTerm, setSearchTerm] = useState<string>('');
+
+    const totalPages = Math.ceil(total / PAGE_SIZE);
     const [deleting, setDeleting] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
         open: false,
@@ -108,14 +115,15 @@ export default function CustomerListPage() {
         setLoading(true);
         try {
             const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
-            const data = await GetAllCustomers(shopIdParams);
-            setCustomers(data);
+            const data = await GetAllCustomers(shopIdParams, (page - 1) * PAGE_SIZE, PAGE_SIZE);
+            setCustomers(data.items);
+            setTotal(data.total);
         } catch (error: unknown) {
             handleErrorMessage(error, 'Failed to fetch customers');
         } finally {
             setLoading(false);
         }
-    }, [selectedShopId]);
+    }, [selectedShopId, page]);
 
     useEffect(() => {
         fetchCustomers();
@@ -329,7 +337,7 @@ export default function CustomerListPage() {
                             <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
                                 <Select
                                     value={selectedShopId}
-                                    onValueChange={(val) => setSelectedShopId(val)}
+                                    onValueChange={(val) => { setSelectedShopId(val); setPage(1); }}
                                 >
                                     <SelectTrigger className="h-10 w-[200px] border-slate-200 bg-white rounded-[8px]">
                                         <div className="flex items-center gap-2">
@@ -382,10 +390,20 @@ export default function CustomerListPage() {
                 {/* Row count footer */}
                 {!loading && filteredCustomers.length > 0 && (
                     <div className="px-6 py-3 border-t border-slate-100 text-xs text-slate-400">
-                        Showing {filteredCustomers.length} customer{filteredCustomers.length !== 1 ? 's' : ''}
+                        Showing {filteredCustomers.length} of {total} customer{total !== 1 ? 's' : ''}
                     </div>
                 )}
             </Card>
+
+            {totalPages > 1 && (
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    isLoading={loading}
+                    total={total}
+                />
+            )}
 
             {/* ---------------------------------------------------------------- */}
             {/* Delete Confirm Dialog                                             */}

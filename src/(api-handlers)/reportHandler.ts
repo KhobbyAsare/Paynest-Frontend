@@ -1,4 +1,12 @@
 import { ApproveReportRequest, ReportRequest, ReportResponse, UpdateReportRequest } from "@/interfaces/report";
+
+export interface ReportPreviewData {
+    title: string;
+    period: string;
+    headers: string[];
+    rows: (string | number)[][];
+    summary: Record<string, string | number>;
+}
 import { getAPIHeaders } from "@/lib/getToken";
 import axios from "axios";
 
@@ -78,6 +86,18 @@ export const getApprovedReports = async (report_id: number, report_data: Approve
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
         const response = await axios.patch(`${url}/reports/${report_id}/approve`, report_data, {
+            headers: getAPIHeaders(),
+        })
+        return response.data
+    } catch (error: unknown) {
+        throw error;
+    }
+}
+
+export const getReportPreview = async (report_id: number): Promise<ReportPreviewData> => {
+    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+    try {
+        const response = await axios.get(`${url}/reports/${report_id}/preview`, {
             headers: getAPIHeaders(),
         })
         return response.data
