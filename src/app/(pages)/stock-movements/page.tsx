@@ -56,7 +56,7 @@ export default function StockMovementsPage() {
             setMovements(movData);
             setSummary(sumData);
         } catch (error: unknown) {
-            toast.error(handleErrorMessage(error));
+            handleErrorMessage(error);
         } finally {
             setLoading(false);
         }

@@ -33,7 +33,7 @@ export default function ProfileSettingsPage() {
                     username: data.username || '',
                 });
             })
-            .catch((err) => toast.error(handleErrorMessage(err)))
+            .catch((err) => handleErrorMessage(err))
             .finally(() => setLoading(false));
     }, []);
 
@@ -47,7 +47,7 @@ export default function ProfileSettingsPage() {
             }
             toast.success('Profile updated successfully');
         } catch (err: unknown) {
-            toast.error(handleErrorMessage(err));
+            handleErrorMessage(err);
         } finally {
             setSaving(false);
         }

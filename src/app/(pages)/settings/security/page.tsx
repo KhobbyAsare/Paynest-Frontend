@@ -41,7 +41,7 @@ export default function SecuritySettingsPage() {
             toast.success('Password changed successfully');
             setForm({ current_password: '', new_password: '', confirm_password: '' });
         } catch (err: unknown) {
-            toast.error(handleErrorMessage(err));
+            handleErrorMessage(err);
         } finally {
             setSaving(false);
         }
