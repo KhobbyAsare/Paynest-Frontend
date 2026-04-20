@@ -52,7 +52,7 @@
   --color-chart-5: var(--chart-5);
 
   /* Paynest brand tonal scale (deep navy) */
-  --color-brand-50:  var(--brand-50);
+  --color-brand-50: var(--brand-50);
   --color-brand-100: var(--brand-100);
   --color-brand-200: var(--brand-200);
   --color-brand-300: var(--brand-300);
@@ -80,17 +80,17 @@
   --font-mono: var(--font-geist-mono);
 
   /* Radii */
-  --radius-sm:  calc(var(--radius) - 4px);
-  --radius-md:  calc(var(--radius) - 2px);
-  --radius-lg:  var(--radius);
-  --radius-xl:  calc(var(--radius) + 4px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 
   /* Motion */
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
-  --ease-standard:   cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
   --duration-fast: 120ms;
   --duration-base: 200ms;
@@ -104,7 +104,7 @@
   --radius: 0.625rem;
 
   /* Paynest navy tonal scale (#10295E ≈ brand-800) */
-  --brand-50:  oklch(0.974 0.012 263);
+  --brand-50: oklch(0.974 0.012 263);
   --brand-100: oklch(0.940 0.026 263);
   --brand-200: oklch(0.870 0.052 263);
   --brand-300: oklch(0.770 0.082 263);
@@ -112,7 +112,8 @@
   --brand-500: oklch(0.520 0.135 263);
   --brand-600: oklch(0.420 0.140 263);
   --brand-700: oklch(0.340 0.130 263);
-  --brand-800: oklch(0.276 0.108 263); /* #10295E */
+  --brand-800: oklch(0.276 0.108 263);
+  /* #10295E */
   --brand-900: oklch(0.220 0.085 263);
   --brand-950: oklch(0.160 0.060 263);
 
@@ -159,15 +160,15 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
 
-  /* Sidebar */
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: var(--brand-800);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: var(--brand-800);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  /* Sidebar — Paynest navy aesthetic in both modes */
+  --sidebar: var(--brand-800);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.984 0.003 247.858);
+  --sidebar-primary-foreground: var(--brand-800);
+  --sidebar-accent: var(--brand-700);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: var(--brand-300);
 }
 
 /* ===========================================================================
@@ -181,7 +182,8 @@
   --popover: oklch(0.208 0.042 265.755);
   --popover-foreground: oklch(0.984 0.003 247.858);
 
-  --primary: oklch(0.770 0.082 263); /* brand-300 in dark for contrast */
+  --primary: oklch(0.770 0.082 263);
+  /* brand-300 in dark for contrast */
   --primary-foreground: var(--brand-950);
 
   --secondary: oklch(0.279 0.041 260.031);
@@ -213,14 +215,14 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
 
-  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar: var(--brand-950);
   --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-primary: oklch(0.984 0.003 247.858);
+  --sidebar-primary-foreground: var(--brand-950);
+  --sidebar-accent: var(--brand-800);
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --sidebar-ring: var(--brand-300);
 }
 
 /* ===========================================================================
@@ -271,7 +273,7 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent !important;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -285,6 +287,33 @@
   background: var(--muted-foreground);
   background-clip: padding-box;
   border: 2px solid transparent;
+}
+
+/* Hide the scrollbar inside the sidebar shell — keep scrolling functional */
+[data-slot="sidebar"],
+[data-slot="sidebar"] *,
+[data-slot="sidebar-container"],
+[data-slot="sidebar-container"] *,
+[data-slot="sidebar-inner"],
+[data-slot="sidebar-inner"] *,
+[data-slot="sidebar-content"],
+[data-slot="sidebar-content"] * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+[data-slot="sidebar"]::-webkit-scrollbar,
+[data-slot="sidebar"] *::-webkit-scrollbar,
+[data-slot="sidebar-container"]::-webkit-scrollbar,
+[data-slot="sidebar-container"] *::-webkit-scrollbar,
+[data-slot="sidebar-inner"]::-webkit-scrollbar,
+[data-slot="sidebar-inner"] *::-webkit-scrollbar,
+[data-slot="sidebar-content"]::-webkit-scrollbar,
+[data-slot="sidebar-content"] *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
 }
 
 /* ===========================================================================
@@ -371,6 +400,7 @@
    Reduced motion
    =========================================================================== */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

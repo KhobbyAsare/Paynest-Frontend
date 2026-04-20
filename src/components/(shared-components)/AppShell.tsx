@@ -1,0 +1,375 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+    ArrowLeftRight,
+    BarChart3,
+    Banknote,
+    Bell,
+    Box,
+    Building,
+    Building2,
+    Calculator,
+    ChevronRight,
+    CircleDollarSign,
+    CircleUser,
+    CreditCard,
+    FileText,
+    Home,
+    Key,
+    Layers,
+    PieChart,
+    PlusCircle,
+    ReceiptText,
+    Settings,
+    ShieldCheck,
+    ShoppingCart,
+    UserPlus,
+    Users,
+    UsersRound,
+    Wallet,
+    Wrench,
+    type LucideIcon,
+} from "lucide-react";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarInset,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubButton,
+    SidebarMenuSubItem,
+    SidebarProvider,
+    SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { useAuthStore } from "@/(zustand-store)/authStore";
+import { NotificationBell } from "./NotificationBell";
+import { UserMenu } from "./UserMenu";
+
+type Role = "superadmin" | "admin" | "manager" | "attendant";
+
+interface NavLeaf {
+    name: string;
+    href: string;
+    icon: LucideIcon;
+    roles: Role[];
+}
+
+interface NavGroup {
+    label: string;
+    items: NavItem[];
+    roles: Role[];
+}
+
+interface NavItem {
+    name: string;
+    icon: LucideIcon;
+    roles: Role[];
+    href?: string;
+    subItems?: NavLeaf[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+    {
+        label: "Overview",
+        roles: ["superadmin", "admin", "manager", "attendant"],
+        items: [
+            {
+                name: "Dashboard",
+                href: "/dashboard",
+                icon: Home,
+                roles: ["superadmin", "admin"],
+            },
+        ],
+    },
+    {
+        label: "Operate",
+        roles: ["admin", "manager", "attendant"],
+        items: [
+            {
+                name: "Sales",
+                icon: Calculator,
+                roles: ["admin", "manager", "attendant"],
+                subItems: [
+                    { name: "POS", href: "/sales", icon: Calculator, roles: ["attendant"] },
+                    { name: "Orders & Walk-ins", href: "/orders", icon: ReceiptText, roles: ["superadmin", "admin", "manager", "attendant"] },
+                    { name: "Daily Sales Analysis", href: "/sales-report", icon: BarChart3, roles: ["superadmin", "admin", "manager", "attendant"] },
+                    { name: "Order Items", href: "/order-items", icon: ShoppingCart, roles: ["superadmin", "admin", "manager", "attendant"] },
+                    { name: "Payments", href: "/payments", icon: Banknote, roles: ["superadmin", "admin", "manager", "attendant"] },
+                ],
+            },
+            { name: "Daily Closure", href: "/daily-closure", icon: Banknote, roles: ["admin", "manager", "attendant"] },
+        ],
+    },
+    {
+        label: "Catalog",
+        roles: ["attendant", "manager"],
+        items: [
+            { name: "Products", href: "/products", icon: Layers, roles: ["attendant"] },
+            { name: "Product Categories", href: "/product_categories", icon: Box, roles: ["attendant"] },
+            {
+                name: "Inventory",
+                icon: CreditCard,
+                roles: ["manager", "attendant"],
+                subItems: [
+                    { name: "All Inventory", href: "/inventory", icon: CreditCard, roles: ["manager", "attendant"] },
+                    { name: "Create Inventory", href: "/inventory/create", icon: PlusCircle, roles: ["manager", "attendant"] },
+                    { name: "Stock Movements", href: "/stock-movements", icon: ArrowLeftRight, roles: ["manager", "attendant"] },
+                ],
+            },
+        ],
+    },
+    {
+        label: "Customers",
+        roles: ["admin", "manager", "attendant"],
+        items: [
+            {
+                name: "Customers",
+                icon: UsersRound,
+                roles: ["admin", "manager", "attendant"],
+                subItems: [
+                    { name: "Customer List", href: "/customers", icon: UsersRound, roles: ["superadmin", "admin", "manager", "attendant"] },
+                    { name: "Add Customer", href: "/customers/create", icon: UserPlus, roles: ["superadmin", "admin", "manager"] },
+                ],
+            },
+        ],
+    },
+    {
+        label: "Reports & Finance",
+        roles: ["admin", "manager"],
+        items: [
+            {
+                name: "Reports",
+                icon: BarChart3,
+                roles: ["admin", "manager"],
+                subItems: [
+                    { name: "Organization Reports", href: "/report", icon: BarChart3, roles: ["admin"] },
+                    { name: "My Reports", href: "/report/my_report", icon: BarChart3, roles: ["admin", "manager"] },
+                    { name: "Pending Reports", href: "/report/pending", icon: BarChart3, roles: ["admin"] },
+                ],
+            },
+            {
+                name: "Financials",
+                icon: CircleDollarSign,
+                roles: ["admin"],
+                subItems: [
+                    { name: "Organization Finance", href: "/finance", icon: PieChart, roles: ["superadmin", "admin"] },
+                ],
+            },
+        ],
+    },
+    {
+        label: "Administration",
+        roles: ["superadmin", "admin"],
+        items: [
+            {
+                name: "Organization Management",
+                icon: Building,
+                roles: ["superadmin", "admin"],
+                subItems: [
+                    { name: "Organizations", href: "/organizations", icon: Building2, roles: ["superadmin"] },
+                    { name: "Shops", href: "/organization_shops", icon: Building, roles: ["admin"] },
+                ],
+            },
+            {
+                name: "User Management",
+                icon: Users,
+                roles: ["superadmin", "admin"],
+                subItems: [
+                    { name: "All Users", href: "/users", icon: Users, roles: ["superadmin", "admin"] },
+                    { name: "Setup Employee Profile", href: "/users/setup-employee-profile", icon: CircleUser, roles: ["admin"] },
+                    { name: "Roles & Permissions", href: "/users/roles", icon: ShieldCheck, roles: ["superadmin"] },
+                ],
+            },
+            { name: "Audit Logs", href: "/audit-log", icon: FileText, roles: ["superadmin"] },
+        ],
+    },
+    {
+        label: "Account",
+        roles: ["superadmin", "admin", "manager", "attendant"],
+        items: [
+            { name: "Notifications", href: "/notifications", icon: Bell, roles: ["superadmin", "admin", "manager", "attendant"] },
+            {
+                name: "Settings",
+                icon: Settings,
+                roles: ["superadmin", "admin", "manager", "attendant"],
+                subItems: [
+                    { name: "Profile Settings", href: "/settings/profile", icon: CircleUser, roles: ["superadmin", "admin", "manager", "attendant"] },
+                    { name: "Organization Profile", href: "/organization_profile", icon: Settings, roles: ["admin"] },
+                    { name: "Security", href: "/settings/security", icon: Key, roles: ["superadmin", "admin", "manager", "attendant"] },
+                    { name: "Notifications", href: "/settings/notifications", icon: Bell, roles: ["superadmin", "admin", "manager", "attendant"] },
+                    { name: "System Settings", href: "/settings/system", icon: Wrench, roles: ["superadmin"] },
+                ],
+            },
+        ],
+    },
+];
+
+const ROLE_GREETING: Record<Role, string> = {
+    superadmin: "Manage the entire system and oversee all operations.",
+    admin: "Manage users, transactions, and financial reports.",
+    manager: "Oversee daily operations and team performance.",
+    attendant: "Handle customer transactions and queue management.",
+};
+
+function NavItemRow({
+    item,
+    pathname,
+    role,
+}: Readonly<{
+    item: NavItem;
+    pathname: string;
+    role: Role;
+}>) {
+    const Icon = item.icon;
+
+    if (!item.subItems || item.subItems.length === 0) {
+        if (!item.href) return null;
+        const isActive = pathname === item.href;
+        return (
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive} tooltip={item.name}>
+                    <Link href={item.href}>
+                        <Icon />
+                        <span>{item.name}</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        );
+    }
+
+    const visibleSubs = item.subItems.filter((s) => s.roles.includes(role));
+    if (visibleSubs.length === 0) return null;
+
+    const isAnySubActive = visibleSubs.some((s) => pathname === s.href);
+
+    return (
+        <Collapsible asChild defaultOpen={isAnySubActive} className="group/collapsible">
+            <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                        isActive={isAnySubActive}
+                        tooltip={item.name}
+                    >
+                        <Icon />
+                        <span>{item.name}</span>
+                        <ChevronRight className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <SidebarMenuSub>
+                        {visibleSubs.map((sub) => {
+                            const SubIcon = sub.icon;
+                            const isActive = pathname === sub.href;
+                            return (
+                                <SidebarMenuSubItem key={`${item.name}-${sub.name}`}>
+                                    <SidebarMenuSubButton asChild isActive={isActive}>
+                                        <Link href={sub.href}>
+                                            <SubIcon />
+                                            <span>{sub.name}</span>
+                                        </Link>
+                                    </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                            );
+                        })}
+                    </SidebarMenuSub>
+                </CollapsibleContent>
+            </SidebarMenuItem>
+        </Collapsible>
+    );
+}
+
+export default function AppShell({
+    children,
+}: Readonly<{ children: React.ReactNode }>) {
+    const pathname = usePathname();
+    const { user } = useAuthStore();
+    const role = (user?.role as Role) ?? "attendant";
+
+    const groups = React.useMemo(() => {
+        return NAV_GROUPS.map((g) => ({
+            ...g,
+            items: g.items.filter((it) => it.roles.includes(role)),
+        })).filter((g) => g.roles.includes(role) && g.items.length > 0);
+    }, [role]);
+
+    return (
+        <SidebarProvider>
+            <Sidebar collapsible="icon">
+                <SidebarHeader>
+                    <Link
+                        href="/dashboard"
+                        className="hover:bg-sidebar-accent flex items-center gap-2 rounded-md p-2 transition-colors group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+                    >
+                        <span className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-md group-data-[collapsible=icon]:size-7">
+                            <Wallet className="size-4" />
+                        </span>
+                        <span className="text-sidebar-foreground truncate text-base font-semibold group-data-[collapsible=icon]:hidden">
+                            Paynest
+                        </span>
+                    </Link>
+                </SidebarHeader>
+
+                <SidebarContent>
+                    {groups.map((group) => (
+                        <SidebarGroup key={group.label}>
+                            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                            <SidebarGroupContent>
+                                <SidebarMenu>
+                                    {group.items.map((item) => (
+                                        <NavItemRow
+                                            key={item.name}
+                                            item={item}
+                                            pathname={pathname}
+                                            role={role}
+                                        />
+                                    ))}
+                                </SidebarMenu>
+                            </SidebarGroupContent>
+                        </SidebarGroup>
+                    ))}
+                </SidebarContent>
+
+                <SidebarFooter>
+                    <UserMenu variant="row" align="end" />
+                </SidebarFooter>
+            </Sidebar>
+
+            <SidebarInset className="min-w-0 overflow-x-hidden">
+                <header className="bg-background/80 sticky top-0 z-40 flex h-14 items-center gap-2 border-b px-4 backdrop-blur supports-backdrop-filter:bg-background/60">
+                    <SidebarTrigger className="-ml-1" />
+                    <div className="min-w-0 flex-1">
+                        <p className="text-foreground truncate text-sm font-semibold">
+                            {user?.first_name
+                                ? `Welcome back, ${user.first_name}`
+                                : "Welcome"}
+                        </p>
+                        <p className="text-muted-foreground hidden truncate text-xs sm:block">
+                            {ROLE_GREETING[role]}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <NotificationBell />
+                        <UserMenu variant="compact" />
+                    </div>
+                </header>
+
+                <div className="min-w-0 flex-1 p-4 lg:p-6">{children}</div>
+            </SidebarInset>
+        </SidebarProvider>
+    );
+}

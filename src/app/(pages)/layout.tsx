@@ -1,10 +1,5 @@
-import Sidebar from "@/components/(shared-components)/sidebar-navigation";
-
+import AppShell from "@/components/(shared-components)/AppShell";
 
 export default function PagesLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <Sidebar>
-            {children}
-        </Sidebar>
-    )
+    return <AppShell>{children}</AppShell>;
 }

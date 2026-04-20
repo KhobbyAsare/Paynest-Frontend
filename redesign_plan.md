@@ -100,12 +100,16 @@ Already installed: `avatar, badge, button, card, checkbox, dialog, dropdown-menu
 
 > Use the shadcn `sidebar` block as the base — it ships with collapsible rail, mobile sheet, sub-menu, footer, and group support out of the box.
 
-- [ ] Install shadcn `sidebar` block; replace current `headlessui/Dialog` sidebar.
-- [ ] Slim collapsed rail (icon only) with `Tooltip` labels; expanded width 240px.
-- [ ] `SidebarGroup` per section (Operate / Inventory / Reports / Admin) with `SidebarGroupLabel`.
-- [ ] Active state: shadcn's built-in `data-active` pill with brand tint.
-- [ ] New top app bar (`AppShell`): notification bell (`Popover`), `Command` palette trigger, user menu (`DropdownMenu`).
-- [ ] User menu: `Avatar` + role `Badge` + Profile / Settings / Sign out items.
+- [x] Installed shadcn `sidebar` + `collapsible`. Themed `--sidebar*` tokens to keep the Paynest navy aesthetic in light mode (sidebar = `var(--brand-800)`, accent = `var(--brand-700)`) and a deeper navy (`--brand-950`) in dark mode.
+- [x] Built `AppShell.tsx` (`SidebarProvider` + `Sidebar collapsible="icon"` + `SidebarInset`). Mobile sheet, collapsed icon-only rail, and tooltips ship with the primitive.
+- [x] Reorganized navigation into 7 `SidebarGroup`s (Overview / Operate / Catalog / Customers / Reports & Finance / Administration / Account) with `SidebarGroupLabel`s.
+- [x] Sub-menus use `Collapsible` + `SidebarMenuSub` with auto-open when a child route is active.
+- [x] Active state via `SidebarMenuButton isActive` (data-active pill with brand tint).
+- [x] Top app bar: `SidebarTrigger`, welcome line + role greeting, `NotificationBell`, `UserMenu` (compact). Backdrop blur + sticky.
+- [x] Extracted `NotificationBell.tsx` — `Popover` + `ScrollArea` + `Separator`; preserves SSE primary + 20s polling fallback + visibilitychange refresh.
+- [x] Extracted `UserMenu.tsx` — `DropdownMenu` + `Avatar` + role `Badge`. Two variants: `compact` (icon trigger for top bar) and `row` (full row trigger for sidebar footer).
+- [x] Deleted `sidebar-navigation.tsx` (841 lines) and removed `@headlessui/react` from `dependencies`.
+- [ ] Global `Command` palette trigger in top bar. _(Deferred to Phase 4 — needs route map.)_
 
 ---
 
@@ -183,7 +187,7 @@ How we'll use the installed skills:
 
 - [x] **Phase 1 — Foundation**: tokens, typography, scroll/focus/motion, icon consolidation. _(Spacing/container width docs deferred to Phase 3 AppShell. Ant icons removed in Phase 4 with Ant modal migration.)_
 - [x] **Phase 2 — Shared components**: installed all missing shadcn primitives (sheet, sonner, skeleton, label, popover, empty, alert, alert-dialog, scroll-area, command, breadcrumb, hover-card, toggle, toggle-group, radio-group, form, accordion, navigation-menu, chart). Swapped `react-hot-toast` → `sonner` (30 import sites + layout Toaster + package.json). Built composites: `PageHeader` (rewrite), `StatCard` (new), `DataTable` (new), `Pagination` (rewrite), `EmptyState` (rewrite on `Empty`), `Toolbar` + `ToolbarSearch` (new), `StatusPill` (new). Typecheck clean except for the pre-existing Sales Completion Modal error logged in Backlog. _(Surface deferred — `Card` direct usage covers it; `AppShell` is Phase 3.)_
-- [ ] **Phase 3 — App shell**: sidebar + new top app bar.
+- [x] **Phase 3 — App shell**: shadcn `sidebar` + `collapsible` installed and themed for the Paynest navy. Built `AppShell` + `NotificationBell` (Popover) + `UserMenu` (DropdownMenu). 7-group navigation with auto-opening sub-menus, icon-only collapsed rail, mobile sheet. Replaced 841-line headlessui sidebar; removed `@headlessui/react` dep. Command palette trigger deferred into Phase 4.
 - [ ] **Phase 4 — Page redesigns**: Sales → Dashboard → List pages → Detail pages → Forms → Notifications → Auth.
 - [ ] **Phase 5 — Dark mode pass + a11y + perf review**.
 - [ ] **Phase 6 — QA**: full click-through per role (superadmin, admin, manager, attendant), regression check on POS flow.
