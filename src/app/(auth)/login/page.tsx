@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { loginSchema, LoginFormData } from "@/utils/zod/loginSchemas";
 import { LoginInterface } from "@/interfaces/loginInterface";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { handleErrorMessage } from "@/utils/handleErrorMessage";
 import { loginWithFormData } from "@/(api-handlers)/loginHandler";
 import { getUserData } from "@/(api-handlers)/userHandler";

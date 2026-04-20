@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { registrationHandler } from "@/(api-handlers)/registrationHandler";
 import { registerSchema, RegisterFormData } from "@/utils/zod/registrationSchemas";
 import { RegisterInterface } from "@/interfaces/registerInterface";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { handleErrorMessage } from "@/utils/handleErrorMessage";
 import { useRouter } from "next/navigation";
 

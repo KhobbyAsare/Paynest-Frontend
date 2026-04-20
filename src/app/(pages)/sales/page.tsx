@@ -24,7 +24,7 @@ import { CategoryItem } from "./components/CategoryItem";
 import { ProductCard } from "./components/ProductCard";
 import { CartItem } from "./components/CartItem";
 import { cn } from "@/lib/utils";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSalesStore } from "@/(zustand-store)/salesStore";
 import { Switch } from "@/components/ui/switch";

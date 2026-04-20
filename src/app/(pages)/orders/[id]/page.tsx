@@ -65,7 +65,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import PageHeader from '@/components/(shared-components)/PageHeader';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { getNotificationPreferences, updateNotificationPreferences, NotificationPreferences } from '@/(api-handlers)/userHandler';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 

@@ -1,5 +1,5 @@
 import axios from "axios";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type AnyRecord = Record<string, any>;

@@ -38,7 +38,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import { motion } from "framer-motion";
 import { format } from "date-fns";

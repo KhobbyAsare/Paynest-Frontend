@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { GetCustomerByID, UpdateCustomer } from '@/(api-handlers)/customersHandler';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

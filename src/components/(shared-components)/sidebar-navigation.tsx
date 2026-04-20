@@ -3,37 +3,41 @@
 import { useState, useEffect, useMemo, useRef, JSX } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel } from '@headlessui/react'
 import {
-    Bars3Icon,
-    ChartPieIcon,
-    HomeIcon,
-    UsersIcon,
-    XMarkIcon,
-    Cog6ToothIcon,
-    ShieldCheckIcon,
-    UserGroupIcon,
-    CreditCardIcon,
-    CurrencyDollarIcon,
-    BanknotesIcon,
-    ChartBarIcon,
-    CogIcon,
-    BellIcon,
-    DocumentTextIcon,
-    KeyIcon,
-    ReceiptPercentIcon,
-    WrenchScrewdriverIcon,
-    Square2StackIcon,
-    UserCircleIcon,
-    CubeTransparentIcon,
-    BuildingOfficeIcon,
-    BuildingOffice2Icon,
-    CalculatorIcon,
-    ChevronDoubleLeftIcon,
-    ChevronDoubleRightIcon,
-    ShoppingCartIcon,
-    ArrowsRightLeftIcon,
-} from '@heroicons/react/24/outline'
+    Menu as Bars3Icon,
+    PieChart as ChartPieIcon,
+    Home as HomeIcon,
+    Users as UsersIcon,
+    X as XMarkIcon,
+    Settings as Cog6ToothIcon,
+    ShieldCheck as ShieldCheckIcon,
+    UsersRound as UserGroupIcon,
+    CreditCard as CreditCardIcon,
+    CircleDollarSign as CurrencyDollarIcon,
+    Banknote as BanknotesIcon,
+    BarChart3 as ChartBarIcon,
+    Cog as CogIcon,
+    Bell as BellIcon,
+    FileText as DocumentTextIcon,
+    Key as KeyIcon,
+    ReceiptText as ReceiptPercentIcon,
+    Wrench as WrenchScrewdriverIcon,
+    Layers as Square2StackIcon,
+    CircleUser as UserCircleIcon,
+    Box as CubeTransparentIcon,
+    Building as BuildingOfficeIcon,
+    Building2 as BuildingOffice2Icon,
+    Calculator as CalculatorIcon,
+    ChevronsLeft as ChevronDoubleLeftIcon,
+    ChevronsRight as ChevronDoubleRightIcon,
+    ShoppingCart as ShoppingCartIcon,
+    ArrowLeftRight as ArrowsRightLeftIcon,
+    PlusCircle as PlusCircleIcon,
+    UserPlus as UserPlusIcon,
+    Wallet,
+    LogOut,
+    CheckCheck,
+} from 'lucide-react'
 import Image from 'next/image'
-import { Wallet, LogOut, CheckCheck } from 'lucide-react'
 import SplitText from './SplitText'
 import { useAuthStore } from "@/(zustand-store)/authStore"
 import { useRouter, usePathname } from 'next/navigation'
@@ -45,7 +49,7 @@ import {
     createNotificationStream,
     AppNotification,
 } from '@/(api-handlers)/notificationsHandler'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import Link from 'next/link'
 
 interface NavItem {
@@ -56,19 +60,6 @@ interface NavItem {
     roles: ('superadmin' | 'admin' | 'manager' | 'attendant')[];
     subItems?: NavItem[];
 }
-
-// Fallback icons for missing imports
-const PlusCircleIcon = ({ className }: { className?: string }) => (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-);
-
-const UserPlusIcon = ({ className }: { className?: string }) => (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-    </svg>
-);
 
 // Define navigation items based on roles
 const navigationItems: NavItem[] = [

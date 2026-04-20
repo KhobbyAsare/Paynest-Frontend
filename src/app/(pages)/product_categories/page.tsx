@@ -47,7 +47,7 @@ import {
     ProductCategoriesResponse,
     ProductCategoriesRequest
 } from "@/interfaces/productCategories";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 
 export default function ProductCategoryPage() {

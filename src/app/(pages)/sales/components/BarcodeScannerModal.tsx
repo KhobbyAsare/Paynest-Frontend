@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { GetProductByBarcode } from "@/(api-handlers)/productsHandler";
 import { ProductResponse } from "@/interfaces/products";
 import { Scan, Keyboard, Loader2, X, CheckCircle2, AlertCircle } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface BarcodeScannerModalProps {
     isOpen: boolean;

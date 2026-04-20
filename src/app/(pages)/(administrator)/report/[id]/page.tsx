@@ -11,7 +11,7 @@ import { ReportResponse, ReportStatus } from '@/interfaces/report';
 import { getReportByID, downloadReport, getReportPreview, ReportPreviewData } from '@/(api-handlers)/reportHandler';
 import EmptyState from '@/components/(shared-components)/EmptyState';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 

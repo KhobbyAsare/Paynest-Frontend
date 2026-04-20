@@ -14,7 +14,7 @@ import EmptyState from '@/components/(shared-components)/EmptyState';
 import { useAuthStore } from '@/(zustand-store)/authStore';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const { Text } = Typography;
 

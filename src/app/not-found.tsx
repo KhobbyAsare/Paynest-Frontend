@@ -1,6 +1,11 @@
-import { ChevronRightIcon } from '@heroicons/react/20/solid'
-import { BookmarkSquareIcon, BookOpenIcon, QueueListIcon, RssIcon } from '@heroicons/react/24/solid'
-import { Wallet } from 'lucide-react'
+import {
+    ChevronRight as ChevronRightIcon,
+    Bookmark as BookmarkSquareIcon,
+    BookOpen as BookOpenIcon,
+    ListOrdered as QueueListIcon,
+    Rss as RssIcon,
+    Wallet,
+} from 'lucide-react'
 import Link from 'next/link'
 import { JSX } from 'react'
 

@@ -47,7 +47,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 const statusConfig: Record<OrderStatus, { label: string, color: string, icon: React.ElementType }> = {

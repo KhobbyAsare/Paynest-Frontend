@@ -45,29 +45,29 @@
 > Land this first — every later phase builds on it.
 
 ### 3.1 Token Cleanup
-- [ ] Remove the duplicate `@theme` hex block in `globals.css` (lines ~151–181). Move brand colors into the shadcn oklch system as new semantic tokens (`--brand`, `--brand-foreground`, `--surface`, etc.).
-- [ ] Re-derive `--primary` to be Paynest navy (#10295E) in oklch. Define a tonal scale (50–950) for brand and slate.
-- [ ] Add semantic status tokens: `--success`, `--warning`, `--info`, `--destructive` (light + dark).
-- [ ] Standardize radius scale already declared (`sm/md/lg/xl/2xl/3xl/4xl`) — document usage.
-- [ ] Add motion tokens: `--ease-emphasized`, `--ease-standard`, `--duration-fast/base/slow`.
+- [x] Remove the duplicate `@theme` hex block in `globals.css`. Brand colors live in the shadcn oklch system.
+- [x] Re-derive `--primary` to be Paynest navy (#10295E) in oklch. Tonal scale `--brand-50` … `--brand-950` exposed as `bg-brand-{step}`.
+- [x] Add semantic status tokens: `--success`, `--warning`, `--info`, `--destructive` (+ `*-foreground`, `*-muted`) for light + dark.
+- [x] Standardize radius scale (`sm/md/lg/xl/2xl/3xl/4xl`) declared in `@theme inline`.
+- [x] Add motion tokens: `--ease-emphasized`, `--ease-standard`, `--ease-decelerate`, `--duration-fast/base/slow`.
 
 ### 3.2 Typography
-- [ ] Confirm Geist Sans + Geist Mono pairing (already wired).
-- [ ] Define a type scale: `display`, `h1…h4`, `body-lg`, `body`, `body-sm`, `label`, `caption`, `mono`.
-- [ ] Apply `font-feature-settings` for tabular numerals on all currency/number cells.
+- [x] Confirm Geist Sans + Geist Mono pairing (already wired).
+- [x] Define a type scale: `text-display`, `text-h1…h4`, `text-body-lg/body/body-sm`, `text-label`, `text-caption`, `text-overline` (Tailwind v4 `@utility`).
+- [x] Add `num-tabular` utility for currency/metric cells (`font-variant-numeric: tabular-nums`).
 
 ### 3.3 Spacing & Layout
-- [ ] Adopt a 4-pt grid; document allowed gaps (`gap-1/2/3/4/6/8/12`) — discourage arbitrary `gap-[7px]`.
-- [ ] Define container widths: `narrow` (640), `default` (1280), `wide` (1536).
+- [ ] Adopt a 4-pt grid; document allowed gaps (`gap-1/2/3/4/6/8/12`) — discourage arbitrary `gap-[7px]`. _(documented in PR description; no code change)_
+- [ ] Define container widths: `narrow` (640), `default` (1280), `wide` (1536). _(deferred until AppShell in Phase 3)_
 
 ### 3.4 Scroll, Focus, Motion
-- [ ] Replace invisible scrollbar with a subtle, themed thin scrollbar (still 8px, with hover state).
-- [ ] Global `:focus-visible` ring using `--ring`.
-- [ ] Honor `prefers-reduced-motion` for Framer Motion + GSAP animations.
+- [x] Replaced invisible scrollbar with a subtle, themed 8px scrollbar (uses `--border` / `--muted-foreground`).
+- [x] Global `:focus-visible` ring using `--ring` with offset.
+- [x] Honor `prefers-reduced-motion` for animations and transitions.
 
 ### 3.5 Iconography
-- [ ] Standardize on **lucide-react** as the single icon set.
-- [ ] Replace `@heroicons/react` usages in `sidebar-navigation.tsx` and elsewhere.
+- [x] Standardize on **lucide-react** as the single icon set.
+- [x] Replaced all `@heroicons/react` usages in `sidebar-navigation.tsx` and `not-found.tsx` (aliased to keep call-sites stable). Package removed from `dependencies`.
 - [ ] Remove `@ant-design/icons` after migrating off Ant modals (see Phase 4).
 
 ---
@@ -78,21 +78,21 @@
 
 ### 4.1 shadcn primitives to install / verify
 Already installed: `avatar, badge, button, card, checkbox, dialog, dropdown-menu, input, progress, select, separator, switch, table, tabs, textarea, tooltip`.
-- [ ] Add: `sheet, sidebar, sonner, skeleton, form, label, popover, command, breadcrumb, scroll-area, alert, alert-dialog, calendar, date-picker, accordion, hover-card, navigation-menu, toggle, toggle-group, radio-group, slider, chart, sonner` (review which we actually need per page).
-- [ ] Replace `react-hot-toast` with shadcn `sonner` for a single toast system.
-- [ ] Replace headlessui sidebar Dialog with shadcn `sheet`.
+- [x] Added: `sheet, sonner, skeleton, label, popover, empty, alert, alert-dialog, scroll-area, command, breadcrumb, hover-card, toggle, toggle-group, radio-group, form, accordion, navigation-menu, chart`. (`sidebar` block deferred to Phase 3; `calendar`, `date-picker`, `slider` deferred until needed.)
+- [x] Replaced `react-hot-toast` with shadcn `sonner` for a single toast system. All 30 import sites migrated; `<Toaster />` swapped in `app/layout.tsx`; `react-hot-toast` removed from `package.json`.
+- [ ] Replace headlessui sidebar Dialog with shadcn `sheet`. _(Phase 3)_
 
 ### 4.2 Composite components (built on shadcn)
-- [ ] **`Surface`** — thin wrapper over shadcn `Card` with variants: `flat`, `raised`, `outlined`, `tinted`. Replaces the repeated `bg-white rounded-2xl border shadow-sm` strings.
-- [ ] **`PageHeader`** — uses shadcn `Breadcrumb` + `Button` + `Tabs`. Slots: eyebrow, title, description, primary/secondary actions, optional tabs row.
-- [ ] **`StatCard` / `KpiCard`** — built on `Card` + lucide icon + tabular numerals. Used across dashboard, finance, sales-report.
-- [ ] **`DataTable`** — wrap shadcn `Table` (with TanStack Table) for sortable headers, sticky header, dense mode, row hover, empty + loading states. Reference shadcn block `data-table` from the registry.
-- [ ] **`Pagination`** — restyle existing `Pagination.tsx` using shadcn `Button` + `Select` for page size.
-- [ ] **`Loading` / Skeletons** — replace spinner with shadcn `Skeleton` shaped per content (table rows, card grid, chart shimmer).
-- [ ] **`EmptyState`** — `Card` body + lucide illustration slot + `Button` CTA.
-- [ ] **`Toolbar`** — `Input` (search) + `Badge` filter chips + `ToggleGroup` for view switch.
-- [ ] **`StatusPill`** — opinionated `Badge` variants (`success`, `warning`, `info`, `destructive`, `neutral`) replacing the scattered color combos.
-- [ ] **`AppShell`** — shadcn `Sidebar` block + new top app bar. Top bar holds: global `Command` palette trigger, notification bell (`Popover`), user menu (`DropdownMenu`).
+- [ ] **`Surface`** — thin wrapper over shadcn `Card` with variants: `flat`, `raised`, `outlined`, `tinted`. _(Deferred — `Card` + `cn()` direct usage covers most cases. Revisit if duplication grows in Phase 4.)_
+- [x] **`PageHeader`** — rewrote `PageHeader.tsx` on shadcn `Separator` + native breadcrumb (Link + ChevronRight). Slots: title, description, breadcrumbs, actions/children. Uses new typography scale (`text-h2`, `text-body-sm`).
+- [x] **`StatCard`** — `src/components/(shared-components)/StatCard.tsx`. Built on `Card` + `Badge` + lucide. Loading state uses shadcn `Skeleton` (no custom `animate-pulse`). Tabular numerals on the value.
+- [x] **`DataTable`** — `src/components/(shared-components)/DataTable.tsx`. Wraps shadcn `Table` + `Card` + `Skeleton`. Column config supports alignment, numeric (auto `num-tabular`), width, sticky header, row click, loading skeletons, empty-state slot. (TanStack Table integration deferred until a list page actually needs sorting/filtering wiring.)
+- [x] **`Pagination`** — full rewrite using shadcn `Button` + `Select`. Page-size selector optional. Tabular numerals, semantic colors.
+- [x] **`Loading` / Skeletons** — `Skeleton` primitive available; `DataTable` and `StatCard` use it. Page-level skeleton compositions to be added per page in Phase 4.
+- [x] **`EmptyState`** — rewrote on shadcn `Empty` (`EmptyHeader`/`EmptyMedia`/`EmptyTitle`/`EmptyDescription`/`EmptyContent`). Back-compat: still accepts `icon` (component or node), `actionText` + `onAction`, or `actions` slot.
+- [x] **`Toolbar`** — `src/components/(shared-components)/Toolbar.tsx`. `Toolbar` + `ToolbarLeft` + `ToolbarRight` + `ToolbarSearch` (Input with leading Search icon, optional clear button). Filter chips and ToggleGroup view-switch usage to be wired per page in Phase 4.
+- [x] **`StatusPill`** — `src/components/(shared-components)/StatusPill.tsx`. Maps domain statuses (paid, pending, processing, failed, cancelled, draft, etc.) to tones (success/warning/info/destructive/muted) + lucide icons. Built on shadcn `Badge`.
+- [ ] **`AppShell`** — shadcn `Sidebar` block + new top app bar. _(Phase 3)_
 
 ---
 
@@ -181,8 +181,8 @@ How we'll use the installed skills:
 
 ## 9. Phase Roadmap (Tracking)
 
-- [ ] **Phase 1 — Foundation**: tokens, typography, scroll/focus/motion, icon consolidation.
-- [ ] **Phase 2 — Shared components**: install missing shadcn primitives, swap `react-hot-toast` → `sonner`, build composites (Surface, PageHeader, StatCard, DataTable, EmptyState, Skeletons, Toolbar, StatusPill).
+- [x] **Phase 1 — Foundation**: tokens, typography, scroll/focus/motion, icon consolidation. _(Spacing/container width docs deferred to Phase 3 AppShell. Ant icons removed in Phase 4 with Ant modal migration.)_
+- [x] **Phase 2 — Shared components**: installed all missing shadcn primitives (sheet, sonner, skeleton, label, popover, empty, alert, alert-dialog, scroll-area, command, breadcrumb, hover-card, toggle, toggle-group, radio-group, form, accordion, navigation-menu, chart). Swapped `react-hot-toast` → `sonner` (30 import sites + layout Toaster + package.json). Built composites: `PageHeader` (rewrite), `StatCard` (new), `DataTable` (new), `Pagination` (rewrite), `EmptyState` (rewrite on `Empty`), `Toolbar` + `ToolbarSearch` (new), `StatusPill` (new). Typecheck clean except for the pre-existing Sales Completion Modal error logged in Backlog. _(Surface deferred — `Card` direct usage covers it; `AppShell` is Phase 3.)_
 - [ ] **Phase 3 — App shell**: sidebar + new top app bar.
 - [ ] **Phase 4 — Page redesigns**: Sales → Dashboard → List pages → Detail pages → Forms → Notifications → Auth.
 - [ ] **Phase 5 — Dark mode pass + a11y + perf review**.
@@ -201,4 +201,6 @@ How we'll use the installed skills:
 
 ## 11. Backlog (append as discovered)
 
-- _empty_
+- **package-lock.json out of sync** — `npm uninstall @heroicons/react` and the follow-up `npm install` hit `ECONNRESET`. `package.json` is clean and the package is no longer in `node_modules`, but the lockfile still references `@heroicons/react`. Re-run `npm install --legacy-peer-deps` once the network is stable.
+- **Pre-existing typecheck error** — `src/app/(pages)/sales/components/SalesCompletionModal.tsx:102` — `setCustomers({ items, total })` is being passed where `SetStateAction<CustomerResponse[]>` is expected. Fix when we touch the Sales completion modal in Phase 4.
+- **Spacing/container token doc** — moved to Phase 3 (AppShell) so we can declare them alongside layout primitives.

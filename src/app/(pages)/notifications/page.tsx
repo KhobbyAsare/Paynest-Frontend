@@ -26,7 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 20;
 

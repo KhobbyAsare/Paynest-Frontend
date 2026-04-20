@@ -22,7 +22,7 @@ import { CreateWalkIns } from "@/(api-handlers)/orders_walkinsHandler";
 import { GetAllCustomers } from "@/(api-handlers)/customersHandler";
 import { CustomerResponse } from "@/interfaces/customers";
 import { OrderRequest, WalkInsRequest } from "@/interfaces/orders_walkins";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import {
     CheckCircle2,
     CreditCard,

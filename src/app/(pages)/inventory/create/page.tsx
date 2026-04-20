@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { CreateInventory } from '@/(api-handlers)/inventoryHandler';
 import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
 import { GetProducts } from '@/(api-handlers)/productsHandler';

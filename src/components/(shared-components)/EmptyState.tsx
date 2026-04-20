@@ -1,45 +1,62 @@
-'use client'
+"use client";
 
-import { SearchX } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import * as React from "react";
+import { SearchX } from "lucide-react";
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
-    title?: string
-    description?: string
-    icon?: React.ReactNode
-    onAction?: () => void
-    actionText?: string
-    actions?: React.ReactNode
+    title?: string;
+    description?: string;
+    /** Either a Lucide component or a JSX node. Both supported for back-compat. */
+    icon?: React.ComponentType<{ className?: string }> | React.ReactNode;
+    /** Preferred: a slot for one or more action elements (Buttons, Links). */
+    actions?: React.ReactNode;
+    /** Back-compat: render a single primary button. */
+    actionText?: string;
+    onAction?: () => void;
+    className?: string;
+}
+
+function isComponent(
+    icon: EmptyStateProps["icon"],
+): icon is React.ComponentType<{ className?: string }> {
+    return typeof icon === "function";
 }
 
 export default function EmptyState({
-    title = 'No results found',
-    description = 'Try adjusting your search or filters to find what you are looking for.',
-    icon = <SearchX className="size-12 text-gray-400" />,
-    onAction,
+    title = "No results found",
+    description = "Try adjusting your search or filters to find what you are looking for.",
+    icon = SearchX,
+    actions,
     actionText,
-    actions
+    onAction,
+    className,
 }: Readonly<EmptyStateProps>) {
+    const renderedActions =
+        actions ??
+        (actionText && onAction ? (
+            <Button onClick={onAction}>{actionText}</Button>
+        ) : null);
+
     return (
-        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <div className="mb-4">
-                {icon}
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-            <p className="mt-1 text-sm text-gray-500 max-w-xs mx-auto">
-                {description}
-            </p>
-            {actions ? (
-                <div className="mt-6">
-                    {actions}
-                </div>
-            ) : onAction && actionText && (
-                <div className="mt-6">
-                    <Button onClick={onAction} className="flex items-center gap-2">
-                        {actionText}
-                    </Button>
-                </div>
-            )}
-        </div>
-    )
+        <Empty className={cn("border", className)}>
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    {isComponent(icon) ? React.createElement(icon) : icon}
+                </EmptyMedia>
+                <EmptyTitle>{title}</EmptyTitle>
+                <EmptyDescription>{description}</EmptyDescription>
+            </EmptyHeader>
+            {renderedActions ? <EmptyContent>{renderedActions}</EmptyContent> : null}
+        </Empty>
+    );
 }

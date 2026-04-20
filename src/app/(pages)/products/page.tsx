@@ -77,7 +77,7 @@ import {
 import { getOrganizationShops } from "@/(api-handlers)/organizationShopsHandler";
 import { useAuthStore } from "@/(zustand-store)/authStore";
 import { OrganizationShopResponse } from "@/interfaces/organizationShops";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 
 const { Text } = Typography;

@@ -7,7 +7,7 @@ import Pagination from '@/components/(shared-components)/Pagination';
 import { GetStockMovement, GetStockMovementSummary } from '@/(api-handlers)/stockMovementHandler';
 import { StockMovementResponse, StockMovementSummary } from '@/interfaces/StockMovements';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';

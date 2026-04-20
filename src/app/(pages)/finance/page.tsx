@@ -45,7 +45,7 @@ import { GetFinanceOverview } from "@/(api-handlers)/financeHandler";
 import { getOrganizationShops } from "@/(api-handlers)/organizationShopsHandler";
 import { FinanceOverviewResponse, ShopFinance, RevenueTrend } from "@/interfaces/finance";
 import { OrganizationShopResponse } from "@/interfaces/organizationShops";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import { useAuthStore } from "@/(zustand-store)/authStore";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import dayjs from "dayjs";

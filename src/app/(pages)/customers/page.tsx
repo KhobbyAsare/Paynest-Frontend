@@ -17,7 +17,7 @@ import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import Pagination from '@/components/(shared-components)/Pagination';
 import EmptyState from '@/components/(shared-components)/EmptyState';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';

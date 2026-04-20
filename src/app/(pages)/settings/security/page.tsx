@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { changePassword } from '@/(api-handlers)/userHandler';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import PageHeader from '@/components/(shared-components)/PageHeader';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
