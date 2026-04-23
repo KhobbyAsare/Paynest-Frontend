@@ -1,43 +1,65 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Search,
-    CreditCard,
-    Wallet,
     Banknote,
     ChevronRight,
-    X,
+    CreditCard,
     Receipt,
-    ShoppingBag,
-    TrendingUp,
-    Users,
-    Sparkles,
     ScanBarcode,
+    Search,
+    ShoppingBag,
+    Sparkles,
+    Trash2,
+    Wallet,
+    X,
 } from "lucide-react";
+import { toast } from "sonner";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { GetProducts } from "@/(api-handlers)/productsHandler";
 import { GetProductCategories } from "@/(api-handlers)/productCategoriesHandler";
 import { ProductResponse } from "@/interfaces/products";
 import { ProductCategoriesResponse } from "@/interfaces/productCategories";
+import { useSalesStore } from "@/(zustand-store)/salesStore";
+import { cn } from "@/lib/utils";
 import { CategoryItem } from "./components/CategoryItem";
 import { ProductCard } from "./components/ProductCard";
 import { CartItem } from "./components/CartItem";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
-import { useSalesStore } from "@/(zustand-store)/salesStore";
-import { Switch } from "@/components/ui/switch";
 import { SalesCompletionModal } from "./components/SalesCompletionModal";
 import { BarcodeScannerModal } from "./components/BarcodeScannerModal";
 
+const PAYMENT_METHODS = [
+    { id: "cash", label: "Cash", icon: Banknote },
+    { id: "mobile transfer", label: "Mobile", icon: Wallet },
+    { id: "bank transfer", label: "Card", icon: CreditCard },
+] as const;
+
+const CART_WIDTH = 440;
+
 export default function SalesPage() {
     const [products, setProducts] = useState<ProductResponse[]>([]);
-    const [categories, setCategories] = useState<ProductCategoriesResponse[]>([]);
-    const [selectedCategoryId, setSelectedCategoryId] = useState<number | "all">("all");
+    const [categories, setCategories] = useState<ProductCategoriesResponse[]>(
+        [],
+    );
+    const [selectedCategoryId, setSelectedCategoryId] = useState<number | "all">(
+        "all",
+    );
     const [searchQuery, setSearchQuery] = useState("");
     const [isLoading, setIsLoading] = useState(true);
-    const [showCheckout, setShowCheckout] = useState(false);
+    const [isCartOpen, setIsCartOpen] = useState(false);
     const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
 
@@ -49,24 +71,24 @@ export default function SalesPage() {
         removeFromCart,
         addToCart,
         paymentMethod,
-        setPaymentMethod
+        setPaymentMethod,
+        clearCart,
     } = useSalesStore();
 
     const cartItems = Object.values(cart);
     const itemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
     const subTotal = cartItems.reduce(
         (acc, item) => acc + (item.product?.selling_price || 0) * item.quantity,
-        0
+        0,
     );
     const tax = subTotal * 0.04;
     const total = subTotal + tax;
 
     const prevItemCount = useRef(itemCount);
 
-    // Auto-show sidebar only when the first item is added to an empty cart
     useEffect(() => {
         if (prevItemCount.current === 0 && itemCount > 0) {
-            setShowCheckout(true);
+            setIsCartOpen(true);
         }
         prevItemCount.current = itemCount;
     }, [itemCount]);
@@ -90,10 +112,21 @@ export default function SalesPage() {
         fetchData();
     }, []);
 
+    // Lock body scroll and close on Escape while cart is open on mobile
+    useEffect(() => {
+        if (!isCartOpen) return;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setIsCartOpen(false);
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, [isCartOpen]);
+
     const filteredProducts = useMemo(() => {
         return products.filter((product) => {
             const matchesCategory =
-                selectedCategoryId === "all" || product.category_id === selectedCategoryId;
+                selectedCategoryId === "all" ||
+                product.category_id === selectedCategoryId;
             const matchesSearch = product.name
                 .toLowerCase()
                 .includes(searchQuery.toLowerCase());
@@ -101,337 +134,255 @@ export default function SalesPage() {
         });
     }, [products, selectedCategoryId, searchQuery]);
 
-    const renderProductList = () => {
-        if (isLoading) {
-            return Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-64 bg-slate-100 rounded-2xl animate-pulse" />
-            ));
-        }
-
-        if (filteredProducts.length > 0) {
-            return filteredProducts.map((product) => (
-                <ProductCard
-                    key={product.id}
-                    product={product}
-                    quantity={cart[product.id]?.quantity || 0}
-                    onUpdateQuantity={(id, delta) => {
-                        if (delta > 0 && !cart[id]) {
-                            addToCart(product);
-                        } else {
-                            updateCartQuantity(id, delta);
-                        }
-                    }}
-                />
-            ));
-        }
-
-        return (
-            <div className="col-span-full py-20 text-center">
-                <div className="inline-flex flex-col items-center gap-4">
-                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center">
-                        <Search className="w-8 h-8 text-slate-300" />
-                    </div>
-                    <p className="text-slate-400 font-medium">No products found</p>
-                </div>
-            </div>
-        );
-    };
+    const sectionTitle =
+        selectedCategoryId === "all"
+            ? "All Products"
+            : categories.find((c) => c.id === selectedCategoryId)?.name;
 
     return (
-        <div className="min-h-[calc(100vh-80px)] bg-linear-to-br from-slate-50 via-white to-slate-50/50 relative">
-            <div className="flex gap-0 p-4 lg:p-6">
-                {/* Main Content Area */}
-                <div className="flex-1 flex flex-col gap-6 min-w-0">
-                    {/* Header */}
-                    <motion.div
-                        initial={{ y: -20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        className="flex items-center justify-between gap-4 bg-white/80 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-slate-100"
-                    >
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search your menu..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-0 focus:ring-2 focus:ring-primary-color/20 focus:bg-white transition-all text-sm"
-                            />
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            {/* Barcode Scanner Button */}
-                            <button
-                                onClick={() => setIsScannerOpen(true)}
-                                title="Scan Barcode"
-                                className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all"
-                            >
-                                <ScanBarcode className="w-5 h-5" />
-                            </button>
-
-                            {/* Sidebar Toggle / Cart Button */}
-                            <button
-                                onClick={() => setShowCheckout(!showCheckout)}
-                                className={cn(
-                                    "flex items-center gap-3 p-1.5 pr-4 rounded-xl border transition-all duration-300 group",
-                                    showCheckout
-                                        ? "bg-primary-color border-primary-color text-white shadow-lg shadow-primary-color/20"
-                                        : "bg-white border-slate-200 text-slate-600 hover:border-primary-color/20 hover:bg-primary-color/5"
+        <div
+            className="-m-4 lg:-m-6 relative flex min-h-[calc(100svh-3.5rem)] flex-col"
+            style={
+                {
+                    "--cart-w": `${CART_WIDTH}px`,
+                } as React.CSSProperties
+            }
+        >
+            {/* Main (products) — cart drawer overlays, does not push */}
+            <div className="flex min-w-0 flex-1 flex-col">
+                {/* Sticky toolbar (below the h-14 app bar) */}
+                <div className="bg-background/85 supports-[backdrop-filter]:bg-background/70 border-border sticky top-14 z-30 border-b backdrop-blur">
+                    <div className="flex flex-col gap-3 px-4 py-3 lg:px-6 lg:py-4">
+                        {/* Row: search + scan + cart toggle */}
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                                <Input
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Search products, SKU, barcode…"
+                                    className="h-11 pr-9 pl-9 text-sm shadow-xs"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchQuery("")}
+                                        className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
+                                        aria-label="Clear search"
+                                    >
+                                        <X className="size-4" />
+                                    </button>
                                 )}
-                            >
-                                <div className={cn(
-                                    "relative p-2 rounded-lg transition-colors",
-                                    showCheckout ? "bg-white/20" : "bg-slate-100 group-hover:bg-primary-color/10 group-hover:text-primary-color"
-                                )}>
-                                    <ShoppingBag className="w-5 h-5" />
-                                    {itemCount > 0 && (
-                                        <span className={cn(
-                                            "absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center ring-2",
-                                            showCheckout ? "bg-white text-primary-color ring-primary-color" : "bg-rose-500 text-white ring-white"
-                                        )}>
-                                            {itemCount}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="text-left hidden sm:block">
-                                    <p className={cn(
-                                        "text-[10px] font-semibold uppercase tracking-wider",
-                                        showCheckout ? "text-white/70" : "text-slate-400"
-                                    )}>Invoice</p>
-                                    <p className="text-sm font-bold">GHS {total.toFixed(2)}</p>
-                                </div>
-                                <ChevronRight className={cn(
-                                    "w-4 h-4 transition-transform duration-300",
-                                    showCheckout ? "rotate-180 text-white/70" : "text-slate-400 group-hover:text-primary-color/70"
-                                )} />
-                            </button>
-                        </div>
-                    </motion.div>
-
-                    {/* Categories */}
-                    <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.1 }}
-                        className="flex gap-3 overflow-x-auto pb-2 scrollbar-none"
-                    >
-                        <CategoryItem
-                            id="all"
-                            name="All Items"
-                            icon="LayoutGrid"
-                            isSelected={selectedCategoryId === "all"}
-                            onClick={() => setSelectedCategoryId("all")}
-                        />
-                        {categories.map((cat) => (
-                            <CategoryItem
-                                key={cat.id}
-                                id={cat.id}
-                                name={cat.name}
-                                count={products.filter(p => p.category_id === cat.id).length}
-                                isSelected={selectedCategoryId === cat.id}
-                                onClick={(id) => setSelectedCategoryId(id as number)}
-                            />
-                        ))}
-                    </motion.div>
-
-                    {/* Product Grid */}
-                    <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                        className="scrollbar-none"
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                                {selectedCategoryId === "all"
-                                    ? "Popular Items"
-                                    : categories.find(c => c.id === selectedCategoryId)?.name}
-                            </h2>
-                            <div className="flex items-center gap-2 text-sm text-slate-400">
-                                <TrendingUp className="w-4 h-4" />
-                                <span>{filteredProducts.length} items available</span>
                             </div>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="size-11 shrink-0"
+                                onClick={() => setIsScannerOpen(true)}
+                                title="Scan barcode"
+                                aria-label="Scan barcode"
+                            >
+                                <ScanBarcode />
+                            </Button>
+                            <Button
+                                variant={isCartOpen ? "secondary" : "default"}
+                                className="h-11 shrink-0 px-3 sm:px-4"
+                                onClick={() => setIsCartOpen(!isCartOpen)}
+                                aria-expanded={isCartOpen}
+                                aria-controls="sales-cart"
+                            >
+                                <ShoppingBag data-icon="inline-start" />
+                                <span className="hidden sm:inline">
+                                    {isCartOpen ? "Hide cart" : "View cart"}
+                                </span>
+                                {itemCount > 0 && (
+                                    <span
+                                        className={cn(
+                                            "num-tabular ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                                            isCartOpen
+                                                ? "bg-foreground text-background"
+                                                : "bg-primary-foreground text-primary",
+                                        )}
+                                    >
+                                        {itemCount}
+                                    </span>
+                                )}
+                            </Button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-4">
-                            {renderProductList()}
+                        {/* Category rail with fade edges */}
+                        <div className="relative -mx-1">
+                            <div className="flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                <CategoryItem
+                                    id="all"
+                                    name="All Items"
+                                    icon="LayoutGrid"
+                                    count={products.length}
+                                    isSelected={selectedCategoryId === "all"}
+                                    onClick={() => setSelectedCategoryId("all")}
+                                />
+                                {categories.map((cat) => (
+                                    <CategoryItem
+                                        key={cat.id}
+                                        id={cat.id}
+                                        name={cat.name}
+                                        count={
+                                            products.filter(
+                                                (p) => p.category_id === cat.id,
+                                            ).length
+                                        }
+                                        isSelected={selectedCategoryId === cat.id}
+                                        onClick={(id) =>
+                                            setSelectedCategoryId(id as number)
+                                        }
+                                    />
+                                ))}
+                            </div>
+                            <div className="from-background pointer-events-none absolute top-0 right-0 bottom-0 w-10 bg-gradient-to-l to-transparent" />
                         </div>
-                    </motion.div>
+                    </div>
                 </div>
 
-                {/* Invoice Sidebar Overlay */}
-                <AnimatePresence>
-                    {showCheckout && (
-                        <>
-                            {/* Backdrop for mobile and desktop when overlaying */}
-                            <motion.div
-                                key="backdrop"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setShowCheckout(false)}
-                                className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 transition-opacity lg:hidden"
-                            />
-
-                            <motion.div
-                                key="sidebar"
-                                initial={{ x: "100%", opacity: 0.5 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                exit={{ x: "100%", opacity: 0.5 }}
-                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                                className={cn(
-                                    "fixed right-0 top-0 h-full z-50 shadow-2xl flex flex-col",
-                                    "w-full sm:w-[500px] lg:w-[440px]"
-                                )}
-                            >
-                                <div className="h-full bg-white lg:rounded-md border-l lg:border border-slate-200 shadow-2xl lg:shadow-xl flex flex-col">
-                                    {/* Header */}
-                                    <div className="p-6 border-b border-slate-100">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2.5 bg-primary-color rounded-xl">
-                                                    <Receipt className="w-5 h-5 text-white" />
-                                                </div>
-                                                <div>
-                                                    <h2 className="text-lg font-bold text-slate-800">Current Sale</h2>
-                                                    <p className="text-xs text-slate-400">{itemCount} items selected</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-full border border-slate-100">
-                                                <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors", !isOrderMode ? "text-primary-color" : "text-slate-400")}>Walk-in</span>
-                                                <Switch
-                                                    checked={isOrderMode}
-                                                    onCheckedChange={toggleOrderMode}
-                                                    className="data-[state=checked]:bg-primary-color"
-                                                />
-                                                <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors", isOrderMode ? "text-primary-color" : "text-slate-400")}>Order</span>
-                                            </div>
-                                            <button
-                                                onClick={() => setShowCheckout(false)}
-                                                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                                            >
-                                                <X className="w-5 h-5 text-slate-400" />
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Cart Items */}
-                                    <div className="flex-1 overflow-y-auto p-6 space-y-3 scrollbar-none">
-                                        {cartItems.length > 0 ? (
-                                            cartItems.map((item) => (
-                                                <CartItem
-                                                    key={item.product.id}
-                                                    id={item.product.id}
-                                                    name={item.product.name}
-                                                    price={item.product.selling_price}
-                                                    quantity={item.quantity}
-                                                    onUpdateQuantity={updateCartQuantity}
-                                                    onRemove={removeFromCart}
-                                                />
-                                            ))
-                                        ) : (
-                                            <div className="h-full flex flex-col items-center justify-center text-center gap-4 py-20">
-                                                <div className="w-24 h-24 bg-linear-to-br from-slate-50 to-slate-100 rounded-full flex items-center justify-center">
-                                                    <ShoppingBag className="w-10 h-10 text-slate-300" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-slate-800 font-semibold">Your cart is empty</p>
-                                                    <p className="text-sm text-slate-400 mt-1">Add items to get started</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Payment Summary */}
-                                    <div className="p-6 bg-linear-to-br from-slate-50 to-white border-t border-slate-100">
-                                        <div className="space-y-4">
-                                            {/* Summary Details */}
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-slate-400">Subtotal</span>
-                                                    <span className="text-slate-800 font-medium">GHS {subTotal.toFixed(2)}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-slate-400">Tax (4%)</span>
-                                                    <span className="text-slate-800 font-medium">GHS {tax.toFixed(2)}</span>
-                                                </div>
-                                                <div className="pt-2 mt-2 border-t border-slate-200 flex justify-between items-center">
-                                                    <span className="text-slate-600 font-semibold">Total</span>
-                                                    <span className="text-2xl font-bold text-primary-color">
-                                                        GHS {total.toFixed(2)}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* Payment Methods */}
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {[
-                                                    { id: 'bank transfer', icon: CreditCard, label: 'Credit Card', color: 'from-blue-500 to-blue-600' },
-                                                    { id: 'mobile transfer', icon: Wallet, label: 'Mobile Money', color: 'from-emerald-500 to-emerald-600' },
-                                                    { id: 'cash', icon: Banknote, label: 'Cash', color: 'from-amber-500 to-amber-600' },
-                                                ].map((method) => (
-                                                    <button
-                                                        key={method.id}
-                                                        onClick={() => setPaymentMethod(method.id as "bank transfer" | "mobile transfer" | "cash")}
-                                                        className={cn(
-                                                            "relative p-3 rounded-xl border-2 transition-all group",
-                                                            paymentMethod === method.id
-                                                                ? `border-${method.color.split('-')[1]}-500 bg-linear-to-br ${method.color} text-white`
-                                                                : "border-slate-200 hover:border-slate-300 bg-white"
-                                                        )}
-                                                    >
-                                                        <method.icon className={cn(
-                                                            "w-5 h-5 mx-auto mb-1 transition-colors",
-                                                            paymentMethod === method.id ? "text-white" : "text-slate-400 group-hover:text-slate-600"
-                                                        )} />
-                                                        <span className={cn(
-                                                            "text-[10px] font-medium block",
-                                                            paymentMethod === method.id ? "text-white/90" : "text-slate-500"
-                                                        )}>
-                                                            {method.label}
-                                                        </span>
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            {/* Action Button */}
-                                            <Button
-                                                className="w-full py-6 rounded-md bg-primary-color hover:opacity-90 text-white font-semibold text-lg shadow-lg shadow-primary-color/20 transition-all active:scale-[0.98]"
-                                                disabled={cartItems.length === 0}
-                                                onClick={() => setIsCompletionModalOpen(true)}
-                                            >
-                                                {isOrderMode ? "Place Order" : "Proceed to Payment"}
-                                                <ChevronRight className="w-5 h-5 ml-2" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>
-
-                {/* Mobile Toggle */}
-                <AnimatePresence>
-                    {!showCheckout && (
-                        <motion.button
-                            key="cart-toggle"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
-                            className="lg:hidden fixed bottom-6 right-6 z-50 p-4 bg-primary-color text-white rounded-full shadow-xl"
-                            onClick={() => setShowCheckout(true)}
-                        >
-                            <ShoppingBag className="w-6 h-6 text-white" />
-                            {itemCount > 0 && (
-                                <span className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 rounded-full text-white text-xs font-bold flex items-center justify-center ring-2 ring-white">
-                                    {itemCount}
-                                </span>
+                {/* Section title */}
+                <div className="flex items-end justify-between gap-4 px-4 pt-5 pb-3 lg:px-6 lg:pt-6 lg:pb-4">
+                    <div className="min-w-0">
+                        <h2 className="text-foreground truncate text-xl font-semibold tracking-tight">
+                            {sectionTitle}
+                        </h2>
+                        <p className="text-muted-foreground mt-0.5 text-xs">
+                            {filteredProducts.length}{" "}
+                            {filteredProducts.length === 1 ? "item" : "items"} available
+                            {searchQuery && (
+                                <>
+                                    {" · "}
+                                    <span className="text-foreground font-medium">
+                                        “{searchQuery}”
+                                    </span>
+                                </>
                             )}
-                        </motion.button>
+                        </p>
+                    </div>
+                </div>
+
+                {/* Product grid */}
+                <div className="flex-1 px-4 pb-10 lg:px-6 lg:pb-12">
+                    {isLoading ? (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                            {Array.from({ length: 10 }).map((_, i) => (
+                                <Skeleton key={i} className="h-60 rounded-2xl" />
+                            ))}
+                        </div>
+                    ) : filteredProducts.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                            {filteredProducts.map((product) => (
+                                <ProductCard
+                                    key={product.id}
+                                    product={product}
+                                    quantity={cart[product.id]?.quantity || 0}
+                                    onUpdateQuantity={(id, delta) => {
+                                        if (delta > 0 && !cart[id]) {
+                                            addToCart(product);
+                                        } else {
+                                            updateCartQuantity(id, delta);
+                                        }
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <Empty className="border-border rounded-2xl border border-dashed py-20">
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <Search />
+                                </EmptyMedia>
+                                <EmptyTitle>No products found</EmptyTitle>
+                                <EmptyDescription>
+                                    Try a different search term or category.
+                                </EmptyDescription>
+                            </EmptyHeader>
+                        </Empty>
                     )}
-                </AnimatePresence>
+                </div>
             </div>
+
+            {/* Mobile/tablet backdrop */}
+            <AnimatePresence>
+                {isCartOpen && (
+                    <motion.button
+                        key="cart-backdrop"
+                        type="button"
+                        aria-label="Close cart"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="bg-foreground/50 fixed inset-0 z-50 backdrop-blur-sm lg:hidden"
+                        onClick={() => setIsCartOpen(false)}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Cart drawer — full viewport height, slides from right */}
+            <AnimatePresence>
+                {isCartOpen && (
+                    <motion.aside
+                        id="sales-cart"
+                        key="cart-drawer"
+                        role="dialog"
+                        aria-label="Current sale"
+                        initial={{ x: "100%" }}
+                        animate={{ x: 0 }}
+                        exit={{ x: "100%" }}
+                        transition={{ type: "spring", damping: 30, stiffness: 260 }}
+                        className={cn(
+                            "bg-card border-border fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l shadow-2xl",
+                            "sm:w-[var(--cart-w)]",
+                        )}
+                    >
+                        <CartPanel
+                            cartItems={cartItems}
+                            itemCount={itemCount}
+                            isOrderMode={isOrderMode}
+                            toggleOrderMode={toggleOrderMode}
+                            paymentMethod={paymentMethod}
+                            setPaymentMethod={setPaymentMethod}
+                            updateCartQuantity={updateCartQuantity}
+                            removeFromCart={removeFromCart}
+                            clearCart={clearCart}
+                            subTotal={subTotal}
+                            tax={tax}
+                            total={total}
+                            onCheckout={() => setIsCompletionModalOpen(true)}
+                            onClose={() => setIsCartOpen(false)}
+                        />
+                    </motion.aside>
+                )}
+            </AnimatePresence>
+
+            {/* Floating cart button when closed */}
+            <AnimatePresence>
+                {!isCartOpen && itemCount > 0 && (
+                    <motion.div
+                        key="cart-fab"
+                        initial={{ scale: 0.6, opacity: 0, y: 20 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.6, opacity: 0, y: 20 }}
+                        transition={{ type: "spring", damping: 20, stiffness: 320 }}
+                        className="fixed right-4 bottom-4 z-40 sm:right-6 sm:bottom-6"
+                    >
+                        <Button
+                            size="lg"
+                            className="h-14 rounded-full px-5 shadow-2xl"
+                            onClick={() => setIsCartOpen(true)}
+                        >
+                            <ShoppingBag data-icon="inline-start" className="size-5" />
+                            <span className="num-tabular font-semibold">
+                                {itemCount} · GHS {total.toFixed(2)}
+                            </span>
+                        </Button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <SalesCompletionModal
                 isOpen={isCompletionModalOpen}
@@ -449,6 +400,232 @@ export default function SalesPage() {
                     setIsScannerOpen(false);
                 }}
             />
+        </div>
+    );
+}
+
+interface SalesCartItem {
+    product: ProductResponse;
+    quantity: number;
+    specialInstructions?: string;
+}
+
+interface CartPanelProps {
+    cartItems: SalesCartItem[];
+    itemCount: number;
+    isOrderMode: boolean;
+    toggleOrderMode: () => void;
+    paymentMethod: "cash" | "bank transfer" | "mobile transfer";
+    setPaymentMethod: (m: "cash" | "bank transfer" | "mobile transfer") => void;
+    updateCartQuantity: (id: number, delta: number) => void;
+    removeFromCart: (id: number) => void;
+    clearCart: () => void;
+    subTotal: number;
+    tax: number;
+    total: number;
+    onCheckout: () => void;
+    onClose: () => void;
+}
+
+function CartPanel({
+    cartItems,
+    itemCount,
+    isOrderMode,
+    toggleOrderMode,
+    paymentMethod,
+    setPaymentMethod,
+    updateCartQuantity,
+    removeFromCart,
+    clearCart,
+    subTotal,
+    tax,
+    total,
+    onCheckout,
+    onClose,
+}: Readonly<CartPanelProps>) {
+    return (
+        <div className="flex h-full min-h-0 flex-col">
+            {/* Header */}
+            <div className="from-primary to-brand-700 relative flex shrink-0 items-center justify-between gap-2 overflow-hidden bg-gradient-to-br p-4 text-white">
+                <div
+                    aria-hidden
+                    className="pointer-events-none absolute -top-10 -right-10 size-40 rounded-full bg-white/10 blur-2xl"
+                />
+                <div className="relative flex min-w-0 items-center gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/15 backdrop-blur">
+                        <Receipt className="size-5" />
+                    </span>
+                    <div className="min-w-0">
+                        <h2 className="truncate text-sm font-semibold">Current sale</h2>
+                        <p className="num-tabular text-[11px] text-white/80">
+                            {itemCount} {itemCount === 1 ? "item" : "items"}
+                            {itemCount > 0 && <> · GHS {total.toFixed(2)}</>}
+                        </p>
+                    </div>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative size-9 shrink-0 text-white hover:bg-white/15 hover:text-white"
+                    onClick={onClose}
+                    aria-label="Close cart"
+                >
+                    <X />
+                </Button>
+            </div>
+
+            {/* Walk-in / Order toggle */}
+            <div className="border-border flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
+                <div className="min-w-0">
+                    <p className="text-foreground flex items-center gap-1.5 text-sm font-medium">
+                        {isOrderMode ? (
+                            <>
+                                <Sparkles className="text-info size-3.5" />
+                                Order
+                            </>
+                        ) : (
+                            "Walk-in"
+                        )}
+                    </p>
+                    <p className="text-muted-foreground text-[11px]">
+                        {isOrderMode
+                            ? "Capture customer and fulfil later"
+                            : "Complete sale at the counter"}
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span
+                        className={cn(
+                            "text-[10px] font-semibold tracking-wide uppercase",
+                            !isOrderMode ? "text-primary" : "text-muted-foreground",
+                        )}
+                    >
+                        Walk-in
+                    </span>
+                    <Switch
+                        checked={isOrderMode}
+                        onCheckedChange={toggleOrderMode}
+                        aria-label="Toggle order mode"
+                    />
+                    <span
+                        className={cn(
+                            "text-[10px] font-semibold tracking-wide uppercase",
+                            isOrderMode ? "text-primary" : "text-muted-foreground",
+                        )}
+                    >
+                        Order
+                    </span>
+                </div>
+            </div>
+
+            {/* Items area */}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+                {cartItems.length > 0 ? (
+                    <>
+                        <div className="text-muted-foreground sticky top-0 z-10 flex items-center justify-between bg-card/90 px-4 py-2 text-[10px] font-semibold tracking-wide uppercase backdrop-blur">
+                            <span>Cart items</span>
+                            <button
+                                type="button"
+                                onClick={clearCart}
+                                className="hover:text-destructive inline-flex items-center gap-1 text-[10px] font-semibold uppercase transition-colors"
+                            >
+                                <Trash2 className="size-3" />
+                                Clear
+                            </button>
+                        </div>
+                        <div className="flex flex-col gap-2 px-3 pt-1 pb-4">
+                            {cartItems.map((item) => (
+                                <CartItem
+                                    key={item.product.id}
+                                    id={item.product.id}
+                                    name={item.product.name}
+                                    price={item.product.selling_price}
+                                    quantity={item.quantity}
+                                    onUpdateQuantity={updateCartQuantity}
+                                    onRemove={removeFromCart}
+                                />
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    <Empty className="h-full px-4">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <ShoppingBag />
+                            </EmptyMedia>
+                            <EmptyTitle>Your cart is empty</EmptyTitle>
+                            <EmptyDescription>
+                                Tap a product to add it to the sale, or scan a barcode.
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                )}
+            </div>
+
+            {/* Footer — totals + payment + CTA */}
+            <div className="border-border bg-muted/40 shrink-0 border-t p-4">
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="num-tabular text-foreground font-medium">
+                            GHS {subTotal.toFixed(2)}
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Tax (4%)</span>
+                        <span className="num-tabular text-foreground font-medium">
+                            GHS {tax.toFixed(2)}
+                        </span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex items-center justify-between">
+                        <span className="text-foreground text-sm font-semibold">
+                            Total
+                        </span>
+                        <span className="num-tabular text-primary text-2xl font-bold tracking-tight">
+                            GHS {total.toFixed(2)}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="mt-4">
+                    <p className="text-muted-foreground mb-2 text-[10px] font-semibold tracking-wide uppercase">
+                        Payment method
+                    </p>
+                    <ToggleGroup
+                        type="single"
+                        value={paymentMethod}
+                        onValueChange={(v) =>
+                            v && setPaymentMethod(v as typeof paymentMethod)
+                        }
+                        variant="outline"
+                        className="grid w-full grid-cols-3"
+                        spacing={4}
+                    >
+                        {PAYMENT_METHODS.map((m) => (
+                            <ToggleGroupItem
+                                key={m.id}
+                                value={m.id}
+                                className="flex h-auto flex-col gap-1 py-2.5"
+                            >
+                                <m.icon className="size-4" />
+                                <span className="text-[10px] font-semibold">
+                                    {m.label}
+                                </span>
+                            </ToggleGroupItem>
+                        ))}
+                    </ToggleGroup>
+                </div>
+
+                <Button
+                    className="mt-4 h-12 w-full text-sm font-semibold"
+                    disabled={cartItems.length === 0}
+                    onClick={onCheckout}
+                >
+                    {isOrderMode ? "Place order" : "Proceed to payment"}
+                    <ChevronRight data-icon="inline-end" />
+                </Button>
+            </div>
         </div>
     );
 }

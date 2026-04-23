@@ -1,10 +1,11 @@
 "use client";
 
-import { Minus, Plus, X, MessageSquare, Package, ImageIcon, Hash } from "lucide-react";
-import { cn } from "@/lib/utils";
-import Image from "next/image";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { Hash, MessageSquare, Minus, Package, Plus, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface CartItemProps {
     id: number;
@@ -17,137 +18,141 @@ interface CartItemProps {
     onRemove: (id: number) => void;
 }
 
-export function CartItem({ id, name, price, quantity, sku, imageUrl, onUpdateQuantity, onRemove }: CartItemProps) {
+const PLACEHOLDER_GRADIENTS = [
+    "from-brand-700 to-brand-500",
+    "from-info to-brand-600",
+    "from-brand-800 to-info",
+    "from-brand-600 to-brand-400",
+    "from-info/80 to-brand-700",
+];
+
+function pickGradient(name: string) {
+    const hash = Array.from(name).reduce(
+        (acc, char) => char.codePointAt(0)! + ((acc << 5) - acc),
+        0,
+    );
+    return PLACEHOLDER_GRADIENTS[Math.abs(hash) % PLACEHOLDER_GRADIENTS.length];
+}
+
+export function CartItem({
+    id,
+    name,
+    price,
+    quantity,
+    sku,
+    imageUrl,
+    onUpdateQuantity,
+    onRemove,
+}: Readonly<CartItemProps>) {
     const [showNotes, setShowNotes] = useState(false);
     const [notes, setNotes] = useState("");
     const [imageError, setImageError] = useState(false);
 
-    // Generate consistent color based on name
-    const getPlaceholderColor = (name: string) => {
-        const colors = [
-            'from-blue-500 to-indigo-600',
-            'from-emerald-500 to-teal-600',
-            'from-amber-500 to-orange-600',
-            'from-rose-500 to-pink-600',
-            'from-purple-500 to-fuchsia-600',
-        ];
-        const hash = name.split('').reduce((acc, char) => {
-            return char.charCodeAt(0) + ((acc << 5) - acc);
-        }, 0);
-        return colors[Math.abs(hash) % colors.length];
-    };
-
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            className="group bg-white rounded-xl border border-slate-100 hover:border-primary-color/20 hover:shadow-md transition-all overflow-hidden"
-        >
-            <div className="p-3">
-                <div className="flex gap-3">
-                    {/* Product Image with Gradient Placeholder */}
-                    <div className={cn(
-                        "relative w-16 h-16 rounded-lg overflow-hidden bg-linear-to-br shrink-0",
-                        getPlaceholderColor(name)
-                    )}>
-                        {!imageError && imageUrl ? (
-                            <Image
-                                src={imageUrl}
-                                alt={name}
-                                fill
-                                className="object-cover"
-                                onError={() => setImageError(true)}
-                                sizes="64px"
-                            />
-                        ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-white">
-                                <Package className="w-6 h-6 opacity-80" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Product Details */}
-                    <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2">
-                            <div>
-                                <h4 className="font-semibold text-slate-800 text-sm truncate">{name}</h4>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    {sku && (
-                                        <p className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
-                                            <Hash className="w-3 h-3" />
-                                            {sku}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => onRemove(id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-rose-50 rounded-lg"
-                            >
-                                <X className="w-4 h-4 text-rose-400" />
-                            </button>
+        <div className="group bg-card border-border hover:border-primary/40 hover:shadow-xs rounded-xl border p-3 transition-all">
+            <div className="flex gap-3">
+                <div
+                    className={cn(
+                        "relative size-14 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br",
+                        pickGradient(name),
+                    )}
+                >
+                    {!imageError && imageUrl ? (
+                        <Image
+                            src={imageUrl}
+                            alt={name}
+                            fill
+                            className="object-cover"
+                            onError={() => setImageError(true)}
+                            sizes="56px"
+                        />
+                    ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-white">
+                            <Package className="size-5 opacity-85" />
                         </div>
-
-                        {/* Notes Toggle - Optional for general POS */}
-                        <button
-                            onClick={() => setShowNotes(!showNotes)}
-                            className="flex items-center gap-1 mt-2 text-[10px] text-slate-400 hover:text-primary-color transition-colors"
-                        >
-                            <MessageSquare className="w-3 h-3" />
-                            {notes ? "Edit notes" : "Add notes"}
-                        </button>
-
-                        {/* Quantity Controls */}
-                        <div className="flex items-center justify-between mt-3">
-                            <span className="text-sm font-bold text-primary-color">
-                                ${(price * quantity).toFixed(2)}
-                            </span>
-
-                            <div className="flex items-center gap-1 bg-slate-50 rounded-lg p-1">
-                                <button
-                                    onClick={() => onUpdateQuantity(id, -1)}
-                                    className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-primary-color hover:bg-white transition-all"
-                                >
-                                    <Minus className="w-3 h-3" />
-                                </button>
-                                <span className="w-6 text-center text-xs font-semibold text-slate-700">
-                                    {quantity}
-                                </span>
-                                <button
-                                    onClick={() => onUpdateQuantity(id, 1)}
-                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-primary-color text-white hover:opacity-90 transition-all"
-                                >
-                                    <Plus className="w-3 h-3" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* Notes Input */}
-                <AnimatePresence>
-                    {showNotes && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                            <h4 className="text-foreground truncate text-sm font-semibold leading-tight">
+                                {name}
+                            </h4>
+                            <p className="text-muted-foreground num-tabular mt-0.5 text-[11px]">
+                                GHS {price.toFixed(2)} each
+                                {sku && (
+                                    <>
+                                        {" · "}
+                                        <span className="inline-flex items-center gap-0.5 font-mono">
+                                            <Hash className="size-2.5" />
+                                            {sku}
+                                        </span>
+                                    </>
+                                )}
+                            </p>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive size-7 shrink-0"
+                            onClick={() => onRemove(id)}
+                            aria-label={`Remove ${name}`}
                         >
-                            <input
-                                type="text"
-                                value={notes}
-                                onChange={(e) => {
-                                    setNotes(e.target.value);
-                                    onUpdateQuantity(id, 0, e.target.value);
-                                }}
-                                placeholder="Add notes (e.g., gift wrap, urgent, etc.)"
-                                className="w-full mt-3 p-2 text-xs bg-slate-50 rounded-lg border-0 focus:ring-2 focus:ring-primary-color/20"
-                            />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            <X />
+                        </Button>
+                    </div>
+
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                        <span className="num-tabular text-primary text-sm font-bold tracking-tight">
+                            GHS {(price * quantity).toFixed(2)}
+                        </span>
+                        <div className="bg-muted flex items-center rounded-lg p-0.5">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 rounded-md"
+                                onClick={() => onUpdateQuantity(id, -1)}
+                                aria-label="Decrease quantity"
+                            >
+                                <Minus className="size-3" />
+                            </Button>
+                            <span className="num-tabular text-foreground w-6 text-center text-xs font-bold">
+                                {quantity}
+                            </span>
+                            <Button
+                                size="icon"
+                                className="size-7 rounded-md"
+                                onClick={() => onUpdateQuantity(id, 1)}
+                                aria-label="Increase quantity"
+                            >
+                                <Plus className="size-3" />
+                            </Button>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowNotes(!showNotes)}
+                        className="text-muted-foreground hover:text-primary inline-flex items-center gap-1 self-start text-[10px] transition-colors"
+                    >
+                        <MessageSquare className="size-3" />
+                        {notes ? "Edit note" : "Add note"}
+                    </button>
+                </div>
             </div>
-        </motion.div>
+
+            {showNotes && (
+                <Input
+                    value={notes}
+                    onChange={(e) => {
+                        setNotes(e.target.value);
+                        onUpdateQuantity(id, 0, e.target.value);
+                    }}
+                    placeholder="e.g. gift wrap, urgent"
+                    className="mt-2.5 h-8 text-xs"
+                />
+            )}
+        </div>
     );
 }

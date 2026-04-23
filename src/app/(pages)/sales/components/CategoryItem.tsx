@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { cn } from "@/lib/utils";
 import * as Icons from "lucide-react";
-import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface CategoryItemProps {
     id: number | "all";
@@ -14,79 +13,70 @@ interface CategoryItemProps {
     onClick: (id: number | "all") => void;
 }
 
-// Map category names to appropriate icons for general POS
 const iconMap: Record<string, any> = {
-    // Default
     LayoutGrid: Icons.LayoutGrid,
     Package: Icons.Package,
-
-    // Electronics
     Electronics: Icons.Monitor,
     Computers: Icons.Monitor,
     Phones: Icons.Smartphone,
     Accessories: Icons.Headphones,
-
-    // Clothing
     Clothing: Icons.Shirt,
     "Men's Wear": Icons.Shirt,
     "Women's Wear": Icons.Shirt,
     Shoes: Icons.Footprints,
-
-    // Home & Living
     Furniture: Icons.Sofa,
     Home: Icons.Home,
     Kitchen: Icons.Utensils,
-
-    // Books & Media
     Books: Icons.Book,
     Media: Icons.Film,
-
-    // Sports
     Sports: Icons.Trophy,
     Fitness: Icons.Dumbbell,
-
-    // Beauty
     Beauty: Icons.Sparkles,
     Cosmetics: Icons.Sparkles,
-
-    // Food & Beverages (if still needed)
     Food: Icons.Coffee,
     Beverages: Icons.Beer,
-
-    // Generic
     Other: Icons.Package,
     Default: Icons.LayoutGrid,
 };
 
-export function CategoryItem({ id, name, icon = "Package", count, isSelected, onClick }: CategoryItemProps) {
+export function CategoryItem({
+    id,
+    name,
+    icon = "Package",
+    count,
+    isSelected,
+    onClick,
+}: CategoryItemProps) {
     const Icon = iconMap[name] || iconMap[icon] || Icons.Package;
 
     return (
-        <motion.button
-            whileHover={{ scale: 0.98 }}
-            whileTap={{ scale: 0.95 }}
+        <button
+            type="button"
             onClick={() => onClick(id)}
+            data-active={isSelected}
+            aria-pressed={isSelected}
             className={cn(
-                "relative flex items-center justify-center p-2 rounded-xl transition-all duration-300 w-auto gap-2",
+                "group/cat relative inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 transition-all",
+                "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
                 isSelected
-                    ? "bg-primary-color text-white shadow-lg shadow-primary-color/20"
-                    : "bg-white border border-slate-100 text-slate-600 hover:border-primary-color/20 hover:shadow-md"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-card text-foreground border-border hover:bg-accent hover:text-accent-foreground hover:border-accent-foreground/10",
             )}
         >
-            <div className={cn(
-                "p-2 rounded-lg transition-colors",
-                isSelected ? "bg-white/20" : "bg-slate-50"
-            )}>
-                <Icon className={cn("w-5 h-5", isSelected ? "text-white" : "text-slate-500")} />
-            </div>
-            <div className="text-center">
-                <p className="text-sm font-semibold whitespace-nowrap">{name}</p>
-                {count !== undefined && (
-                    <p className={cn("text-[10px] mt-0.5", isSelected ? "text-white/80" : "text-slate-400")}>
-                        {count} items
-                    </p>
-                )}
-            </div>
-        </motion.button>
+            <Icon className="size-4 shrink-0" />
+            <span className="text-[13px] font-medium whitespace-nowrap">{name}</span>
+            {count !== undefined && (
+                <span
+                    className={cn(
+                        "num-tabular inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                        isSelected
+                            ? "bg-primary-foreground/20 text-primary-foreground"
+                            : "bg-muted text-muted-foreground group-hover/cat:bg-background",
+                    )}
+                >
+                    {count}
+                </span>
+            )}
+        </button>
     );
 }

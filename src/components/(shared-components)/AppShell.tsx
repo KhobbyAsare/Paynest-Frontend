@@ -324,7 +324,7 @@ export default function AppShell({
                     </Link>
                 </SidebarHeader>
 
-                <SidebarContent>
+                <SidebarContent className="overflow-hidden">
                     {groups.map((group) => (
                         <SidebarGroup key={group.label}>
                             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
@@ -349,8 +349,8 @@ export default function AppShell({
                 </SidebarFooter>
             </Sidebar>
 
-            <SidebarInset className="min-w-0 overflow-x-hidden">
-                <header className="bg-background/80 sticky top-0 z-40 flex h-14 items-center gap-2 border-b px-4 backdrop-blur supports-backdrop-filter:bg-background/60">
+            <SidebarInset className="min-w-0 flex-1">
+                <header className="bg-background/80 supports-backdrop-filter:bg-background/60 border-border sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b px-4 backdrop-blur">
                     <SidebarTrigger className="-ml-1" />
                     <div className="min-w-0 flex-1">
                         <p className="text-foreground truncate text-sm font-semibold">
@@ -368,7 +368,9 @@ export default function AppShell({
                     </div>
                 </header>
 
-                <div className="min-w-0 flex-1 p-4 lg:p-6">{children}</div>
+                <div className="min-w-0 flex-1 overflow-x-clip p-4 lg:p-6">
+                    {children}
+                </div>
             </SidebarInset>
         </SidebarProvider>
     );

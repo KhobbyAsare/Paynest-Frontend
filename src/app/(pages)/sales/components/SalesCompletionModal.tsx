@@ -16,6 +16,13 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+    ToggleGroup,
+    ToggleGroupItem,
+} from "@/components/ui/toggle-group";
 import { useSalesStore } from "@/(zustand-store)/salesStore";
 import { useAuthStore } from "@/(zustand-store)/authStore";
 import { CreateWalkIns } from "@/(api-handlers)/orders_walkinsHandler";
@@ -36,9 +43,7 @@ import {
     Printer,
     X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { handleErrorMessage } from "@/lib/handleErrorMessage";
-import { Input } from "@/components/ui/input";
 
 interface SalesCompletionModalProps {
     isOpen: boolean;
@@ -68,10 +73,16 @@ interface CompletedSale {
 }
 
 const paymentLabel: Record<string, string> = {
-    cash: 'Cash',
-    'bank transfer': 'Bank / Card',
-    'mobile transfer': 'Mobile Money',
+    cash: "Cash",
+    "bank transfer": "Bank / Card",
+    "mobile transfer": "Mobile Money",
 };
+
+const fmt = (n: number) =>
+    new Intl.NumberFormat("en-GH", {
+        style: "currency",
+        currency: "GHS",
+    }).format(n);
 
 export function SalesCompletionModal({
     isOpen,
@@ -80,16 +91,21 @@ export function SalesCompletionModal({
     subTotal,
     tax,
 }: Readonly<SalesCompletionModalProps>) {
-    const { cart, isOrderMode, paymentMethod, setPaymentMethod, clearCart } = useSalesStore();
+    const { cart, isOrderMode, paymentMethod, setPaymentMethod, clearCart } =
+        useSalesStore();
     const { user } = useAuthStore();
 
     const [isLoading, setIsLoading] = useState(false);
     const [customers, setCustomers] = useState<CustomerResponse[]>([]);
-    const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+    const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(
+        null,
+    );
     const [deliveryAddress, setDeliveryAddress] = useState<string>("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [discountAmount, setDiscountAmount] = useState<number>(0);
-    const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
+    const [completedSale, setCompletedSale] = useState<CompletedSale | null>(
+        null,
+    );
 
     const finalTotal = Math.max(0, total - discountAmount);
 
@@ -99,7 +115,7 @@ export function SalesCompletionModal({
                 setIsLoading(true);
                 try {
                     const data = await GetAllCustomers();
-                    setCustomers(data);
+                    setCustomers(data.items);
                 } catch (error) {
                     console.error("Failed to fetch customers", error);
                     toast.error("Failed to load customers");
@@ -111,13 +127,12 @@ export function SalesCompletionModal({
         }
     }, [isOpen, isOrderMode]);
 
-    // Reset when modal opens
     useEffect(() => {
         if (isOpen) {
             setCompletedSale(null);
             setDiscountAmount(0);
             setSelectedCustomerId(null);
-            setDeliveryAddress('');
+            setDeliveryAddress("");
         }
     }, [isOpen]);
 
@@ -131,8 +146,7 @@ export function SalesCompletionModal({
             return;
         }
 
-        // Capture receipt data before clearing cart
-        const receiptItems: ReceiptItem[] = Object.values(cart).map(item => ({
+        const receiptItems: ReceiptItem[] = Object.values(cart).map((item) => ({
             name: item.product.name,
             quantity: item.quantity,
             unitPrice: item.product.selling_price,
@@ -141,15 +155,15 @@ export function SalesCompletionModal({
 
         setIsSubmitting(true);
         try {
-            const items = Object.values(cart).map(item => ({
+            const items = Object.values(cart).map((item) => ({
                 product_id: item.product.id,
                 quantity: item.quantity,
-                notes: item.specialInstructions || ""
+                notes: item.specialInstructions || "",
             }));
             const payment = {
                 method: paymentMethod,
                 status: "paid" as const,
-                amount_paid: finalTotal
+                amount_paid: finalTotal,
             };
 
             if (isOrderMode) {
@@ -158,14 +172,17 @@ export function SalesCompletionModal({
                     order_type: "sale",
                     order_status: "initiated",
                     customer_id: selectedCustomerId!,
-                    items: items.map(({ product_id, quantity }) => ({ product_id, quantity })),
+                    items: items.map(({ product_id, quantity }) => ({
+                        product_id,
+                        quantity,
+                    })),
                     payment,
                     delivery_amount: 0,
                     discount_amount: discountAmount,
                     is_delivered: false,
                     delivery_address: deliveryAddress || null,
                     actual_delivery_date: new Date().toISOString(),
-                    expected_delivery_date: new Date().toISOString()
+                    expected_delivery_date: new Date().toISOString(),
                 };
                 await CreateWalkIns(orderData);
             } else {
@@ -181,7 +198,7 @@ export function SalesCompletionModal({
                     is_delivered: true,
                     delivery_address: null,
                     actual_delivery_date: null,
-                    expected_delivery_date: null
+                    expected_delivery_date: null,
                 };
                 await CreateWalkIns(walkInData);
             }
@@ -195,201 +212,137 @@ export function SalesCompletionModal({
                 total: finalTotal,
                 paymentMethod,
                 isOrder: isOrderMode,
-                orgName: user.organization?.name || 'Paynest POS',
+                orgName: user.organization?.name || "Paynest POS",
                 timestamp: new Date(),
             });
-            toast.success(isOrderMode ? "Order created successfully!" : "Sale completed successfully!");
+            toast.success(
+                isOrderMode
+                    ? "Order created successfully!"
+                    : "Sale completed successfully!",
+            );
         } catch (error) {
-            handleErrorMessage(error, "Failed to process transaction. Please try again.");
+            handleErrorMessage(
+                error,
+                "Failed to process transaction. Please try again.",
+            );
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handlePrint = () => {
-        // Create a temporary iframe for printing
-        const printContent = document.getElementById('receipt-print-area');
-        if (!printContent) return;
+        if (!completedSale) return;
 
-        const originalContents = document.body.innerHTML;
-        const printHtml = printContent.cloneNode(true) as HTMLElement;
-
-        // Create a new window for printing
-        const printWindow = window.open('', '_blank');
+        const printWindow = window.open("", "_blank");
         if (!printWindow) {
             toast.error("Please allow popups to print the receipt");
             return;
         }
 
+        const itemsHtml = completedSale.items
+            .map(
+                (item) => `
+                    <div class="row">
+                        <span class="item-name">${item.name} <span class="muted">×${item.quantity}</span></span>
+                        <span class="item-price">${fmt(item.lineTotal)}</span>
+                    </div>`,
+            )
+            .join("");
+
         printWindow.document.write(`
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Payment Receipt</title>
+                <title>Receipt — ${completedSale.orgName}</title>
                 <style>
-                    * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                    }
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
                     body {
-                        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+                        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
                         padding: 20px;
                         background: white;
-                        color: black;
-                    }
-                    .receipt-container {
-                        max-width: 400px;
-                        margin: 0 auto;
-                        background: white;
-                    }
-                    .bg-primary {
-                        background-color: #10b981;
-                    }
-                    .text-white {
-                        color: white;
-                    }
-                    .text-center {
-                        text-align: center;
-                    }
-                    .text-xs {
-                        font-size: 0.75rem;
-                    }
-                    .text-sm {
-                        font-size: 0.875rem;
-                    }
-                    .text-base {
-                        font-size: 1rem;
-                    }
-                    .font-bold {
-                        font-weight: bold;
-                    }
-                    .font-medium {
-                        font-weight: 500;
-                    }
-                    .mb-2 {
-                        margin-bottom: 0.5rem;
-                    }
-                    .mt-0 {
-                        margin-top: 0;
-                    }
-                    .mt-1 {
-                        margin-top: 0.25rem;
-                    }
-                    .mt-2 {
-                        margin-top: 0.5rem;
-                    }
-                    .px-5 {
-                        padding-left: 1.25rem;
-                        padding-right: 1.25rem;
-                    }
-                    .px-6 {
-                        padding-left: 1.5rem;
-                        padding-right: 1.5rem;
-                    }
-                    .py-3 {
-                        padding-top: 0.75rem;
-                        padding-bottom: 0.75rem;
-                    }
-                    .py-4 {
-                        padding-top: 1rem;
-                        padding-bottom: 1rem;
-                    }
-                    .py-5 {
-                        padding-top: 1.25rem;
-                        padding-bottom: 1.25rem;
-                    }
-                    .space-y-1 > * + * {
-                        margin-top: 0.25rem;
-                    }
-                    .space-y-1\\.5 > * + * {
-                        margin-top: 0.375rem;
-                    }
-                    .space-y-4 > * + * {
-                        margin-top: 1rem;
-                    }
-                    .border-t {
-                        border-top: 1px solid #e5e7eb;
-                    }
-                    .border-b {
-                        border-bottom: 1px solid #e5e7eb;
-                    }
-                    .border-dashed {
-                        border-style: dashed;
-                    }
-                    .border-slate-200 {
-                        border-color: #e2e8f0;
-                    }
-                    .text-slate-400 {
-                        color: #94a3b8;
-                    }
-                    .text-slate-500 {
-                        color: #64748b;
-                    }
-                    .text-slate-700 {
-                        color: #334155;
-                    }
-                    .text-slate-900 {
                         color: #0f172a;
                     }
-                    .text-emerald-600 {
-                        color: #059669;
+                    .receipt { max-width: 360px; margin: 0 auto; }
+                    .header { text-align: center; padding: 16px 0 20px; border-bottom: 2px dashed #cbd5e1; }
+                    .org { font-size: 16px; font-weight: 700; }
+                    .title { font-size: 13px; color: #64748b; margin-top: 4px; }
+                    .meta { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; padding: 12px 0; }
+                    .items { padding: 8px 0 12px; border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; }
+                    .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+                    .item-name { flex: 1; padding-right: 8px; }
+                    .item-price { font-variant-numeric: tabular-nums; font-weight: 500; }
+                    .muted { color: #94a3b8; }
+                    .totals { padding: 10px 0; font-size: 13px; }
+                    .totals .row { color: #64748b; }
+                    .totals .discount { color: #059669; }
+                    .grand {
+                        display: flex; justify-content: space-between;
+                        padding-top: 10px; margin-top: 8px;
+                        border-top: 1px solid #e2e8f0;
+                        font-size: 15px; font-weight: 700;
                     }
-                    .text-primary {
-                        color: #10b981;
+                    .grand .amount { font-variant-numeric: tabular-nums; }
+                    .payment {
+                        margin-top: 16px; padding: 10px;
+                        background: #f8fafc; border-radius: 8px;
+                        text-align: center; font-size: 12px; color: #475569;
                     }
-                    .bg-slate-50 {
-                        background-color: #f8fafc;
-                    }
-                    .rounded-xl {
-                        border-radius: 0.75rem;
-                    }
-                    .p-3 {
-                        padding: 0.75rem;
-                    }
-                    .gap-2 {
-                        gap: 0.5rem;
-                    }
-                    .flex {
-                        display: flex;
-                    }
-                    .items-center {
-                        align-items: center;
-                    }
-                    .justify-between {
-                        justify-content: space-between;
-                    }
-                    .shrink-0 {
-                        flex-shrink: 0;
-                    }
-                    .truncate {
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
-                    }
-                    .pr-2 {
-                        padding-right: 0.5rem;
-                    }
-                    .pt-2 {
-                        padding-top: 0.5rem;
-                    }
-                    .mx-auto {
-                        margin-left: auto;
-                        margin-right: auto;
-                    }
-                    .size-4 {
-                        width: 1rem;
-                        height: 1rem;
-                    }
-                    .size-10 {
-                        width: 2.5rem;
-                        height: 2.5rem;
-                    }
+                    .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 16px; }
                 </style>
             </head>
             <body>
-                <div class="receipt-container">
-                    ${printHtml.innerHTML}
+                <div class="receipt">
+                    <div class="header">
+                        <div class="org">${completedSale.orgName}</div>
+                        <div class="title">${
+                            completedSale.isOrder
+                                ? "Order Receipt"
+                                : "Payment Receipt"
+                        }</div>
+                    </div>
+                    <div class="meta">
+                        <span>${completedSale.timestamp.toLocaleDateString(
+                            "en-GB",
+                            {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                            },
+                        )}</span>
+                        <span>${completedSale.timestamp.toLocaleTimeString(
+                            "en-GB",
+                            { hour: "2-digit", minute: "2-digit" },
+                        )}</span>
+                    </div>
+                    <div class="items">${itemsHtml}</div>
+                    <div class="totals">
+                        <div class="row">
+                            <span>Subtotal</span>
+                            <span>${fmt(completedSale.subtotal)}</span>
+                        </div>
+                        <div class="row">
+                            <span>Tax</span>
+                            <span>${fmt(completedSale.tax)}</span>
+                        </div>
+                        ${
+                            completedSale.discount > 0
+                                ? `<div class="row discount"><span>Discount</span><span>−${fmt(
+                                      completedSale.discount,
+                                  )}</span></div>`
+                                : ""
+                        }
+                    </div>
+                    <div class="grand">
+                        <span>Total Paid</span>
+                        <span class="amount">${fmt(completedSale.total)}</span>
+                    </div>
+                    <div class="payment">
+                        Paid via ${
+                            paymentLabel[completedSale.paymentMethod] ||
+                            completedSale.paymentMethod
+                        }
+                    </div>
+                    <div class="footer">Thank you for your purchase!</div>
                 </div>
                 <script>
                     window.onload = () => {
@@ -411,79 +364,134 @@ export function SalesCompletionModal({
 
     // ── Receipt view ──────────────────────────────────────────────────────────
     if (completedSale) {
-        const fmt = (n: number) => new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(n);
         return (
             <Dialog open={isOpen} onOpenChange={handleCloseReceipt}>
-                <DialogContent className="sm:max-w-[420px] p-0 gap-0 overflow-hidden bg-white border-none shadow-2xl rounded-2xl">
-                    <div id="receipt-print-area" className="bg-white">
-                        {/* Header */}
-                        <div className="bg-primary px-6 py-5 text-white text-center">
-                            <CheckCircle2 className="size-10 mx-auto mb-2 text-white/90" />
-                            <h2 className="text-lg font-bold">{completedSale.isOrder ? 'Order Placed' : 'Payment Complete'}</h2>
-                            <p className="text-white/70 text-xs mt-0.5">{completedSale.orgName}</p>
+                <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[420px]">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Receipt</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="bg-success flex flex-col items-center gap-2 px-6 py-6 text-center">
+                        <div className="bg-success-foreground/10 flex size-14 items-center justify-center rounded-full">
+                            <CheckCircle2 className="text-success-foreground size-8" />
                         </div>
-
-                        {/* Receipt body */}
-                        <div className="px-5 py-4 space-y-4">
-                            {/* Meta */}
-                            <div className="flex justify-between text-xs text-slate-400">
-                                <span>{completedSale.timestamp.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                                <span>{completedSale.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-
-                            {/* Items */}
-                            <div className="space-y-1.5 border-t border-b border-dashed border-slate-200 py-3">
-                                {completedSale.items.map((item, i) => (
-                                    <div key={i} className="flex justify-between text-sm">
-                                        <span className="text-slate-700 flex-1 truncate pr-2">{item.name} <span className="text-slate-400">×{item.quantity}</span></span>
-                                        <span className="font-medium text-slate-900 shrink-0">{fmt(item.lineTotal)}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Totals */}
-                            <div className="space-y-1.5 text-sm">
-                                <div className="flex justify-between text-slate-500">
-                                    <span>Subtotal</span>
-                                    <span>{fmt(completedSale.subtotal)}</span>
-                                </div>
-                                <div className="flex justify-between text-slate-500">
-                                    <span>Tax</span>
-                                    <span>{fmt(completedSale.tax)}</span>
-                                </div>
-                                {completedSale.discount > 0 && (
-                                    <div className="flex justify-between text-emerald-600">
-                                        <span>Discount</span>
-                                        <span>−{fmt(completedSale.discount)}</span>
-                                    </div>
-                                )}
-                                <div className="flex justify-between font-bold text-base border-t border-slate-100 pt-2 mt-1">
-                                    <span className="text-slate-900">Total Paid</span>
-                                    <span className="text-primary">{fmt(completedSale.total)}</span>
-                                </div>
-                            </div>
-
-                            {/* Payment method */}
-                            <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                {completedSale.paymentMethod === 'cash' && <Banknote className="size-4 text-amber-500" />}
-                                {completedSale.paymentMethod === 'bank transfer' && <CreditCard className="size-4 text-blue-500" />}
-                                {completedSale.paymentMethod === 'mobile transfer' && <Wallet className="size-4 text-emerald-500" />}
-                                <span className="text-sm font-medium text-slate-700">
-                                    Paid via {paymentLabel[completedSale.paymentMethod] || completedSale.paymentMethod}
-                                </span>
-                            </div>
-
-                            <p className="text-center text-xs text-slate-400">Thank you for your purchase!</p>
+                        <div>
+                            <h2 className="text-success-foreground text-lg font-bold">
+                                {completedSale.isOrder
+                                    ? "Order Placed"
+                                    : "Payment Complete"}
+                            </h2>
+                            <p className="text-success-foreground/80 text-xs">
+                                {completedSale.orgName}
+                            </p>
                         </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex gap-2 px-5 pb-5 pt-0 no-print">
-                        <Button variant="outline" className="flex-1 rounded-xl" onClick={handleCloseReceipt}>
-                            <X className="size-4 mr-1" /> Close
+                    <div className="flex flex-col gap-4 px-5 py-5">
+                        <div className="text-muted-foreground flex justify-between text-xs">
+                            <span>
+                                {completedSale.timestamp.toLocaleDateString(
+                                    "en-GB",
+                                    {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "numeric",
+                                    },
+                                )}
+                            </span>
+                            <span>
+                                {completedSale.timestamp.toLocaleTimeString(
+                                    "en-GB",
+                                    { hour: "2-digit", minute: "2-digit" },
+                                )}
+                            </span>
+                        </div>
+
+                        <div className="border-border flex flex-col gap-1.5 border-y border-dashed py-3">
+                            {completedSale.items.map((item, i) => (
+                                <div
+                                    key={i}
+                                    className="flex justify-between text-sm"
+                                >
+                                    <span className="text-foreground flex-1 truncate pr-2">
+                                        {item.name}{" "}
+                                        <span className="text-muted-foreground">
+                                            ×{item.quantity}
+                                        </span>
+                                    </span>
+                                    <span className="num-tabular text-foreground shrink-0 font-medium">
+                                        {fmt(item.lineTotal)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 text-sm">
+                            <div className="text-muted-foreground flex justify-between">
+                                <span>Subtotal</span>
+                                <span className="num-tabular">
+                                    {fmt(completedSale.subtotal)}
+                                </span>
+                            </div>
+                            <div className="text-muted-foreground flex justify-between">
+                                <span>Tax</span>
+                                <span className="num-tabular">
+                                    {fmt(completedSale.tax)}
+                                </span>
+                            </div>
+                            {completedSale.discount > 0 && (
+                                <div className="text-success flex justify-between">
+                                    <span>Discount</span>
+                                    <span className="num-tabular">
+                                        −{fmt(completedSale.discount)}
+                                    </span>
+                                </div>
+                            )}
+                            <Separator className="my-1" />
+                            <div className="flex items-center justify-between text-base font-bold">
+                                <span className="text-foreground">
+                                    Total Paid
+                                </span>
+                                <span className="num-tabular text-primary">
+                                    {fmt(completedSale.total)}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="bg-muted text-foreground flex items-center gap-2 rounded-lg p-3 text-sm">
+                            {completedSale.paymentMethod === "cash" && (
+                                <Banknote className="text-warning size-4" />
+                            )}
+                            {completedSale.paymentMethod === "bank transfer" && (
+                                <CreditCard className="text-info size-4" />
+                            )}
+                            {completedSale.paymentMethod === "mobile transfer" && (
+                                <Wallet className="text-success size-4" />
+                            )}
+                            <span className="font-medium">
+                                Paid via{" "}
+                                {paymentLabel[completedSale.paymentMethod] ||
+                                    completedSale.paymentMethod}
+                            </span>
+                        </div>
+
+                        <p className="text-muted-foreground text-center text-xs">
+                            Thank you for your purchase!
+                        </p>
+                    </div>
+
+                    <div className="border-border flex gap-2 border-t p-5">
+                        <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={handleCloseReceipt}
+                        >
+                            <X data-icon="inline-start" />
+                            Close
                         </Button>
-                        <Button className="flex-1 rounded-xl" onClick={handlePrint}>
-                            <Printer className="size-4 mr-1" /> Print Receipt
+                        <Button className="flex-1" onClick={handlePrint}>
+                            <Printer data-icon="inline-start" />
+                            Print Receipt
                         </Button>
                     </div>
                 </DialogContent>
@@ -492,95 +500,130 @@ export function SalesCompletionModal({
     }
 
     // ── Checkout form view ────────────────────────────────────────────────────
+    const itemCount = Object.keys(cart).length;
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px] p-0! gap-0! overflow-hidden bg-slate-50 border-none shadow-2xl rounded-lg ">
-                <DialogHeader className="p-2 bg-white border-b border-slate-100 rounded-t-lg">
-                    <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-                        <div className="p-2 bg-primary-color/10 rounded-md">
-                            <CheckCircle2 className="w-6 h-6 text-primary-color" />
-                        </div>
+            <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[500px]">
+                <DialogHeader className="border-border border-b px-5 py-4">
+                    <DialogTitle className="text-foreground flex items-center gap-2">
+                        <span className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-md">
+                            <CheckCircle2 className="size-4" />
+                        </span>
                         {isOrderMode ? "Complete Order" : "Complete Payment"}
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="p-6 space-y-3">
-                    {/* Order Summary Card */}
-                    <div className="bg-white rounded-lg p-5 shadow-sm border border-slate-100 space-y-4">
-                        <div className="flex items-center justify-between pb-4 border-b border-slate-50">
-                            <div className="flex items-center gap-2 text-slate-500 font-medium">
-                                <ShoppingCart className="w-4 h-4" />
-                                <span>Checkout Summary</span>
+                <div className="flex flex-col gap-4 p-5">
+                    {/* Checkout Summary */}
+                    <div className="bg-muted/40 border-border flex flex-col gap-3 rounded-lg border p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
+                                <ShoppingCart className="size-4" />
+                                Checkout Summary
                             </div>
-                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">
-                                {Object.keys(cart).length} Items
+                            <span className="bg-background text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                                {itemCount} {itemCount === 1 ? "item" : "items"}
                             </span>
                         </div>
 
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm text-slate-500">
+                        <Separator />
+
+                        <div className="flex flex-col gap-1.5 text-sm">
+                            <div className="text-muted-foreground flex justify-between">
                                 <span>Subtotal</span>
-                                <span>GHS {subTotal.toFixed(2)}</span>
+                                <span className="num-tabular">
+                                    {fmt(subTotal)}
+                                </span>
                             </div>
-                            <div className="flex justify-between text-sm text-slate-500">
+                            <div className="text-muted-foreground flex justify-between">
                                 <span>Tax (4.0%)</span>
-                                <span>GHS {tax.toFixed(2)}</span>
+                                <span className="num-tabular">{fmt(tax)}</span>
                             </div>
-                            <div className="flex justify-between items-center text-sm pt-2">
-                                <span className="text-slate-500">Discount Amount</span>
-                                <div className="relative w-24">
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">GHS</span>
+                            <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">
+                                    Discount
+                                </span>
+                                <div className="relative w-28">
+                                    <span className="text-muted-foreground absolute top-1/2 left-2 -translate-y-1/2 text-[10px] font-medium">
+                                        GHS
+                                    </span>
                                     <Input
                                         type="number"
                                         min="0"
                                         step="0.01"
                                         value={discountAmount || ""}
-                                        onChange={(e) => setDiscountAmount(Number(e.target.value))}
+                                        onChange={(e) =>
+                                            setDiscountAmount(
+                                                Number(e.target.value),
+                                            )
+                                        }
                                         placeholder="0.00"
-                                        className="w-full h-8 pl-9 text-right font-medium text-sm bg-white border-slate-200"
+                                        className="num-tabular h-8 pl-10 text-right text-sm"
                                     />
                                 </div>
                             </div>
-                            <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-100">
-                                <span className="text-lg font-bold text-slate-800">Total Payable</span>
-                                <span className="text-2xl font-black text-primary-color">GHS {finalTotal.toFixed(2)}</span>
-                            </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className="flex items-center justify-between">
+                            <span className="text-foreground text-base font-semibold">
+                                Total Payable
+                            </span>
+                            <span className="num-tabular text-primary text-2xl font-bold">
+                                {fmt(finalTotal)}
+                            </span>
                         </div>
                     </div>
 
-                    {/* Customer Selection (Order Mode only) */}
+                    {/* Customer (order mode only) */}
                     {isOrderMode && (
-                        <div className="space-y-3">
-                            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                <User className="w-4 h-4" />
-                                Select Customer <span className="text-rose-500">*</span>
-                            </label>
+                        <div className="flex flex-col gap-2">
+                            <Label className="text-foreground flex items-center gap-1.5 text-sm font-medium">
+                                <User className="size-3.5" />
+                                Select Customer{" "}
+                                <span className="text-destructive">*</span>
+                            </Label>
                             <Select
                                 value={selectedCustomerId?.toString()}
                                 onValueChange={(value) => {
                                     const id = Number(value);
                                     setSelectedCustomerId(id);
-                                    const customer = customers.find(c => c.id === id);
-                                    if (customer?.address) setDeliveryAddress(customer.address);
+                                    const customer = customers.find(
+                                        (c) => c.id === id,
+                                    );
+                                    if (customer?.address)
+                                        setDeliveryAddress(customer.address);
                                 }}
                             >
-                                <SelectTrigger className="w-full h-11 bg-white border-slate-200">
+                                <SelectTrigger className="h-10 w-full">
                                     <SelectValue placeholder="Choose a customer" />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-[300px]">
                                     {isLoading ? (
-                                        <div className="p-4 text-center text-slate-400 text-sm">
-                                            <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
-                                            Loading customers...
+                                        <div className="text-muted-foreground flex items-center justify-center gap-2 p-4 text-sm">
+                                            <Loader2 className="size-4 animate-spin" />
+                                            Loading customers…
                                         </div>
                                     ) : customers.length === 0 ? (
-                                        <div className="p-4 text-center text-slate-400 text-sm">No customers found</div>
+                                        <div className="text-muted-foreground p-4 text-center text-sm">
+                                            No customers found
+                                        </div>
                                     ) : (
                                         customers.map((c) => (
-                                            <SelectItem key={c.id} value={c.id.toString()}>
+                                            <SelectItem
+                                                key={c.id}
+                                                value={c.id.toString()}
+                                            >
                                                 <div className="flex flex-col py-0.5">
-                                                    <span className="font-medium text-slate-800">{c.first_name} {c.last_name}</span>
-                                                    <span className="text-[10px] text-slate-500">{c.phone}</span>
+                                                    <span className="text-foreground font-medium">
+                                                        {c.first_name}{" "}
+                                                        {c.last_name}
+                                                    </span>
+                                                    <span className="text-muted-foreground text-[10px]">
+                                                        {c.phone}
+                                                    </span>
                                                 </div>
                                             </SelectItem>
                                         ))
@@ -590,71 +633,105 @@ export function SalesCompletionModal({
                         </div>
                     )}
 
-                    {/* Delivery Address (Order Mode only) */}
+                    {/* Delivery address (order mode only) */}
                     {isOrderMode && (
-                        <div className="space-y-3">
-                            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                <MapPin className="w-4 h-4" />
-                                Delivery Address (Optional)
-                            </label>
+                        <div className="flex flex-col gap-2">
+                            <Label className="text-foreground flex items-center gap-1.5 text-sm font-medium">
+                                <MapPin className="size-3.5" />
+                                Delivery Address
+                                <span className="text-muted-foreground text-[10px] font-normal">
+                                    (optional)
+                                </span>
+                            </Label>
                             <Input
                                 placeholder="Enter delivery address"
                                 value={deliveryAddress}
-                                onChange={(e) => setDeliveryAddress(e.target.value)}
-                                className="h-11 bg-white border-slate-200"
+                                onChange={(e) =>
+                                    setDeliveryAddress(e.target.value)
+                                }
+                                className="h-10"
                             />
                         </div>
                     )}
 
-                    {/* Payment Method Selection */}
-                    <div className="space-y-3">
-                        <label className="text-sm font-semibold text-slate-700">Payment Method</label>
-                        <div className="grid grid-cols-3 gap-3">
-                            {[
-                                { id: 'bank transfer', icon: CreditCard, label: 'Card' },
-                                { id: 'mobile transfer', icon: Wallet, label: 'Mobile' },
-                                { id: 'cash', icon: Banknote, label: 'Cash' },
-                            ].map((method) => (
-                                <button
-                                    key={method.id}
-                                    onClick={() => setPaymentMethod(method.id as "bank transfer" | "mobile transfer" | "cash")}
-                                    className={cn(
-                                        "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all",
-                                        paymentMethod === method.id
-                                            ? "border-primary-color bg-primary-color/5 text-primary-color"
-                                            : "border-white bg-white hover:border-slate-200 text-slate-500"
-                                    )}
-                                >
-                                    <method.icon className="w-5 h-5" />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider">{method.label}</span>
-                                </button>
-                            ))}
-                        </div>
+                    {/* Payment method */}
+                    <div className="flex flex-col gap-2">
+                        <Label className="text-foreground text-sm font-medium">
+                            Payment Method
+                        </Label>
+                        <ToggleGroup
+                            type="single"
+                            value={paymentMethod}
+                            onValueChange={(v) => {
+                                if (v)
+                                    setPaymentMethod(
+                                        v as
+                                            | "cash"
+                                            | "bank transfer"
+                                            | "mobile transfer",
+                                    );
+                            }}
+                            className="grid w-full grid-cols-3 gap-2"
+                            variant="outline"
+                        >
+                            <ToggleGroupItem
+                                value="bank transfer"
+                                className="flex h-16 flex-col gap-1"
+                            >
+                                <CreditCard className="size-4" />
+                                <span className="text-[11px] font-semibold tracking-wide uppercase">
+                                    Card
+                                </span>
+                            </ToggleGroupItem>
+                            <ToggleGroupItem
+                                value="mobile transfer"
+                                className="flex h-16 flex-col gap-1"
+                            >
+                                <Wallet className="size-4" />
+                                <span className="text-[11px] font-semibold tracking-wide uppercase">
+                                    Mobile
+                                </span>
+                            </ToggleGroupItem>
+                            <ToggleGroupItem
+                                value="cash"
+                                className="flex h-16 flex-col gap-1"
+                            >
+                                <Banknote className="size-4" />
+                                <span className="text-[11px] font-semibold tracking-wide uppercase">
+                                    Cash
+                                </span>
+                            </ToggleGroupItem>
+                        </ToggleGroup>
                     </div>
                 </div>
 
-                <DialogFooter className="p-2 bg-white border-t border-slate-100 mt-0">
-                    <div className="flex w-full gap-3">
-                        <Button
-                            variant="outline"
-                            className="flex-1 h-12 rounded-md border-slate-200"
-                            onClick={onClose}
-                            disabled={isSubmitting}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            className="flex-2 h-12 rounded-md bg-primary-color hover:opacity-90 text-white shadow-lg shadow-primary-color/20"
-                            onClick={handleComplete}
-                            disabled={isSubmitting || (isOrderMode && (!selectedCustomerId || !deliveryAddress))}
-                        >
-                            {isSubmitting ? (
-                                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                            ) : null}
-                            {isOrderMode ? "Confirm Order" : "Confirm & Pay"}
-                            <ChevronRight className="w-5 h-5 ml-1" />
-                        </Button>
-                    </div>
+                <DialogFooter className="border-border flex-row gap-2 border-t p-4">
+                    <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={onClose}
+                        disabled={isSubmitting}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        className="flex-[2]"
+                        onClick={handleComplete}
+                        disabled={
+                            isSubmitting ||
+                            (isOrderMode &&
+                                (!selectedCustomerId || !deliveryAddress))
+                        }
+                    >
+                        {isSubmitting ? (
+                            <Loader2
+                                data-icon="inline-start"
+                                className="animate-spin"
+                            />
+                        ) : null}
+                        {isOrderMode ? "Confirm Order" : "Confirm & Pay"}
+                        <ChevronRight data-icon="inline-end" />
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
