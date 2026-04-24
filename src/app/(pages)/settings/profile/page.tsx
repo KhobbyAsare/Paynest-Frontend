@@ -9,8 +9,11 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { RefreshCcw, User, Mail, Phone, AtSign } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { User, Mail, Phone, AtSign } from 'lucide-react';
 
 export default function ProfileSettingsPage() {
     const { user, updateUser } = useAuthStore();
@@ -53,117 +56,110 @@ export default function ProfileSettingsPage() {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8 flex items-center justify-center">
-                <RefreshCcw className="size-6 animate-spin text-slate-400" />
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
-            <div className="mt-8 max-w-2xl mx-auto">
-                <PageHeader
-                    title="Profile Settings"
-                    description="Update your personal information."
-                />
+        <div className="flex flex-col gap-6">
+            <PageHeader
+                title="Profile Settings"
+                description="Update your personal information."
+            />
 
-                <Card className="p-6 rounded-2xl border-slate-100 shadow-sm">
-                    {/* Avatar/info header */}
-                    <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
-                        <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="size-8 text-primary" />
+            <Card className="p-6 rounded-2xl">
+                {/* Avatar/info header */}
+                <div className="flex items-center gap-4 mb-8 pb-6 border-b">
+                    <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <User className="size-8 text-primary" />
+                    </div>
+                    {loading ? (
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3.5 w-48" />
+                            <Skeleton className="h-5 w-16 rounded-full" />
                         </div>
+                    ) : (
                         <div>
-                            <p className="font-semibold text-slate-900">{user?.first_name} {user?.last_name}</p>
-                            <p className="text-sm text-slate-500">{user?.email}</p>
-                            <span className="inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 capitalize">
+                            <p className="font-semibold text-foreground">{user?.first_name} {user?.last_name}</p>
+                            <p className="text-sm text-muted-foreground">{user?.email}</p>
+                            <Badge className="mt-1 border-primary/20 bg-primary/10 text-primary capitalize font-semibold text-xs">
                                 {user?.role}
-                            </span>
+                            </Badge>
+                        </div>
+                    )}
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                            <Label className="flex items-center gap-2 text-foreground">
+                                <User className="size-3.5 text-muted-foreground" />
+                                First Name
+                            </Label>
+                            <Input
+                                value={form.first_name}
+                                onChange={(e) => setForm(f => ({ ...f, first_name: e.target.value }))}
+                                placeholder="First name"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="flex items-center gap-2 text-foreground">
+                                <User className="size-3.5 text-muted-foreground" />
+                                Last Name
+                            </Label>
+                            <Input
+                                value={form.last_name}
+                                onChange={(e) => setForm(f => ({ ...f, last_name: e.target.value }))}
+                                placeholder="Last name"
+                                disabled={loading}
+                            />
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                    <User className="size-3.5 text-slate-400" />
-                                    First Name
-                                </label>
-                                <Input
-                                    value={form.first_name}
-                                    onChange={(e) => setForm(f => ({ ...f, first_name: e.target.value }))}
-                                    placeholder="First name"
-                                    className="rounded-lg"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                    <User className="size-3.5 text-slate-400" />
-                                    Last Name
-                                </label>
-                                <Input
-                                    value={form.last_name}
-                                    onChange={(e) => setForm(f => ({ ...f, last_name: e.target.value }))}
-                                    placeholder="Last name"
-                                    className="rounded-lg"
-                                />
-                            </div>
-                        </div>
+                    <div className="space-y-1.5">
+                        <Label className="flex items-center gap-2 text-foreground">
+                            <AtSign className="size-3.5 text-muted-foreground" />
+                            Username
+                        </Label>
+                        <Input
+                            value={form.username}
+                            onChange={(e) => setForm(f => ({ ...f, username: e.target.value }))}
+                            placeholder="Username"
+                            disabled={loading}
+                        />
+                    </div>
 
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                <AtSign className="size-3.5 text-slate-400" />
-                                Username
-                            </label>
-                            <Input
-                                value={form.username}
-                                onChange={(e) => setForm(f => ({ ...f, username: e.target.value }))}
-                                placeholder="Username"
-                                className="rounded-lg"
-                            />
-                        </div>
+                    <div className="space-y-1.5">
+                        <Label className="flex items-center gap-2 text-foreground">
+                            <Mail className="size-3.5 text-muted-foreground" />
+                            Email
+                        </Label>
+                        <Input
+                            value={user?.email || ''}
+                            disabled
+                            className="bg-muted text-muted-foreground cursor-not-allowed"
+                        />
+                        <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
+                    </div>
 
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                <Mail className="size-3.5 text-slate-400" />
-                                Email
-                            </label>
-                            <Input
-                                value={user?.email || ''}
-                                disabled
-                                className="rounded-lg bg-slate-50 text-slate-400 cursor-not-allowed"
-                            />
-                            <p className="text-xs text-slate-400">Email cannot be changed here.</p>
-                        </div>
+                    <div className="space-y-1.5">
+                        <Label className="flex items-center gap-2 text-foreground">
+                            <Phone className="size-3.5 text-muted-foreground" />
+                            Phone Number
+                        </Label>
+                        <Input
+                            value={form.phone_number}
+                            onChange={(e) => setForm(f => ({ ...f, phone_number: e.target.value }))}
+                            placeholder="Phone number"
+                            disabled={loading}
+                        />
+                    </div>
 
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                <Phone className="size-3.5 text-slate-400" />
-                                Phone Number
-                            </label>
-                            <Input
-                                value={form.phone_number}
-                                onChange={(e) => setForm(f => ({ ...f, phone_number: e.target.value }))}
-                                placeholder="Phone number"
-                                className="rounded-lg"
-                            />
-                        </div>
-
-                        <div className="flex justify-end pt-2">
-                            <Button type="submit" disabled={saving} className="min-w-[120px]">
-                                {saving ? (
-                                    <span className="flex items-center gap-2">
-                                        <RefreshCcw className="size-4 animate-spin" />
-                                        Saving…
-                                    </span>
-                                ) : 'Save Changes'}
-                            </Button>
-                        </div>
-                    </form>
-                </Card>
-            </div>
+                    <div className="flex justify-end pt-2">
+                        <Button type="submit" disabled={saving || loading} className="min-w-[120px]">
+                            {saving ? 'Saving…' : 'Save Changes'}
+                        </Button>
+                    </div>
+                </form>
+            </Card>
         </div>
     );
 }

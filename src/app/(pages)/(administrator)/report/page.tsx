@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Select,
     SelectContent,
@@ -28,9 +29,6 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-/* -------------------------------------------------------------------------- */
-/*  Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
 const REPORT_TYPES = [
     { value: 'daily_sales', label: 'Daily Sales Report' },
     { value: 'monthly_financial', label: 'Monthly Financial Report' },
@@ -63,15 +61,12 @@ function StatusBadge({ status }: { status: ReportStatus }) {
 function TypeBadge({ type }: { type: string }) {
     const label = REPORT_TYPES.find(t => t.value === type)?.label ?? type;
     return (
-        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+        <span className="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info ring-1 ring-inset ring-info/20">
             {label}
         </span>
     );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Page                                                                       */
-/* -------------------------------------------------------------------------- */
 export default function AdminAllReportsView() {
     const [reports, setReports] = useState<ReportResponse[]>([]);
     const [filteredReports, setFilteredReports] = useState<ReportResponse[]>([]);
@@ -124,23 +119,20 @@ export default function AdminAllReportsView() {
         }
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Render                                                              */
-    /* ------------------------------------------------------------------ */
     return (
         <TooltipProvider>
-            <div className="p-4 space-y-6">
+            <div className="flex flex-col gap-6">
                 <PageHeader
                     title="All Organization Reports"
                     description="View and download all generated reports for your organization."
                 />
 
                 {/* Filters */}
-                <Card className="border-slate-100 shadow-sm rounded-2xl">
+                <Card className="rounded-2xl">
                     <CardContent className="pt-5">
                         <div className="flex flex-col sm:flex-row gap-3">
                             <div className="relative sm:w-64">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                                 <Input
                                     placeholder="Search reports…"
                                     value={searchTerm}
@@ -178,28 +170,30 @@ export default function AdminAllReportsView() {
                 </Card>
 
                 {/* Table */}
-                <Card className="border-slate-100 shadow-sm rounded-2xl overflow-hidden">
+                <Card className="rounded-2xl overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-100">
-                            <thead className="bg-slate-50/70">
+                        <table className="min-w-full divide-y divide-border">
+                            <thead className="bg-muted/50">
                                 <tr>
                                     {['Report Name', 'Type', 'Period', 'Status', 'Created At', 'Actions'].map(h => (
-                                        <th key={h} className="px-4 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        <th key={h} className="px-4 py-3.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                             {h}
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50 bg-white">
+                            <tbody className="divide-y divide-border/50 bg-card">
                                 {loading ? (
-                                    <tr>
-                                        <td colSpan={6} className="py-16 text-center">
-                                            <div className="flex flex-col items-center gap-2 text-slate-400">
-                                                <RefreshCcw className="size-5 animate-spin" />
-                                                <span className="text-sm">Fetching reports…</span>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <tr key={i}>
+                                            <td className="px-4 py-4"><Skeleton className="h-4 w-40" /></td>
+                                            <td className="px-4 py-4"><Skeleton className="h-4 w-28" /></td>
+                                            <td className="px-4 py-4"><Skeleton className="h-4 w-32" /></td>
+                                            <td className="px-4 py-4"><Skeleton className="h-5 w-20 rounded-full" /></td>
+                                            <td className="px-4 py-4"><Skeleton className="h-4 w-20" /></td>
+                                            <td className="px-4 py-4"><Skeleton className="h-8 w-16" /></td>
+                                        </tr>
+                                    ))
                                 ) : filteredReports.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="py-16">
@@ -213,33 +207,33 @@ export default function AdminAllReportsView() {
                                     </tr>
                                 ) : (
                                     filteredReports.map(report => (
-                                        <tr key={report.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-4 py-4 text-sm font-medium text-slate-800">
+                                        <tr key={report.id} className="hover:bg-muted/30 transition-colors">
+                                            <td className="px-4 py-4 text-sm font-medium text-foreground">
                                                 <div className="flex items-center gap-2">
-                                                    <FileText className="size-4 text-slate-400 shrink-0" />
+                                                    <FileText className="size-4 text-muted-foreground shrink-0" />
                                                     <span className="line-clamp-1">{report.report_name}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4 text-sm text-slate-500">
+                                            <td className="px-4 py-4 text-sm text-muted-foreground">
                                                 <TypeBadge type={report.report_type} />
                                             </td>
-                                            <td className="px-4 py-4 text-sm text-slate-500 whitespace-nowrap">
+                                            <td className="px-4 py-4 text-sm text-muted-foreground whitespace-nowrap">
                                                 <div className="flex items-center gap-1.5">
-                                                    <Calendar className="size-3.5 text-slate-400" />
+                                                    <Calendar className="size-3.5 text-muted-foreground" />
                                                     {new Date(report.period_start).toLocaleDateString()} – {new Date(report.period_end).toLocaleDateString()}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
                                                 <StatusBadge status={report.status} />
                                             </td>
-                                            <td className="px-4 py-4 text-sm text-slate-500 whitespace-nowrap">
+                                            <td className="px-4 py-4 text-sm text-muted-foreground whitespace-nowrap">
                                                 {new Date(report.created_at).toLocaleDateString()}
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center gap-1">
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="size-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" asChild>
+                                                            <Button variant="ghost" size="icon" className="size-8 text-info hover:text-info hover:bg-info/10" asChild>
                                                                 <Link href={`/report/${report.id}`}><Eye className="size-4" /></Link>
                                                             </Button>
                                                         </TooltipTrigger>
@@ -250,7 +244,7 @@ export default function AdminAllReportsView() {
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="size-8 hover:bg-slate-100"
+                                                                className="size-8 hover:bg-muted"
                                                                 disabled={report.status !== 'completed'}
                                                                 onClick={() => handleDownload(report)}
                                                             >

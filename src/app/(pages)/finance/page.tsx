@@ -1,46 +1,23 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
 import {
-    TrendingUp,
-    TrendingDown,
-    DollarSign,
-    ShoppingCart,
-    Briefcase,
-    Calendar,
-    Filter,
-    RefreshCcw,
-    ArrowUpRight,
-    ArrowDownRight,
-    Store,
-    PieChart,
-    BarChart3
+    TrendingUp, TrendingDown, DollarSign, ShoppingCart,
+    Briefcase, Calendar, RefreshCcw, Store, PieChart, BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { DatePicker } from 'antd';
+import dayjs from 'dayjs';
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-    DatePicker,
-    Table,
-    Row,
-    Col,
-    Statistic,
-    Progress,
-    Empty,
-    Spin,
-    Typography,
-    Space,
-    Divider
-} from "antd";
-import type { ColumnsType } from 'antd/es/table';
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { GetFinanceOverview } from "@/(api-handlers)/financeHandler";
 import { getOrganizationShops } from "@/(api-handlers)/organizationShopsHandler";
 import { FinanceOverviewResponse, ShopFinance, RevenueTrend } from "@/interfaces/finance";
@@ -48,12 +25,27 @@ import { OrganizationShopResponse } from "@/interfaces/organizationShops";
 import { toast } from "sonner";
 import { useAuthStore } from "@/(zustand-store)/authStore";
 import PageHeader from "@/components/(shared-components)/PageHeader";
-import dayjs from "dayjs";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-const { RangePicker } = DatePicker;
-const { Title, Text } = Typography;
+function formatCurrency(amount: number) {
+    return new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(amount);
+}
+
+function toISODate(d: Date) {
+    return d.toISOString().split('T')[0];
+}
+
+function ProgressBar({ percent, status }: { percent: number; status: 'success' | 'warning' | 'danger' }) {
+    const color =
+        status === 'success' ? 'bg-success' :
+        status === 'warning' ? 'bg-warning' :
+        'bg-destructive';
+    return (
+        <div className="bg-muted h-1.5 w-full max-w-[100px] rounded-full overflow-hidden">
+            <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} />
+        </div>
+    );
+}
 
 export default function FinancePage() {
     const { user } = useAuthStore();
@@ -64,10 +56,11 @@ export default function FinancePage() {
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedShop, setSelectedShop] = useState<string>("all");
-    const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
-        dayjs().subtract(30, 'day'),
-        dayjs()
-    ]);
+
+    const defaultStart = toISODate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    const defaultEnd = toISODate(new Date());
+    const [startDate, setStartDate] = useState(defaultStart);
+    const [endDate, setEndDate] = useState(defaultEnd);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -75,10 +68,10 @@ export default function FinancePage() {
             const [financeOverview, shopsData] = await Promise.all([
                 GetFinanceOverview(
                     selectedShop === "all" ? undefined : Number(selectedShop),
-                    dateRange[0].format('YYYY-MM-DD'),
-                    dateRange[1].format('YYYY-MM-DD')
+                    startDate,
+                    endDate,
                 ),
-                getOrganizationShops()
+                getOrganizationShops(),
             ]);
             setFinanceData(financeOverview);
             setShops(shopsData);
@@ -88,358 +81,329 @@ export default function FinancePage() {
         } finally {
             setLoading(false);
         }
-    }, [selectedShop, dateRange]);
+    }, [selectedShop, startDate, endDate]);
 
     useEffect(() => {
-        if (isAdmin) {
-            fetchData();
-        }
+        if (isAdmin) fetchData();
     }, [fetchData, isAdmin]);
 
     if (!isAdmin) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-                <div className="p-6 bg-rose-50 rounded-2xl border border-rose-100 text-center">
-                    <Title level={4} className="text-rose-600 m-0">Access Restricted</Title>
-                    <Text className="text-rose-500">This page is strictly for administrators only.</Text>
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-8 text-center">
+                    <p className="text-destructive text-lg font-bold">Access Restricted</p>
+                    <p className="text-muted-foreground mt-1 text-sm">This page is strictly for administrators only.</p>
                 </div>
             </div>
         );
     }
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-GH', {
-            style: 'currency',
-            currency: 'GHS',
-        }).format(amount);
-    };
-
-    const shopColumns: ColumnsType<ShopFinance> = [
-        {
-            title: 'Shop Name',
-            dataIndex: 'shop_name',
-            key: 'shop_name',
-            render: (text) => (
-                <div className="flex items-center gap-2">
-                    <Store className="h-4 w-4 text-slate-400" />
-                    <span className="font-medium text-slate-700">{text}</span>
-                </div>
-            ),
-        },
-        {
-            title: 'Orders',
-            dataIndex: 'orders_count',
-            key: 'orders_count',
-            sorter: (a, b) => a.orders_count - b.orders_count,
-        },
-        {
-            title: 'Revenue',
-            dataIndex: 'revenue',
-            key: 'revenue',
-            render: (val) => <span className="font-medium">{formatCurrency(val)}</span>,
-            sorter: (a, b) => a.revenue - b.revenue,
-        },
-        {
-            title: 'Estimated Profit',
-            dataIndex: 'profit',
-            key: 'profit',
-            render: (val) => (
-                <span className={`font-semibold ${val >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {formatCurrency(val)}
-                </span>
-            ),
-            sorter: (a, b) => a.profit - b.profit,
-        },
-        {
-            title: 'Profit Margin',
-            key: 'margin',
-            render: (_, record) => {
-                const margin = record.revenue > 0 ? (record.profit / record.revenue) * 100 : 0;
-                return (
-                    <div className="flex items-center gap-3 w-full max-w-[120px]">
-                        <Progress
-                            percent={Math.round(margin)}
-                            size="small"
-                            status={margin >= 20 ? "success" : margin >= 10 ? "normal" : "exception"}
-                        />
-                    </div>
-                );
-            }
-        }
-    ];
-
-    const trendColumns: ColumnsType<RevenueTrend> = [
-        {
-            title: 'Date',
-            dataIndex: 'date',
-            key: 'date',
-            render: (date) => dayjs(date).format('MMM DD, YYYY'),
-        },
-        {
-            title: 'Orders',
-            dataIndex: 'orders',
-            key: 'orders',
-            align: 'center',
-            render: (val) => <span className="font-semibold">{val}</span>
-        },
-        {
-            title: 'Revenue',
-            dataIndex: 'revenue',
-            key: 'revenue',
-            align: 'right',
-            render: (val) => <span className="font-bold text-slate-900">{formatCurrency(val)}</span>,
-        },
-        {
-            title: 'Daily Performance',
-            key: 'performance',
-            align: 'right',
-            render: (_, record, index) => {
-                if (index === 0 || !financeData) return null;
-                const prev = financeData.trends[index - 1].revenue;
-                const current = record.revenue;
-                const diff = prev > 0 ? ((current - prev) / prev) * 100 : 0;
-
-                return (
-                    <div className={`flex items-center justify-end gap-1 text-xs font-bold ${diff >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {diff >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {Math.abs(diff).toFixed(1)}%
-                    </div>
-                );
-            }
-        }
-    ];
-
     const statsConfig = financeData ? [
         {
             name: 'Total Revenue',
             value: formatCurrency(financeData.summary.total_revenue),
-            change: `${financeData.summary.total_orders} Orders`,
-            changeType: 'neutral',
-            icon: <DollarSign className="size-5 text-blue-600" />
+            sub: `${financeData.summary.total_orders} Orders`,
+            icon: <DollarSign className="text-primary size-5" />,
         },
         {
             name: 'Estimated Profit',
             value: formatCurrency(financeData.summary.net_profit),
-            change: `${Math.round((financeData.summary.net_profit / financeData.summary.total_revenue) * 100)}% Margin`,
-            changeType: 'positive',
-            icon: <Briefcase className="size-5 text-emerald-600" />
+            sub: `${Math.round(financeData.summary.total_revenue > 0 ? (financeData.summary.net_profit / financeData.summary.total_revenue) * 100 : 0)}% Margin`,
+            icon: <Briefcase className="text-success size-5" />,
         },
         {
             name: 'Cost of Goods',
             value: formatCurrency(financeData.summary.total_cost),
-            change: 'Inventory Value',
-            changeType: 'neutral',
-            icon: <ShoppingCart className="size-5 text-purple-600" />
+            sub: 'Inventory Value',
+            icon: <ShoppingCart className="text-info size-5" />,
         },
         {
             name: 'Tax Collected',
             value: formatCurrency(financeData.summary.total_tax),
-            change: 'Government Dues',
-            changeType: 'neutral',
-            icon: <PieChart className="size-5 text-amber-500" />
+            sub: 'Government Dues',
+            icon: <PieChart className="text-warning-foreground size-5" />,
         },
     ] : [];
 
     return (
-        <div className="p-6 space-y-8 bg-linear-to-br from-slate-50 via-white to-slate-50 min-h-screen">
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-            >
-                <PageHeader
-                    title="Financial Analytics"
-                    description="Real-time revenue, profit tracking, and multi-shop performance analysis."
-                >
-                    <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={fetchData}
-                            disabled={loading}
-                            className="rounded-xl h-10 border-slate-200 hover:border-slate-300 bg-white"
-                        >
-                            <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                            Sync Data
-                        </Button>
-                    </div>
-                </PageHeader>
-            </motion.div>
+        <div className="flex flex-col gap-6">
+            <PageHeader
+                title="Financial Analytics"
+                description="Real-time revenue, profit tracking, and multi-shop performance analysis."
+                actions={
+                    <Button variant="outline" onClick={fetchData} disabled={loading}>
+                        <RefreshCcw className={cn("mr-2 size-4", loading && "animate-spin")} />
+                        Sync Data
+                    </Button>
+                }
+            />
 
-            {/* Filters Bar */}
-            <Card className="p-4 border-slate-100 shadow-sm bg-white/80 backdrop-blur-md sticky top-0 z-10 rounded-2xl">
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <Calendar className="h-4 w-4 text-slate-400" />
-                        <RangePicker
-                            value={dateRange}
-                            onChange={(dates) => dates && setDateRange([dates[0]!, dates[1]!])}
-                            className="h-10 rounded-lg border-slate-200"
-                        />
+            {/* Filters */}
+            <Card>
+                <CardContent className="pt-4">
+                    <div className="flex flex-wrap items-end gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="flex items-center gap-1.5 text-xs">
+                                <Calendar className="size-3.5" /> From
+                            </Label>
+                            <DatePicker
+                                value={startDate ? dayjs(startDate) : null}
+                                onChange={(date) => setStartDate(date ? date.format('YYYY-MM-DD') : '')}
+                                format="DD MMM YYYY"
+                                className="h-9 w-40"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="flex items-center gap-1.5 text-xs">
+                                <Calendar className="size-3.5" /> To
+                            </Label>
+                            <DatePicker
+                                value={endDate ? dayjs(endDate) : null}
+                                onChange={(date) => setEndDate(date ? date.format('YYYY-MM-DD') : '')}
+                                format="DD MMM YYYY"
+                                className="h-9 w-40"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="flex items-center gap-1.5 text-xs">
+                                <Store className="size-3.5" /> Shop
+                            </Label>
+                            <Select value={selectedShop} onValueChange={setSelectedShop}>
+                                <SelectTrigger className="h-9 w-52">
+                                    <SelectValue placeholder="All Shops" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Shops Combined</SelectItem>
+                                    {shops.map(shop => (
+                                        <SelectItem key={shop.id} value={shop.id.toString()}>{shop.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="ml-auto hidden lg:flex items-center">
+                            <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
+                                Live Updates
+                            </Badge>
+                        </div>
                     </div>
-
-                    <div className="flex items-center gap-2 w-full sm:w-[240px]">
-                        <Store className="h-4 w-4 text-slate-400" />
-                        <Select value={selectedShop} onValueChange={setSelectedShop}>
-                            <SelectTrigger className="h-10 bg-white border-slate-200 rounded-lg">
-                                <SelectValue placeholder="All Shops" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Shops Combined</SelectItem>
-                                {shops.map((shop) => (
-                                    <SelectItem key={shop.id} value={shop.id.toString()}>{shop.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="ml-auto hidden lg:flex items-center gap-2">
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 px-3 py-1">
-                            Live Updates
-                        </Badge>
-                    </div>
-                </div>
+                </CardContent>
             </Card>
 
+            {/* Loading state */}
             {loading && !financeData ? (
-                <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
-                    <RefreshCcw className="w-10 h-10 text-primary animate-spin" />
-                    <p className="text-slate-500 font-medium">Calculating financial metrics...</p>
+                <div className="flex flex-col gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-px bg-border overflow-hidden rounded-2xl border">
+                        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-none" />)}
+                    </div>
+                    <Skeleton className="h-64 rounded-2xl" />
+                    <Skeleton className="h-48 rounded-2xl" />
                 </div>
-            ) : financeData ? (
+            ) : !financeData ? (
+                <div className="flex flex-col gap-6 items-center py-20">
+                    <div className="bg-muted flex size-14 items-center justify-center rounded-full">
+                        <BarChart3 className="text-muted-foreground size-7" />
+                    </div>
+                    <p className="text-foreground font-semibold">No financial data available</p>
+                    <p className="text-muted-foreground text-sm">Try adjusting the date range or shop filter.</p>
+                </div>
+            ) : (
                 <>
-                    {/* Stats Grid */}
-                    <motion.dl
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="mx-auto grid grid-cols-1 gap-px bg-slate-200 overflow-hidden rounded-2xl border border-slate-200 sm:grid-cols-2 lg:grid-cols-4 shadow-sm w-full"
-                    >
-                        {statsConfig.map((stat) => (
-                            <div
-                                key={stat.name}
-                                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 bg-white px-4 py-8 sm:px-6 xl:px-8"
-                            >
-                                <dt className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                    {/* Stats */}
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border overflow-hidden rounded-2xl border">
+                        {statsConfig.map(stat => (
+                            <div key={stat.name} className="bg-card flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-8 sm:px-6">
+                                <dt className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
                                     {stat.icon}
                                     {stat.name}
                                 </dt>
-                                <dd
-                                    className={cn(
-                                        'text-xs font-semibold',
-                                        stat.changeType === 'negative' ? 'text-rose-600' :
-                                            stat.changeType === 'positive' ? 'text-emerald-600' : 'text-slate-500'
-                                    )}
-                                >
-                                    {stat.change}
-                                </dd>
-                                <dd className="w-full flex-none text-3xl font-bold tracking-tight text-slate-900 mt-2">
-                                    {loading ? '...' : stat.value}
+                                <dd className="text-muted-foreground text-xs font-semibold">{stat.sub}</dd>
+                                <dd className="text-foreground mt-2 w-full flex-none text-3xl font-bold tracking-tight">
+                                    {loading ? '…' : stat.value}
                                 </dd>
                             </div>
                         ))}
-                    </motion.dl>
+                    </dl>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Shop Breakdown */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Main tables */}
                         <div className="lg:col-span-2 space-y-6">
-                            <Card className="p-6 border-slate-100 shadow-sm rounded-2xl bg-white">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div>
-                                        <Title level={4} className="m-0">Performance by Shop</Title>
-                                        <Text type="secondary" className="text-xs">Comparison of revenue and profit across your locations.</Text>
+                            {/* Shop Breakdown */}
+                            <Card className="gap-0 overflow-hidden p-0">
+                                <CardHeader className="border-b px-6 py-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle className="text-base">Performance by Shop</CardTitle>
+                                            <p className="text-muted-foreground text-xs mt-0.5">Revenue and profit across your locations</p>
+                                        </div>
+                                        <Badge variant="outline" className="text-xs">
+                                            {financeData.shop_breakdown.length} Shops
+                                        </Badge>
                                     </div>
-                                    <Badge className="bg-slate-100 text-slate-600 border-none font-medium">
-                                        {financeData.shop_breakdown.length} Shops Found
-                                    </Badge>
+                                </CardHeader>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="pl-6">Shop</TableHead>
+                                                <TableHead>Orders</TableHead>
+                                                <TableHead>Revenue</TableHead>
+                                                <TableHead>Profit</TableHead>
+                                                <TableHead className="pr-6">Margin</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {financeData.shop_breakdown.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
+                                                        No shop data for this period.
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : financeData.shop_breakdown.map((shop: ShopFinance) => {
+                                                const margin = shop.revenue > 0 ? (shop.profit / shop.revenue) * 100 : 0;
+                                                return (
+                                                    <TableRow key={shop.shop_id}>
+                                                        <TableCell className="pl-6">
+                                                            <div className="flex items-center gap-2">
+                                                                <Store className="text-muted-foreground size-4" />
+                                                                <span className="text-foreground font-medium">{shop.shop_name}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-foreground font-semibold">{shop.orders_count}</TableCell>
+                                                        <TableCell className="font-medium">{formatCurrency(shop.revenue)}</TableCell>
+                                                        <TableCell className={cn("font-semibold", shop.profit >= 0 ? "text-success" : "text-destructive")}>
+                                                            {formatCurrency(shop.profit)}
+                                                        </TableCell>
+                                                        <TableCell className="pr-6">
+                                                            <div className="flex items-center gap-2">
+                                                                <ProgressBar
+                                                                    percent={Math.round(margin)}
+                                                                    status={margin >= 20 ? 'success' : margin >= 10 ? 'warning' : 'danger'}
+                                                                />
+                                                                <span className="text-muted-foreground text-xs">{Math.round(margin)}%</span>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
                                 </div>
-                                <Table
-                                    columns={shopColumns}
-                                    dataSource={financeData.shop_breakdown}
-                                    rowKey="shop_id"
-                                    pagination={false}
-                                    className="ant-table-custom"
-                                />
                             </Card>
 
-                            <Card className="p-6 border-slate-100 shadow-sm rounded-2xl bg-white">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div>
-                                        <Title level={4} className="m-0 flex items-center gap-2">
-                                            <BarChart3 className="h-5 w-5 text-primary" />
-                                            Daily Revenue Trends
-                                        </Title>
-                                        <Text type="secondary" className="text-xs">Daily summary of sales and volume.</Text>
-                                    </div>
+                            {/* Daily Revenue Trends */}
+                            <Card className="gap-0 overflow-hidden p-0">
+                                <CardHeader className="border-b px-6 py-4">
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <BarChart3 className="text-primary size-5" />
+                                        Daily Revenue Trends
+                                    </CardTitle>
+                                    <p className="text-muted-foreground text-xs mt-0.5">Daily summary of sales and volume</p>
+                                </CardHeader>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="pl-6">Date</TableHead>
+                                                <TableHead className="text-center">Orders</TableHead>
+                                                <TableHead className="text-right">Revenue</TableHead>
+                                                <TableHead className="pr-6 text-right">Daily Change</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {financeData.trends.slice().reverse().slice(0, 14).map((t: RevenueTrend, idx, arr) => {
+                                                const prev = arr[idx + 1]?.revenue;
+                                                const diff = prev && prev > 0 ? ((t.revenue - prev) / prev) * 100 : null;
+                                                return (
+                                                    <TableRow key={t.date}>
+                                                        <TableCell className="pl-6 text-sm font-medium">
+                                                            {new Date(t.date).toLocaleDateString('en-GH', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                        </TableCell>
+                                                        <TableCell className="text-center font-semibold">{t.orders}</TableCell>
+                                                        <TableCell className="text-foreground text-right font-bold">{formatCurrency(t.revenue)}</TableCell>
+                                                        <TableCell className="pr-6 text-right">
+                                                            {diff !== null ? (
+                                                                <div className={cn("flex items-center justify-end gap-1 text-xs font-bold", diff >= 0 ? "text-success" : "text-destructive")}>
+                                                                    {diff >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+                                                                    {Math.abs(diff).toFixed(1)}%
+                                                                </div>
+                                                            ) : <span className="text-muted-foreground text-xs">—</span>}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
                                 </div>
-                                <Table
-                                    columns={trendColumns}
-                                    dataSource={financeData.trends.slice().reverse()}
-                                    rowKey="date"
-                                    pagination={{ pageSize: 7 }}
-                                    className="ant-table-custom"
-                                />
                             </Card>
                         </div>
 
-                        {/* Summary & Insights Sidebar */}
+                        {/* Sidebar */}
                         <div className="space-y-6">
-                            <Card className="p-6 border-slate-100 shadow-sm rounded-2xl bg-primary text-white overflow-hidden relative">
-                                <div className="absolute -bottom-6 -right-6 h-32 w-32 bg-white/10 rounded-full blur-2xl" />
-                                <Title level={4} className="m-0 text-white! mb-4">Financial Insight</Title>
-                                <p className="text-primary-foreground/80 text-sm leading-relaxed mb-6">
-                                    Your average order value in this period is
-                                    <span className="text-white font-bold ml-1">
-                                        {formatCurrency(financeData.summary.total_orders > 0 ? financeData.summary.total_revenue / financeData.summary.total_orders : 0)}
-                                    </span>.
-                                    The most profitable shop is <span className="text-white font-bold">
-                                        {financeData.shop_breakdown.length > 0 ?
-                                            financeData.shop_breakdown.sort((a, b) => b.profit - a.profit)[0].shop_name : 'N/A'
-                                        }
-                                    </span>.
-                                </p>
-                                <div className="space-y-4">
-                                    <div className="bg-white/10 rounded-xl p-3 border border-white/10">
-                                        <div className="flex justify-between items-center text-xs opacity-70 mb-1">
-                                            <span>Revenue Target</span>
-                                            <span>{Math.round((financeData.summary.total_revenue / 1000000) * 100)}%</span>
+                            {/* Insight card */}
+                            <Card className="bg-primary text-primary-foreground overflow-hidden relative">
+                                <div className="absolute -bottom-6 -right-6 size-32 rounded-full bg-white/10 blur-2xl" />
+                                <CardHeader>
+                                    <CardTitle className="text-primary-foreground text-base">Financial Insight</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <p className="text-primary-foreground/80 text-sm leading-relaxed">
+                                        Average order value:{' '}
+                                        <span className="text-primary-foreground font-bold">
+                                            {formatCurrency(financeData.summary.total_orders > 0
+                                                ? financeData.summary.total_revenue / financeData.summary.total_orders
+                                                : 0)}
+                                        </span>.
+                                        Most profitable shop:{' '}
+                                        <span className="text-primary-foreground font-bold">
+                                            {financeData.shop_breakdown.length > 0
+                                                ? [...financeData.shop_breakdown].sort((a, b) => b.profit - a.profit)[0].shop_name
+                                                : 'N/A'}
+                                        </span>.
+                                    </p>
+
+                                    <div className="rounded-xl border border-white/10 bg-white/10 p-3">
+                                        <div className="mb-1 flex justify-between text-xs opacity-70">
+                                            <span>Revenue Progress</span>
+                                            <span>{Math.min(100, Math.round((financeData.summary.total_revenue / 1_000_000) * 100))}%</span>
                                         </div>
-                                        <Progress
-                                            percent={Math.round((financeData.summary.total_revenue / 1000000) * 100)}
-                                            size="small"
-                                            showInfo={false}
-                                            strokeColor="#fff"
-                                            trailColor="rgba(255,255,255,0.1)"
-                                        />
+                                        <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-white transition-all"
+                                                style={{ width: `${Math.min(100, Math.round((financeData.summary.total_revenue / 1_000_000) * 100))}%` }}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
+                                </CardContent>
                             </Card>
 
-                            <Card className="p-6 border-slate-100 shadow-sm rounded-2xl bg-white">
-                                <Title level={5} className="mb-4">Recent Activity</Title>
-                                <div className="space-y-4">
+                            {/* Recent Activity */}
+                            <Card>
+                                <CardHeader className="border-b">
+                                    <CardTitle className="text-sm font-bold">Recent Activity</CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-4 space-y-4">
                                     {financeData.trends.slice(-5).reverse().map((t, idx) => (
                                         <div key={idx} className="flex items-center gap-3">
-                                            <div className={`h-8 w-8 rounded-full flex items-center justify-center ${t.revenue > 0 ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-400'}`}>
-                                                <DollarSign className="h-4 w-4" />
+                                            <div className={cn(
+                                                "flex size-8 items-center justify-center rounded-full",
+                                                t.revenue > 0 ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                                            )}>
+                                                <DollarSign className="size-4" />
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-xs font-semibold text-slate-700">{dayjs(t.date).format('ddd, MMM DD')}</div>
-                                                <div className="text-[10px] text-slate-400">{t.orders} Successful Orders</div>
+                                                <p className="text-foreground text-xs font-semibold">
+                                                    {new Date(t.date).toLocaleDateString('en-GH', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                </p>
+                                                <p className="text-muted-foreground text-[10px]">{t.orders} Orders</p>
                                             </div>
-                                            <div className="text-xs font-bold text-slate-900">{formatCurrency(t.revenue)}</div>
+                                            <p className="text-foreground text-xs font-bold">{formatCurrency(t.revenue)}</p>
                                         </div>
                                     ))}
-                                </div>
-                                <Divider className="my-6" />
-                                <Button variant="ghost" className="w-full text-primary text-xs hover:bg-primary/5">
-                                    View Detailed Reports
-                                </Button>
+                                </CardContent>
                             </Card>
                         </div>
                     </div>
                 </>
-            ) : (
-                <Empty description="No financial data available for the selected filters." />
             )}
         </div>
     );

@@ -1,291 +1,316 @@
 "use client";
 
-import PageHeader from "@/components/(shared-components)/PageHeader";
-import { useState, useEffect, useCallback } from "react";
-import { AuditLogResponse } from "@/interfaces/auditLog";
-import { getAllAuditLogs } from "@/(api-handlers)/auditLogHandler";
-import { Button, Input, message, Tag, Table, Modal, Select, Space, Tooltip } from "antd";
-import { SearchOutlined, EyeOutlined, FilterOutlined, ReloadOutlined } from "@ant-design/icons";
-import Loading from "@/components/(shared-components)/Loading";
-import EmptyState from "@/components/(shared-components)/EmptyState";
+import { useCallback, useEffect, useState } from 'react';
+import {
+    Eye, RefreshCcw, Search, FilterX, ShieldAlert,
+} from 'lucide-react';
+import PageHeader from '@/components/(shared-components)/PageHeader';
+import Pagination from '@/components/(shared-components)/Pagination';
+import { AuditLogResponse } from '@/interfaces/auditLog';
+import { getAllAuditLogs } from '@/(api-handlers)/auditLogHandler';
+import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+    Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from '@/components/ui/table';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
-const { Option } = Select;
+const PAGE_SIZE = 20;
+
+function actionBadgeClass(action: string) {
+    if (action.includes('delete')) return 'border-destructive/30 bg-destructive/10 text-destructive';
+    if (action.includes('update') || action.includes('edit')) return 'border-warning/30 bg-warning/10 text-warning-foreground';
+    if (action.includes('create')) return 'border-success/30 bg-success/10 text-success';
+    return 'border-info/30 bg-info/10 text-info';
+}
+
+function JsonBlock({ title, data }: { title: string; data: unknown }) {
+    if (!data || (typeof data === 'object' && Object.keys(data as object).length === 0)) return null;
+    return (
+        <div>
+            <p className="text-muted-foreground mb-1.5 text-xs font-semibold uppercase tracking-wider">{title}</p>
+            <pre className="bg-muted border-border overflow-x-auto rounded-md border p-3 text-xs">
+                {JSON.stringify(data, null, 2)}
+            </pre>
+        </div>
+    );
+}
 
 export default function SuperAdminView() {
     const [auditLogs, setAuditLogs] = useState<AuditLogResponse[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [total, setTotal] = useState<number>(0);
-    const [currentPage, setCurrentPage] = useState<number>(1);
-    const [pageSize, setPageSize] = useState<number>(10);
+    const [loading, setLoading]     = useState(true);
+    const [total, setTotal]         = useState(0);
+    const [page, setPage]           = useState(1);
 
-    // Filters
-    const [organizationId, setOrganizationId] = useState<number | undefined>(undefined);
-    const [userId, setUserId] = useState<number | undefined>(undefined);
-    const [action, setAction] = useState<string>("");
-    const [entityType, setEntityType] = useState<string>("");
-    const [entityId, setEntityId] = useState<string>("");
+    const [actionFilter, setActionFilter]     = useState('');
+    const [entityType, setEntityType]         = useState('');
+    const [entityId, setEntityId]             = useState('');
+    const [pendingFilters, setPendingFilters] = useState({ action: '', entityType: '', entityId: '' });
 
-    // Modal
     const [selectedLog, setSelectedLog] = useState<AuditLogResponse | null>(null);
-    const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
 
-    const fetchAuditLogs = useCallback(async () => {
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+
+    const fetchLogs = useCallback(async (p: number) => {
         setLoading(true);
         try {
-            const offset = (currentPage - 1) * pageSize;
             const data = await getAllAuditLogs(
-                organizationId,
-                userId,
-                action || undefined,
+                undefined, undefined,
+                actionFilter || undefined,
                 entityType || undefined,
                 entityId || undefined,
-                pageSize,
-                offset
+                PAGE_SIZE,
+                (p - 1) * PAGE_SIZE,
             );
             setAuditLogs(data.items);
             setTotal(data.total);
-        } catch (error: any) {
-            message.error('Failed to fetch audit logs');
-            console.error(error);
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to fetch audit logs');
         } finally {
             setLoading(false);
         }
-    }, [currentPage, pageSize, organizationId, userId, action, entityType, entityId]);
+    }, [actionFilter, entityType, entityId]);
 
-    useEffect(() => {
-        fetchAuditLogs();
-    }, [fetchAuditLogs]);
+    useEffect(() => { fetchLogs(page); }, [page, fetchLogs]);
 
-    const handleTableChange = (pagination: any) => {
-        setCurrentPage(pagination.current);
-        setPageSize(pagination.pageSize);
+    const applyFilters = () => {
+        setActionFilter(pendingFilters.action);
+        setEntityType(pendingFilters.entityType);
+        setEntityId(pendingFilters.entityId);
+        setPage(1);
     };
 
     const resetFilters = () => {
-        setOrganizationId(undefined);
-        setUserId(undefined);
-        setAction("");
-        setEntityType("");
-        setEntityId("");
-        setCurrentPage(1);
+        setPendingFilters({ action: '', entityType: '', entityId: '' });
+        setActionFilter('');
+        setEntityType('');
+        setEntityId('');
+        setPage(1);
     };
 
-    const columns = [
-        {
-            title: 'User',
-            dataIndex: 'user_email',
-            key: 'user_email',
-            render: (text: string, record: AuditLogResponse) => (
-                <div>
-                    <div className="font-medium text-gray-900">{text}</div>
-                    <div className="text-xs text-gray-500 capitalize">{record.user_role}</div>
-                </div>
-            )
-        },
-        {
-            title: 'Action',
-            dataIndex: 'action',
-            key: 'action',
-            render: (action: string) => (
-                <Tag color={
-                    action.includes('delete') ? 'red' :
-                        action.includes('update') || action.includes('edit') ? 'orange' :
-                            action.includes('create') ? 'green' : 'blue'
-                } className="capitalize">
-                    {action}
-                </Tag>
-            )
-        },
-        {
-            title: 'Entity',
-            key: 'entity',
-            render: (record: AuditLogResponse) => (
-                <div>
-                    <div className="text-sm font-medium">{record.entity_type}</div>
-                    <div className="text-xs text-gray-400">ID: {record.entity_id}</div>
-                </div>
-            )
-        },
-        {
-            title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
-            render: (status: string) => (
-                <Tag color={status === 'success' ? 'success' : 'error'}>
-                    {status}
-                </Tag>
-            )
-        },
-        {
-            title: 'IP Address',
-            dataIndex: 'ip_address',
-            key: 'ip_address',
-            className: 'hidden md:table-cell'
-        },
-        {
-            title: 'Date',
-            dataIndex: 'created_at',
-            key: 'created_at',
-            render: (date: string) => new Date(date).toLocaleString(),
-            sorter: true
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            render: (record: AuditLogResponse) => (
-                <Button
-                    type="text"
-                    icon={<EyeOutlined />}
-                    onClick={() => {
-                        setSelectedLog(record);
-                        setIsDetailsModalVisible(true);
-                    }}
-                />
-            )
-        }
-    ];
-
-    const renderJson = (title: string, data: any) => {
-        if (!data || Object.keys(data).length === 0 || (data.additionalProp1 && Object.keys(data.additionalProp1).length === 0)) {
-            return null;
-        }
-        return (
-            <div className="mb-4">
-                <h4 className="text-sm font-semibold mb-2 text-gray-700">{title}</h4>
-                <pre className="bg-gray-50 p-3 rounded-md overflow-x-auto text-xs border border-gray-200">
-                    {JSON.stringify(data, null, 2)}
-                </pre>
-            </div>
-        );
-    };
+    const hasFilters = actionFilter !== '' || entityType !== '' || entityId !== '';
 
     return (
-        <div className="space-y-6">
-            <PageHeader title="Audit Logs" description="Track and monitor system-wide actions and security events." />
+        <div className="flex flex-col gap-6">
+            <PageHeader
+                title="Audit Logs"
+                description="Track and monitor system-wide actions and security events."
+                actions={
+                    <Button variant="outline" size="icon" onClick={() => fetchLogs(page)} disabled={loading}>
+                        <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
+                    </Button>
+                }
+            />
 
             {/* Filters */}
-            <div className="bg-white p-4 rounded-md border shadow-sm">
-                <div className="flex flex-wrap gap-4 items-end">
-                    <div className="flex-1 min-w-[200px]">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Action</label>
-                        <Input
-                            placeholder="e.g. create_user"
-                            value={action}
-                            onChange={(e) => setAction(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex-1 min-w-[200px]">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Entity Type</label>
-                        <Input
-                            placeholder="e.g. Organization"
-                            value={entityType}
-                            onChange={(e) => setEntityType(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex-1 min-w-[200px]">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Entity ID</label>
-                        <Input
-                            placeholder="Enter ID"
-                            value={entityId}
-                            onChange={(e) => setEntityId(e.target.value)}
-                        />
-                    </div>
-                    <Space>
-                        <Button icon={<ReloadOutlined />} onClick={resetFilters}>Reset</Button>
-                        <Button type="primary" icon={<FilterOutlined />} onClick={() => setCurrentPage(1)}>Filter</Button>
-                    </Space>
-                </div>
-            </div>
-
-            <div className="bg-white rounded-md border shadow-sm overflow-hidden">
-                <Table
-                    columns={columns}
-                    dataSource={auditLogs}
-                    rowKey="id"
-                    loading={loading}
-                    pagination={{
-                        current: currentPage,
-                        pageSize: pageSize,
-                        total: total,
-                        showSizeChanger: true,
-                        pageSizeOptions: ['10', '20', '50'],
-                        className: "px-6 py-4"
-                    }}
-                    onChange={handleTableChange}
-                    className="audit-logs-table"
-                />
-            </div>
-
-            {/* Details Modal */}
-            <Modal
-                title="Audit Log Details"
-                open={isDetailsModalVisible}
-                onCancel={() => setIsDetailsModalVisible(false)}
-                footer={[
-                    <Button key="close" onClick={() => setIsDetailsModalVisible(false)}>
-                        Close
-                    </Button>
-                ]}
-                width={800}
-            >
-                {selectedLog && (
-                    <div className="py-2">
-                        <div className="grid grid-cols-2 gap-4 mb-6 bg-blue-50 p-4 rounded-md border border-blue-100">
-                            <div>
-                                <p className="text-xs text-blue-600 font-medium">User</p>
-                                <p className="text-sm font-semibold">{selectedLog.user_email}</p>
-                                <p className="text-xs text-blue-500">{selectedLog.user_role} | {selectedLog.ip_address}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-blue-600 font-medium">Action & Time</p>
-                                <p className="text-sm font-semibold capitalize">{selectedLog.action.replace(/_/g, ' ')}</p>
-                                <p className="text-xs text-blue-500">{new Date(selectedLog.created_at).toLocaleString()}</p>
-                            </div>
+            <Card className="gap-0 p-4">
+                <div className="flex flex-wrap items-end gap-4">
+                    <div className="min-w-[180px] flex-1 space-y-1.5">
+                        <Label className="text-xs">Action</Label>
+                        <div className="relative">
+                            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
+                            <Input
+                                className="h-9 pl-8 text-sm"
+                                placeholder="e.g. create_user"
+                                value={pendingFilters.action}
+                                onChange={e => setPendingFilters(p => ({ ...p, action: e.target.value }))}
+                            />
                         </div>
+                    </div>
+                    <div className="min-w-[160px] flex-1 space-y-1.5">
+                        <Label className="text-xs">Entity type</Label>
+                        <Input
+                            className="h-9 text-sm"
+                            placeholder="e.g. Organization"
+                            value={pendingFilters.entityType}
+                            onChange={e => setPendingFilters(p => ({ ...p, entityType: e.target.value }))}
+                        />
+                    </div>
+                    <div className="min-w-[120px] flex-1 space-y-1.5">
+                        <Label className="text-xs">Entity ID</Label>
+                        <Input
+                            className="h-9 text-sm"
+                            placeholder="Enter ID"
+                            value={pendingFilters.entityId}
+                            onChange={e => setPendingFilters(p => ({ ...p, entityId: e.target.value }))}
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        {hasFilters && (
+                            <Button variant="outline" size="sm" className="h-9" onClick={resetFilters}>
+                                <FilterX className="mr-1.5 size-3.5" /> Reset
+                            </Button>
+                        )}
+                        <Button size="sm" className="h-9" onClick={applyFilters}>
+                            Apply filters
+                        </Button>
+                    </div>
+                </div>
+            </Card>
 
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-xs text-gray-500 font-medium">Entity</p>
-                                <p className="text-sm">{selectedLog.entity_type} (ID: {selectedLog.entity_id})</p>
+            <Card className="gap-0 overflow-hidden p-0">
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="pl-6">User</TableHead>
+                                <TableHead>Action</TableHead>
+                                <TableHead>Entity</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="hidden md:table-cell">IP Address</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead className="pr-6 text-right">Details</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                Array.from({ length: 8 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        {Array.from({ length: 7 }).map((_, j) => (
+                                            <TableCell key={j}><Skeleton className="h-5 w-full rounded" /></TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : auditLogs.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="py-20 text-center">
+                                        <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
+                                            <ShieldAlert className="text-muted-foreground size-7" />
+                                        </div>
+                                        <p className="text-muted-foreground text-sm">No audit logs found.</p>
+                                    </TableCell>
+                                </TableRow>
+                            ) : auditLogs.map(log => (
+                                <TableRow key={log.id}>
+                                    <TableCell className="pl-6">
+                                        <p className="text-foreground text-sm font-semibold">{log.user_email}</p>
+                                        <p className="text-muted-foreground text-xs capitalize">{log.user_role}</p>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <Badge
+                                            variant="outline"
+                                            className={cn('rounded-full text-xs font-medium capitalize', actionBadgeClass(log.action))}
+                                        >
+                                            {log.action.replace(/_/g, ' ')}
+                                        </Badge>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <p className="text-foreground text-sm font-medium">{log.entity_type}</p>
+                                        <p className="text-muted-foreground font-mono text-[10px]">ID {log.entity_id}</p>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <Badge
+                                            variant="outline"
+                                            className={cn(
+                                                'rounded-full text-xs font-medium',
+                                                log.status === 'success'
+                                                    ? 'border-success/30 bg-success/10 text-success'
+                                                    : 'border-destructive/30 bg-destructive/10 text-destructive',
+                                            )}
+                                        >
+                                            {log.status}
+                                        </Badge>
+                                    </TableCell>
+
+                                    <TableCell className="text-muted-foreground hidden font-mono text-xs md:table-cell">
+                                        {log.ip_address}
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <p className="text-foreground text-xs font-medium">
+                                            {new Date(log.created_at).toLocaleDateString()}
+                                        </p>
+                                        <p className="text-muted-foreground text-[10px]">
+                                            {new Date(log.created_at).toLocaleTimeString()}
+                                        </p>
+                                    </TableCell>
+
+                                    <TableCell className="pr-6 text-right">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="size-8"
+                                            onClick={() => setSelectedLog(log)}
+                                        >
+                                            <Eye className="size-4" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {!loading && auditLogs.length > 0 && (
+                    <div className="border-border bg-muted/30 border-t px-6 py-3 text-xs">
+                        <span className="text-muted-foreground">{total.toLocaleString()} total logs</span>
+                    </div>
+                )}
+            </Card>
+
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} isLoading={loading} total={total} />
+
+            {/* Details modal */}
+            <Dialog open={!!selectedLog} onOpenChange={open => !open && setSelectedLog(null)}>
+                <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Audit Log Details</DialogTitle>
+                    </DialogHeader>
+                    {selectedLog && (
+                        <div className="space-y-5 pt-1">
+                            <div className="bg-info/10 border-info/20 grid grid-cols-2 gap-4 rounded-xl border p-4">
+                                <div>
+                                    <p className="text-info text-xs font-medium">User</p>
+                                    <p className="text-foreground text-sm font-semibold">{selectedLog.user_email}</p>
+                                    <p className="text-muted-foreground text-xs">{selectedLog.user_role} · {selectedLog.ip_address}</p>
+                                </div>
+                                <div>
+                                    <p className="text-info text-xs font-medium">Action & time</p>
+                                    <p className="text-foreground text-sm font-semibold capitalize">{selectedLog.action.replace(/_/g, ' ')}</p>
+                                    <p className="text-muted-foreground text-xs">{new Date(selectedLog.created_at).toLocaleString()}</p>
+                                </div>
+                            </div>
+
+                            <div className="border-border space-y-1 rounded-lg border p-3">
+                                <p className="text-muted-foreground text-xs font-medium">Entity</p>
+                                <p className="text-foreground text-sm">{selectedLog.entity_type} <span className="text-muted-foreground font-mono text-xs">(ID: {selectedLog.entity_id})</span></p>
                             </div>
 
                             {selectedLog.error_message && (
-                                <div className="bg-red-50 p-3 rounded-md border border-red-100">
-                                    <p className="text-xs text-red-600 font-medium">Error Message</p>
-                                    <p className="text-sm text-red-800">{selectedLog.error_message}</p>
+                                <div className="bg-destructive/10 border-destructive/20 rounded-lg border p-3">
+                                    <p className="text-destructive text-xs font-medium">Error message</p>
+                                    <p className="text-destructive text-sm">{selectedLog.error_message}</p>
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {renderJson("Old Values", selectedLog.old_values)}
-                                {renderJson("New Values", selectedLog.new_values)}
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <JsonBlock title="Old values" data={selectedLog.old_values} />
+                                <JsonBlock title="New values" data={selectedLog.new_values} />
                             </div>
+                            <JsonBlock title="Full changes" data={selectedLog.changes} />
 
-                            {renderJson("Full Changes", selectedLog.changes)}
-
-                            <div className="pt-4 border-t border-gray-100 text-[10px] text-gray-400">
-                                <p>User Agent: {selectedLog.user_agent}</p>
-                                <p>Location: {selectedLog.location || 'Unknown'}</p>
+                            <div className="border-border border-t pt-3">
+                                <p className="text-muted-foreground text-[10px]">User agent: {selectedLog.user_agent}</p>
+                                <p className="text-muted-foreground text-[10px]">Location: {selectedLog.location || 'Unknown'}</p>
                             </div>
                         </div>
-                    </div>
-                )}
-            </Modal>
-
-            <style jsx global>{`
-                .audit-logs-table .ant-table-thead > tr > th {
-                    background-color: #f9fafb;
-                    font-size: 0.75rem;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                    color: #6b7280;
-                    font-weight: 600;
-                    padding: 0.75rem 1.5rem;
-                }
-                .audit-logs-table .ant-table-tbody > tr > td {
-                    padding: 1rem 1.5rem;
-                }
-            `}</style>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setSelectedLog(null)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

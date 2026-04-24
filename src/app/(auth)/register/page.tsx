@@ -1,7 +1,7 @@
 "use client"
 
 import SplitText from "@/components/(shared-components)/SplitText";
-import { Wallet } from "lucide-react";
+import { Wallet, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +12,11 @@ import { RegisterInterface } from "@/interfaces/registerInterface";
 import { toast } from "sonner";
 import { handleErrorMessage } from "@/utils/handleErrorMessage";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 export default function RegisterPage() {
     const [isLoading, setIsLoading] = useState(false);
@@ -21,25 +26,17 @@ export default function RegisterPage() {
         register,
         handleSubmit,
         formState: { errors },
-        reset
+        reset,
     } = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
-            username: "",
-            email: "",
-            password: "",
-            first_name: "",
-            last_name: "",
-            phone_number: "",
-            invitation_code: "",
-            confirm_password: ""
-        }
+            username: "", email: "", password: "", first_name: "",
+            last_name: "", phone_number: "", invitation_code: "", confirm_password: "",
+        },
     });
 
     const onSubmit = async (data: RegisterFormData) => {
         setIsLoading(true);
-
-        // Prepare data for backend (excluding confirm_password)
         const registrationData: RegisterInterface = {
             username: data.username,
             email: data.email,
@@ -47,17 +44,16 @@ export default function RegisterPage() {
             first_name: data.first_name,
             last_name: data.last_name,
             phone_number: data.phone_number,
-            invitation_code: data.invitation_code // No need for fallback now
+            invitation_code: data.invitation_code,
         };
-
         try {
             const response = await registrationHandler(registrationData);
             if (response) {
                 toast.success("Registration successful! You can now login.");
-                reset(); // Clear the form
+                reset();
                 router.push("/login");
             }
-        } catch (error: any) {
+        } catch (error) {
             handleErrorMessage(error, "Registration failed. Please try again.");
         } finally {
             setIsLoading(false);
@@ -65,319 +61,126 @@ export default function RegisterPage() {
     };
 
     return (
-        <>
-            <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-                <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center justify-center">
-                    <div className="relative flex h-16 shrink-0 items-center gap-2">
-                        <Wallet className='size-10 text-primary' />
-                        <SplitText text="Paynest" className="text-3xl font-bold text-primary" />
-                    </div>
-                    <h2 className="text-center text-2xl/9 font-bold tracking-tight text-gray-900">
-                        Create a new account
-                    </h2>
+        <div className="flex min-h-screen flex-col justify-center py-12 sm:px-6 lg:px-8 bg-muted/30">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
+                <div className="flex h-16 items-center gap-2">
+                    <Wallet className="size-10 text-primary" />
+                    <SplitText text="Paynest" className="text-3xl font-bold text-primary" />
                 </div>
+                <h2 className="text-center text-2xl font-bold tracking-tight text-foreground">
+                    Create a new account
+                </h2>
+            </div>
 
-                <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[800px]">
-                    <div className="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12">
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                            {/* Grid container for responsive columns */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Column 1 - Left side on desktop */}
-                                <div className="space-y-6">
-                                    {/* First Name */}
-                                    <div>
-                                        <label htmlFor="first_name" className="block text-sm/6 font-medium text-gray-900">
-                                            First Name *
-                                        </label>
-                                        <div className="mt-2">
-                                            <input
-                                                id="first_name"
-                                                type="text"
-                                                disabled={isLoading}
-                                                className={`block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 ${errors.first_name ? 'outline-red-300' : 'outline-gray-300'} placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-primary disabled:opacity-50 disabled:cursor-not-allowed sm:text-sm/6`}
-                                                placeholder="Your first name"
-                                                {...register("first_name")}
-                                            />
-                                        </div>
-                                        {errors.first_name && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.first_name.message}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Username */}
-                                    <div>
-                                        <label htmlFor="username" className="block text-sm/6 font-medium text-gray-900">
-                                            Username *
-                                        </label>
-                                        <div className="mt-2">
-                                            <input
-                                                id="username"
-                                                type="text"
-                                                disabled={isLoading}
-                                                className={`block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 ${errors.username ? 'outline-red-300' : 'outline-gray-300'} placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-primary disabled:opacity-50 disabled:cursor-not-allowed sm:text-sm/6`}
-                                                placeholder="Choose a username"
-                                                {...register("username")}
-                                            />
-                                        </div>
-                                        {errors.username && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Email */}
-                                    <div>
-                                        <label htmlFor="email" className="block text-sm/6 font-medium text-gray-900">
-                                            Email address *
-                                        </label>
-                                        <div className="mt-2">
-                                            <input
-                                                id="email"
-                                                type="email"
-                                                disabled={isLoading}
-                                                className={`block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 ${errors.email ? 'outline-red-300' : 'outline-gray-300'} placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-primary disabled:opacity-50 disabled:cursor-not-allowed sm:text-sm/6`}
-                                                placeholder="your@email.com"
-                                                {...register("email")}
-                                            />
-                                        </div>
-                                        {errors.email && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Password */}
-                                    <div>
-                                        <label htmlFor="password" className="block text-sm/6 font-medium text-gray-900">
-                                            Password *
-                                        </label>
-                                        <div className="mt-2">
-                                            <input
-                                                id="password"
-                                                type="password"
-                                                disabled={isLoading}
-                                                className={`block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 ${errors.password ? 'outline-red-300' : 'outline-gray-300'} placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-primary disabled:opacity-50 disabled:cursor-not-allowed sm:text-sm/6`}
-                                                placeholder="Create a strong password"
-                                                {...register("password")}
-                                            />
-                                        </div>
-                                        {errors.password && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-                                        )}
-                                    </div>
+            <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[800px]">
+                <div className="bg-card px-6 py-12 shadow-sm border rounded-xl sm:px-12">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Left column */}
+                            <div className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="first_name">First Name <span className="text-destructive">*</span></Label>
+                                    <Input id="first_name" disabled={isLoading} placeholder="Your first name"
+                                        className={cn(errors.first_name && 'border-destructive')} {...register("first_name")} />
+                                    {errors.first_name && <p className="text-xs text-destructive">{errors.first_name.message}</p>}
                                 </div>
-
-                                {/* Column 2 - Right side on desktop */}
-                                <div className="space-y-6">
-                                    {/* Last Name */}
-                                    <div>
-                                        <label htmlFor="last_name" className="block text-sm/6 font-medium text-gray-900">
-                                            Last Name *
-                                        </label>
-                                        <div className="mt-2">
-                                            <input
-                                                id="last_name"
-                                                type="text"
-                                                disabled={isLoading}
-                                                className={`block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 ${errors.last_name ? 'outline-red-300' : 'outline-gray-300'} placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-primary disabled:opacity-50 disabled:cursor-not-allowed sm:text-sm/6`}
-                                                placeholder="Your last name"
-                                                {...register("last_name")}
-                                            />
-                                        </div>
-                                        {errors.last_name && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.last_name.message}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Phone Number */}
-                                    <div>
-                                        <label htmlFor="phone_number" className="block text-sm/6 font-medium text-gray-900">
-                                            Phone Number *
-                                        </label>
-                                        <div className="mt-2">
-                                            <input
-                                                id="phone_number"
-                                                type="tel"
-                                                disabled={isLoading}
-                                                className={`block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 ${errors.phone_number ? 'outline-red-300' : 'outline-gray-300'} placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-primary disabled:opacity-50 disabled:cursor-not-allowed sm:text-sm/6`}
-                                                placeholder="Your phone number"
-                                                {...register("phone_number")}
-                                            />
-                                        </div>
-                                        {errors.phone_number && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.phone_number.message}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Invitation Code - Now Mandatory */}
-                                    <div>
-                                        <label htmlFor="invitation_code" className="block text-sm/6 font-medium text-gray-900">
-                                            Invitation Code *
-                                        </label>
-                                        <div className="mt-2">
-                                            <input
-                                                id="invitation_code"
-                                                type="text"
-                                                disabled={isLoading}
-                                                className={`block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 ${errors.invitation_code ? 'outline-red-300' : 'outline-gray-300'} placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-primary disabled:opacity-50 disabled:cursor-not-allowed sm:text-sm/6`}
-                                                placeholder="Enter your invitation code"
-                                                {...register("invitation_code")}
-                                            />
-                                        </div>
-                                        {errors.invitation_code && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.invitation_code.message}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Confirm Password */}
-                                    <div>
-                                        <label htmlFor="confirm_password" className="block text-sm/6 font-medium text-gray-900">
-                                            Confirm Password *
-                                        </label>
-                                        <div className="mt-2">
-                                            <input
-                                                id="confirm_password"
-                                                type="password"
-                                                disabled={isLoading}
-                                                className={`block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 ${errors.confirm_password ? 'outline-red-300' : 'outline-gray-300'} placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-primary disabled:opacity-50 disabled:cursor-not-allowed sm:text-sm/6`}
-                                                placeholder="Confirm your password"
-                                                {...register("confirm_password")}
-                                            />
-                                        </div>
-                                        {errors.confirm_password && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.confirm_password.message}</p>
-                                        )}
-                                    </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="username">Username <span className="text-destructive">*</span></Label>
+                                    <Input id="username" disabled={isLoading} placeholder="Choose a username"
+                                        className={cn(errors.username && 'border-destructive')} {...register("username")} />
+                                    {errors.username && <p className="text-xs text-destructive">{errors.username.message}</p>}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="email">Email Address <span className="text-destructive">*</span></Label>
+                                    <Input id="email" type="email" disabled={isLoading} placeholder="your@email.com"
+                                        className={cn(errors.email && 'border-destructive')} {...register("email")} />
+                                    {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
+                                    <Input id="password" type="password" disabled={isLoading} placeholder="Create a strong password"
+                                        className={cn(errors.password && 'border-destructive')} {...register("password")} />
+                                    {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
                                 </div>
                             </div>
 
-                            <p className="mt-1 text-sm text-gray-500 mb-2">Contact support if you don't have an invitation code</p>
-                            {/* Terms and Conditions */}
-                            <div className="flex items-start">
-                                <div className="flex h-6 shrink-0 items-center">
-                                    <div className="group grid size-4 grid-cols-1">
-                                        <input
-                                            id="terms"
-                                            type="checkbox"
-                                            disabled={isLoading}
-                                            required
-                                            className="col-start-1 row-start-1 appearance-none rounded border border-gray-300 bg-white checked:border-primary checked:bg-primary indeterminate:border-primary indeterminate:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto"
-                                        />
-                                        <svg
-                                            fill="none"
-                                            viewBox="0 0 14 14"
-                                            className="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-gray-950/25"
-                                        >
-                                            <path
-                                                d="M3 8L6 11L11 3.5"
-                                                strokeWidth={2}
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                className="opacity-0 group-has-[:checked]:opacity-100"
-                                            />
-                                            <path
-                                                d="M3 7H11"
-                                                strokeWidth={2}
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                className="opacity-0 group-has-[:indeterminate]:opacity-100"
-                                            />
-                                        </svg>
-                                    </div>
+                            {/* Right column */}
+                            <div className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="last_name">Last Name <span className="text-destructive">*</span></Label>
+                                    <Input id="last_name" disabled={isLoading} placeholder="Your last name"
+                                        className={cn(errors.last_name && 'border-destructive')} {...register("last_name")} />
+                                    {errors.last_name && <p className="text-xs text-destructive">{errors.last_name.message}</p>}
                                 </div>
-                                <div className="ml-3 text-sm/6">
-                                    <label htmlFor="terms" className="text-gray-900">
-                                        I agree to the{" "}
-                                        <a href="#" className="font-semibold text-primary hover:text-bg-primary/90">
-                                            Terms of Service
-                                        </a>{" "}
-                                        and{" "}
-                                        <a href="#" className="font-semibold text-primary hover:text-bg-primary/90">
-                                            Privacy Policy
-                                        </a>
-                                    </label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="phone_number">Phone Number <span className="text-destructive">*</span></Label>
+                                    <Input id="phone_number" type="tel" disabled={isLoading} placeholder="Your phone number"
+                                        className={cn(errors.phone_number && 'border-destructive')} {...register("phone_number")} />
+                                    {errors.phone_number && <p className="text-xs text-destructive">{errors.phone_number.message}</p>}
                                 </div>
-                            </div>
-
-                            {/* Submit Button */}
-                            <div>
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="flex w-full justify-center rounded-md bg-primary px-3 py-1.5 text-sm/6 font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isLoading ? (
-                                        <span className="flex items-center">
-                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Creating Account...
-                                        </span>
-                                    ) : (
-                                        "Create Account"
-                                    )}
-                                </button>
-                            </div>
-                        </form>
-
-                        {/* Social Login Section */}
-                        <div>
-                            <div className="mt-10 flex items-center gap-x-6">
-                                <div className="w-full flex-1 border-t border-gray-200" />
-                                <p className="text-nowrap text-sm/6 font-medium text-gray-900">Or continue with</p>
-                                <div className="w-full flex-1 border-t border-gray-200" />
-                            </div>
-
-                            <div className="mt-6 grid grid-cols-2 gap-4">
-                                <a
-                                    href="#"
-                                    className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent"
-                                >
-                                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
-                                        <path
-                                            d="M12.0003 4.75C13.7703 4.75 15.3553 5.36002 16.6053 6.54998L20.0303 3.125C17.9502 1.19 15.2353 0 12.0003 0C7.31028 0 3.25527 2.69 1.28027 6.60998L5.27028 9.70498C6.21525 6.86002 8.87028 4.75 12.0003 4.75Z"
-                                            fill="#EA4335"
-                                        />
-                                        <path
-                                            d="M23.49 12.275C23.49 11.49 23.415 10.73 23.3 10H12V14.51H18.47C18.18 15.99 17.34 17.25 16.08 18.1L19.945 21.1C22.2 19.01 23.49 15.92 23.49 12.275Z"
-                                            fill="#4285F4"
-                                        />
-                                        <path
-                                            d="M5.26498 14.2949C5.02498 13.5699 4.88501 12.7999 4.88501 11.9999C5.01998 10.4299 5.26498 9.7049 5.26498 9.7049L1.275 6.60986C0.46 8.22986 0 10.0599 0 11.9999C0 13.9399 0.46 15.7699 1.28 17.3899L5.26498 14.2949Z"
-                                            fill="#FBBC05"
-                                        />
-                                        <path
-                                            d="M12.0004 24.0001C15.2404 24.0001 17.9654 22.935 19.9454 21.095L16.0804 18.095C15.0054 18.82 13.6204 19.245 12.0004 19.245C8.8704 19.245 6.21537 17.135 5.2654 14.29L1.27539 17.385C3.25539 21.31 7.3104 24.0001 12.0004 24.0001Z"
-                                            fill="#34A853"
-                                        />
-                                    </svg>
-                                    <span className="text-sm/6 font-semibold">Google</span>
-                                </a>
-
-                                <a
-                                    href="#"
-                                    className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent"
-                                >
-                                    <svg fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" className="size-5 fill-[#24292F]">
-                                        <path
-                                            d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z"
-                                            clipRule="evenodd"
-                                            fillRule="evenodd"
-                                        />
-                                    </svg>
-                                    <span className="text-sm/6 font-semibold">GitHub</span>
-                                </a>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="invitation_code">Invitation Code <span className="text-destructive">*</span></Label>
+                                    <Input id="invitation_code" disabled={isLoading} placeholder="Enter your invitation code"
+                                        className={cn(errors.invitation_code && 'border-destructive')} {...register("invitation_code")} />
+                                    {errors.invitation_code && <p className="text-xs text-destructive">{errors.invitation_code.message}</p>}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="confirm_password">Confirm Password <span className="text-destructive">*</span></Label>
+                                    <Input id="confirm_password" type="password" disabled={isLoading} placeholder="Confirm your password"
+                                        className={cn(errors.confirm_password && 'border-destructive')} {...register("confirm_password")} />
+                                    {errors.confirm_password && <p className="text-xs text-destructive">{errors.confirm_password.message}</p>}
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <p className="mt-10 text-center text-sm/6 text-gray-500">
-                        Already have an account?{" "}
-                        <Link href="/login" className="font-semibold text-primary hover:text-bg-primary/90">
-                            Login Now
-                        </Link>
-                    </p>
+                        <p className="text-xs text-muted-foreground">Contact support if you don&apos;t have an invitation code.</p>
+
+                        <div className="flex items-start gap-3">
+                            <Checkbox id="terms" disabled={isLoading} required />
+                            <Label htmlFor="terms" className="text-sm font-normal cursor-pointer">
+                                I agree to the{" "}
+                                <a href="#" className="font-semibold text-primary hover:text-primary/80">Terms of Service</a>
+                                {" "}and{" "}
+                                <a href="#" className="font-semibold text-primary hover:text-primary/80">Privacy Policy</a>
+                            </Label>
+                        </div>
+
+                        <Button type="submit" disabled={isLoading} className="w-full">
+                            {isLoading ? <><Loader2 className="mr-2 size-4 animate-spin" /> Creating Account…</> : "Create Account"}
+                        </Button>
+                    </form>
+
+                    <div className="mt-8">
+                        <div className="relative flex items-center gap-4">
+                            <div className="flex-1 border-t" />
+                            <p className="text-nowrap text-sm text-muted-foreground">Or continue with</p>
+                            <div className="flex-1 border-t" />
+                        </div>
+                        <div className="mt-5 grid grid-cols-2 gap-4">
+                            <Button type="button" variant="outline" className="gap-2">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+                                    <path d="M12.0003 4.75C13.7703 4.75 15.3553 5.36002 16.6053 6.54998L20.0303 3.125C17.9502 1.19 15.2353 0 12.0003 0C7.31028 0 3.25527 2.69 1.28027 6.60998L5.27028 9.70498C6.21525 6.86002 8.87028 4.75 12.0003 4.75Z" fill="#EA4335" />
+                                    <path d="M23.49 12.275C23.49 11.49 23.415 10.73 23.3 10H12V14.51H18.47C18.18 15.99 17.34 17.25 16.08 18.1L19.945 21.1C22.2 19.01 23.49 15.92 23.49 12.275Z" fill="#4285F4" />
+                                    <path d="M5.26498 14.2949C5.02498 13.5699 4.88501 12.7999 4.88501 11.9999C4.88501 11.1999 5.01998 10.4299 5.26498 9.7049L1.275 6.60986C0.46 8.22986 0 10.0599 0 11.9999C0 13.9399 0.46 15.7699 1.28 17.3899L5.26498 14.2949Z" fill="#FBBC05" />
+                                    <path d="M12.0004 24.0001C15.2404 24.0001 17.9654 22.935 19.9454 21.095L16.0804 18.095C15.0054 18.82 13.6204 19.245 12.0004 19.245C8.8704 19.245 6.21537 17.135 5.2654 14.29L1.27539 17.385C3.25539 21.31 7.3104 24.0001 12.0004 24.0001Z" fill="#34A853" />
+                                </svg>
+                                Google
+                            </Button>
+                            <Button type="button" variant="outline" className="gap-2">
+                                <svg fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" className="size-4">
+                                    <path fillRule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clipRule="evenodd" />
+                                </svg>
+                                GitHub
+                            </Button>
+                        </div>
+                    </div>
                 </div>
+
+                <p className="mt-8 text-center text-sm text-muted-foreground">
+                    Already have an account?{" "}
+                    <Link href="/login" className="font-semibold text-primary hover:text-primary/80">Login Now</Link>
+                </p>
             </div>
-        </>
-    )
+        </div>
+    );
 }

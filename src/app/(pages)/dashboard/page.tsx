@@ -27,9 +27,5 @@ export default function Dashboard() {
         }
     };
 
-    return (
-        <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
-            {renderView()}
-        </div>
-    );
+    return renderView();
 }

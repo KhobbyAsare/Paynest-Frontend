@@ -89,39 +89,39 @@ const social: SocialItem[] = [
 
 export default function NotFound() {
     return (
-        <div className="bg-white">
+        <div className="bg-background">
             <main className="mx-auto w-full max-w-7xl px-6 pt-10 pb-16 sm:pb-24 lg:px-8">
                 <div className="flex items-center justify-center gap-3">
                     <Wallet size={32} className="text-primary" />
                     <span className="text-4xl font-bold text-primary">Paynest</span>
                 </div>
                 <div className="mx-auto mt-6 max-w-2xl text-center">
-                    <h1 className="mt-4 text-5xl font-semibold tracking-tight text-balance text-gray-900 sm:text-6xl">
+                    <h1 className="mt-4 text-5xl font-semibold tracking-tight text-balance text-foreground sm:text-6xl">
                         This page does not exist
                     </h1>
-                    <p className="mt-6 text-lg font-medium text-pretty text-gray-500 sm:text-xl/8">
+                    <p className="mt-6 text-lg font-medium text-pretty text-muted-foreground sm:text-xl/8">
                         Sorry, we couldn’t find the page you’re looking for.
                     </p>
                 </div>
                 <div className="mx-auto mt-16 flow-root max-w-lg sm:mt-20">
                     <h2 className="sr-only">Popular pages</h2>
-                    <ul role="list" className="-mt-6 divide-y divide-gray-900/5 border-b border-gray-900/5">
+                    <ul role="list" className="-mt-6 divide-y divide-border border-b">
                         {links.map((link, linkIdx) => (
                             <li key={linkIdx} className="relative flex gap-x-6 py-6">
-                                <div className="flex size-10 flex-none items-center justify-center rounded-lg shadow-xs outline-1 outline-gray-900/10">
+                                <div className="flex size-10 flex-none items-center justify-center rounded-lg shadow-xs outline-1 outline-border">
                                     <link.icon aria-hidden="true" className="size-6 text-primary" />
                                 </div>
                                 <div className="flex-auto">
-                                    <h3 className="text-sm/6 font-semibold text-gray-900">
+                                    <h3 className="text-sm/6 font-semibold text-foreground">
                                         <a href={link.href}>
                                             <span aria-hidden="true" className="absolute inset-0" />
                                             {link.name}
                                         </a>
                                     </h3>
-                                    <p className="mt-2 text-sm/6 text-gray-600">{link.description}</p>
+                                    <p className="mt-2 text-sm/6 text-muted-foreground">{link.description}</p>
                                 </div>
                                 <div className="flex-none self-center">
-                                    <ChevronRightIcon aria-hidden="true" className="size-5 text-gray-400" />
+                                    <ChevronRightIcon aria-hidden="true" className="size-5 text-muted-foreground" />
                                 </div>
                             </li>
                         ))}
@@ -133,13 +133,13 @@ export default function NotFound() {
                     </div>
                 </div>
             </main>
-            <footer className="border-t border-gray-100 py-6 sm:py-10">
+            <footer className="border-t py-6 sm:py-10">
                 <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-8 px-6 sm:flex-row lg:px-8">
-                    <p className="text-sm/7 text-gray-400">&copy; Your Company, Inc. All rights reserved.</p>
-                    <div className="hidden sm:block sm:h-7 sm:w-px sm:flex-none sm:bg-gray-200" />
+                    <p className="text-sm/7 text-muted-foreground">&copy; Paynest, Inc. All rights reserved.</p>
+                    <div className="hidden sm:block sm:h-7 sm:w-px sm:flex-none sm:bg-border" />
                     <div className="flex gap-x-4">
                         {social.map((item, itemIdx) => (
-                            <a key={itemIdx} href={item.href} className="text-gray-400 hover:text-gray-500">
+                            <a key={itemIdx} href={item.href} className="text-muted-foreground hover:text-foreground transition-colors">
                                 <span className="sr-only">{item.name}</span>
                                 <item.icon aria-hidden="true" className="size-6" />
                             </a>

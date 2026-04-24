@@ -8,7 +8,9 @@ import { handleErrorMessage } from '@/utils/handleErrorMessage';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { RefreshCcw, Bell, Mail, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, CheckCircle2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Bell, Mail, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, CheckCircle2 } from 'lucide-react';
 
 interface NotificationSetting {
     id: keyof Omit<NotificationPreferences, 'updated_at'>;
@@ -26,7 +28,7 @@ const notificationMeta: NotificationSetting[] = [
         inAppKey: 'new_order_in_app',
         title: 'New Orders',
         description: 'Get notified when a new order or walk-in sale is placed.',
-        icon: <ShoppingCart className="size-4 text-blue-500" />,
+        icon: <ShoppingCart className="size-4 text-info" />,
     },
     {
         id: 'low_stock_email',
@@ -34,7 +36,7 @@ const notificationMeta: NotificationSetting[] = [
         inAppKey: 'low_stock_in_app',
         title: 'Low Stock Alerts',
         description: 'Receive alerts when a product falls below its reorder level.',
-        icon: <Package className="size-4 text-amber-500" />,
+        icon: <Package className="size-4 text-warning-foreground" />,
     },
     {
         id: 'daily_closure_email',
@@ -42,7 +44,7 @@ const notificationMeta: NotificationSetting[] = [
         inAppKey: 'daily_closure_in_app',
         title: 'Daily Closure Reminders',
         description: 'Reminder to complete the end-of-day closure before closing.',
-        icon: <CheckCircle2 className="size-4 text-emerald-500" />,
+        icon: <CheckCircle2 className="size-4 text-success" />,
     },
     {
         id: 'report_ready_email',
@@ -50,7 +52,7 @@ const notificationMeta: NotificationSetting[] = [
         inAppKey: 'report_ready_in_app',
         title: 'Report Ready',
         description: 'Notification when a requested report has been generated.',
-        icon: <TrendingUp className="size-4 text-purple-500" />,
+        icon: <TrendingUp className="size-4 text-primary" />,
     },
     {
         id: 'user_activity_email',
@@ -58,7 +60,7 @@ const notificationMeta: NotificationSetting[] = [
         inAppKey: 'user_activity_in_app',
         title: 'User Activity',
         description: 'Alerts for new user registrations or role changes in your org.',
-        icon: <Users className="size-4 text-indigo-500" />,
+        icon: <Users className="size-4 text-primary" />,
     },
     {
         id: 'system_alerts_email',
@@ -66,7 +68,7 @@ const notificationMeta: NotificationSetting[] = [
         inAppKey: 'system_alerts_in_app',
         title: 'System Alerts',
         description: 'Critical system messages and security-related notifications.',
-        icon: <AlertTriangle className="size-4 text-rose-500" />,
+        icon: <AlertTriangle className="size-4 text-destructive" />,
     },
 ];
 
@@ -111,91 +113,76 @@ export default function NotificationsSettingsPage() {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
-                <RefreshCcw className="size-6 animate-spin text-slate-400" />
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
-            <div className="mt-8 max-w-2xl space-y-4 mx-auto">
-                <PageHeader
-                    title="Notification Preferences"
-                    description="Choose how and when you want to be notified."
-                />
+        <div className="flex flex-col gap-6">
+            <PageHeader
+                title="Notification Preferences"
+                description="Choose how and when you want to be notified."
+            />
 
-                {/* Channel header */}
-                <div className="hidden sm:grid grid-cols-[1fr_80px_80px] gap-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                    <span>Notification</span>
-                    <span className="text-center flex items-center justify-center gap-1">
-                        <Mail className="size-3" /> Email
-                    </span>
-                    <span className="text-center flex items-center justify-center gap-1">
-                        <Bell className="size-3" /> In-App
-                    </span>
-                </div>
+            {/* Channel header */}
+            <div className="hidden sm:grid grid-cols-[1fr_80px_80px] gap-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <span>Notification</span>
+                <span className="text-center flex items-center justify-center gap-1">
+                    <Mail className="size-3" /> Email
+                </span>
+                <span className="text-center flex items-center justify-center gap-1">
+                    <Bell className="size-3" /> In-App
+                </span>
+            </div>
 
-                <Card className="rounded-2xl border-slate-100 shadow-sm divide-y divide-slate-50">
-                    {notificationMeta.map((item) => (
+            <Card className="rounded-2xl overflow-hidden divide-y">
+                {loading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_80px_80px] gap-4 items-center px-6 py-5">
+                            <div className="flex items-start gap-3">
+                                <Skeleton className="size-8 rounded-lg shrink-0" />
+                                <div className="flex-1 space-y-2">
+                                    <Skeleton className="h-3.5 w-1/3" />
+                                    <Skeleton className="h-3 w-2/3" />
+                                </div>
+                            </div>
+                            <Skeleton className="h-5 w-9 rounded-full mx-auto" />
+                            <Skeleton className="h-5 w-9 rounded-full mx-auto" />
+                        </div>
+                    ))
+                ) : (
+                    notificationMeta.map((item) => (
                         <div key={item.id} className="grid grid-cols-1 sm:grid-cols-[1fr_80px_80px] gap-4 items-center px-6 py-5">
                             <div className="flex items-start gap-3">
-                                <div className="mt-0.5 size-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
+                                <div className="mt-0.5 size-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
                                     {item.icon}
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-slate-900">{item.title}</p>
-                                    <p className="text-xs text-slate-400 mt-0.5">{item.description}</p>
+                                    <p className="text-sm font-medium text-foreground">{item.title}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                                 </div>
                             </div>
 
-                            {/* Email toggle */}
                             <div className="flex sm:justify-center items-center gap-2 sm:gap-0">
-                                <span className="text-xs text-slate-400 sm:hidden">Email:</span>
-                                <button
-                                    type="button"
-                                    onClick={() => toggle(item.emailKey)}
-                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                                        prefs[item.emailKey] ? 'bg-primary' : 'bg-slate-200'
-                                    }`}
-                                    role="switch"
-                                    aria-checked={prefs[item.emailKey]}
-                                >
-                                    <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ${prefs[item.emailKey] ? 'translate-x-4' : 'translate-x-0'}`} />
-                                </button>
+                                <span className="text-xs text-muted-foreground sm:hidden">Email:</span>
+                                <Switch
+                                    checked={prefs[item.emailKey] as boolean}
+                                    onCheckedChange={() => toggle(item.emailKey)}
+                                />
                             </div>
 
-                            {/* In-App toggle */}
                             <div className="flex sm:justify-center items-center gap-2 sm:gap-0">
-                                <span className="text-xs text-slate-400 sm:hidden">In-App:</span>
-                                <button
-                                    type="button"
-                                    onClick={() => toggle(item.inAppKey)}
-                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                                        prefs[item.inAppKey] ? 'bg-primary' : 'bg-slate-200'
-                                    }`}
-                                    role="switch"
-                                    aria-checked={prefs[item.inAppKey]}
-                                >
-                                    <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ${prefs[item.inAppKey] ? 'translate-x-4' : 'translate-x-0'}`} />
-                                </button>
+                                <span className="text-xs text-muted-foreground sm:hidden">In-App:</span>
+                                <Switch
+                                    checked={prefs[item.inAppKey] as boolean}
+                                    onCheckedChange={() => toggle(item.inAppKey)}
+                                />
                             </div>
                         </div>
-                    ))}
-                </Card>
+                    ))
+                )}
+            </Card>
 
-                <div className="flex justify-end pt-2">
-                    <Button onClick={handleSave} disabled={saving} className="min-w-[140px]">
-                        {saving ? (
-                            <span className="flex items-center gap-2">
-                                <RefreshCcw className="size-4 animate-spin" />
-                                Saving…
-                            </span>
-                        ) : 'Save Preferences'}
-                    </Button>
-                </div>
+            <div className="flex justify-end">
+                <Button onClick={handleSave} disabled={saving || loading} className="min-w-[140px]">
+                    {saving ? 'Saving…' : 'Save Preferences'}
+                </Button>
             </div>
         </div>
     );

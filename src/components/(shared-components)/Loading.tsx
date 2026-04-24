@@ -25,13 +25,13 @@ export default function Loading({
     const content = (
         <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
             <Loader2 className={`${sizeClasses[size]} animate-spin text-primary`} />
-            {text && <p className="text-sm font-medium text-gray-500">{text}</p>}
+            {text && <p className="text-sm font-medium text-muted-foreground">{text}</p>}
         </div>
     )
 
     if (fullPage) {
         return (
-            <div className="fixed inset-0 z-9999 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/80 backdrop-blur-sm">
                 {content}
             </div>
         )

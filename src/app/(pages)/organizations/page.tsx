@@ -1,82 +1,97 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
-import PageHeader from "@/components/(shared-components)/PageHeader";
+
 import { useState, useEffect } from "react";
 import { OrganizationResponse } from "@/interfaces/organization";
-import { Button, Input, message, Tag, Dropdown, Modal } from "antd";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+    getAllOrganizations, changeOrganizationPlanType, deleteOrganization,
+} from "@/(api-handlers)/organizationHandler";
+import PageHeader from "@/components/(shared-components)/PageHeader";
+import Pagination from "@/components/(shared-components)/Pagination";
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { SearchOutlined, PlusOutlined, MoreOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import { getAllOrganizations, changeOrganizationPlanType, deleteOrganization } from "@/(api-handlers)/organizationHandler";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search, Plus, MoreHorizontal, Pencil, Trash2, Building2, RefreshCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Loading from "@/components/(shared-components)/Loading";
-import EmptyState from "@/components/(shared-components)/EmptyState";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-export default function SuperAdminDashboardView() {
-    const [organizations, setOrganizations] = useState<OrganizationResponse[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [searchText, setSearchText] = useState<string>('');
-    const [filteredOrganizations, setFilteredOrganizations] = useState<OrganizationResponse[]>([]);
-    const [currentPage, setCurrentPage] = useState<number>(1);
-    const [itemsPerPage] = useState<number>(10);
-    const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(null);
-    const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-    const [isChangePlanModalVisible, setIsChangePlanModalVisible] = useState(false);
-    const [newPlan, setNewPlan] = useState<string>('');
-    const [actionLoading, setActionLoading] = useState(false);
+const ITEMS_PER_PAGE = 10;
+
+const PLAN_COLORS: Record<string, string> = {
+    free:       'border-border bg-muted text-muted-foreground',
+    basic:      'border-primary/20 bg-primary/10 text-primary',
+    pro:        'border-info/30 bg-info/10 text-info',
+    enterprise: 'border-warning/30 bg-warning/10 text-warning-foreground',
+    starter:    'border-border bg-muted text-muted-foreground',
+    professional: 'border-info/30 bg-info/10 text-info',
+};
+
+export default function OrganizationsPage() {
     const router = useRouter();
+    const [organizations, setOrganizations] = useState<OrganizationResponse[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchText, setSearchText] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(null);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isChangePlanOpen, setIsChangePlanOpen] = useState(false);
+    const [newPlan, setNewPlan] = useState('');
+    const [actionLoading, setActionLoading] = useState(false);
 
     const fetchOrganizations = async () => {
         setLoading(true);
         try {
-            const data = await getAllOrganizations();
-            setOrganizations(data);
-            setFilteredOrganizations(data);
-        } catch (error: any) {
-            message.error('Failed to fetch organizations');
-            console.error(error);
+            setOrganizations(await getAllOrganizations());
+        } catch {
+            toast.error('Failed to fetch organizations');
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchOrganizations();
-    }, []);
+    useEffect(() => { fetchOrganizations(); }, []);
+    useEffect(() => { setCurrentPage(1); }, [searchText]);
 
-    useEffect(() => {
-        const filtered = organizations.filter(org =>
-            org.name.toLowerCase().includes(searchText.toLowerCase()) ||
-            org.email.toLowerCase().includes(searchText.toLowerCase()) ||
-            org.phone_number.toLowerCase().includes(searchText.toLowerCase())
-        );
-        setFilteredOrganizations(filtered);
-        setCurrentPage(1); // Reset to first page on search
-    }, [searchText, organizations]);
+    const filtered = organizations.filter(org =>
+        `${org.name} ${org.email} ${org.phone_number}`
+            .toLowerCase()
+            .includes(searchText.toLowerCase())
+    );
 
-    // Pagination calculations
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentOrganizations = filteredOrganizations.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(filteredOrganizations.length / itemsPerPage);
-
-    const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    const current = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     const handleDelete = async () => {
         if (!selectedOrg) return;
         setActionLoading(true);
         try {
             await deleteOrganization(selectedOrg.id);
-            message.success('Organization deleted successfully');
+            toast.success('Organization deleted successfully');
             fetchOrganizations();
-            setIsDeleteModalVisible(false);
-        } catch (error) {
-            message.error('Failed to delete organization');
+            setIsDeleteOpen(false);
+        } catch {
+            toast.error('Failed to delete organization');
         } finally {
             setActionLoading(false);
         }
@@ -87,246 +102,211 @@ export default function SuperAdminDashboardView() {
         setActionLoading(true);
         try {
             await changeOrganizationPlanType(selectedOrg.id, newPlan);
-            message.success(`Plan changed to ${newPlan} successfully`);
+            toast.success(`Plan changed to ${newPlan} successfully`);
             fetchOrganizations();
-            setIsChangePlanModalVisible(false);
-        } catch (error) {
-            message.error('Failed to change plan');
+            setIsChangePlanOpen(false);
+        } catch {
+            toast.error('Failed to change plan');
         } finally {
             setActionLoading(false);
         }
     };
 
-
     return (
-        <div>
-            <PageHeader title="Organizations" description="Manage and monitor all platform organizations in one place." />
+        <div className="flex flex-col gap-6">
+            <PageHeader
+                title="Organizations"
+                description="Manage and monitor all platform organizations in one place."
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="size-9" onClick={fetchOrganizations} disabled={loading}>
+                            <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
+                        </Button>
+                        <Button onClick={() => router.push('/organizations/create')}>
+                            <Plus className="mr-2 size-4" /> Add Organization
+                        </Button>
+                    </div>
+                }
+            />
 
-            <div className="flex justify-between items-center mb-6 ">
-                <div className="md:w-[500px]! w-full!">
-                    <Input
-                        placeholder="Search organizations..."
-                        prefix={<SearchOutlined />}
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        className="w-full"
-                    />
-                </div>
-
-                <button className="bg-primary text-white rounded-md flex items-center gap-2 text-sm w-fit p-2" onClick={() => router.push('/organizations/create')}>
-                    <PlusOutlined /> Add Organization
-                </button>
+            <div className="relative max-w-sm">
+                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <Input
+                    placeholder="Search organizations…"
+                    className="h-9 pl-9"
+                    value={searchText}
+                    onChange={e => setSearchText(e.target.value)}
+                />
             </div>
 
-            <div className="mt-8 bg-white p-4 rounded-md border flow-root">
-                <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                    <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                        <table className="relative min-w-full divide-y divide-gray-300">
-                            <thead>
-                                <tr>
-                                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">
-                                        Organization Name
-                                    </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                        Description
-                                    </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                        Address
-                                    </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                        Email
-                                    </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                        Plan
-                                    </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                        Shops/Users
-                                    </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                        Status
-                                    </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                        Created At
-                                    </th>
-                                    <th scope="col" className="relative py-3.5 pl-3 pr-4 text-left text-sm font-semibold text-gray-900 sm:pr-0">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan={9} className="py-10">
-                                            <Loading text="Fetching organizations..." />
-                                        </td>
-                                    </tr>
-                                ) : filteredOrganizations.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={9} className="py-10">
-                                            <EmptyState
-                                                title={searchText ? "No organizations match your search" : "No organizations found"}
-                                                description={searchText ? `No results for "${searchText}". Try a different keyword.` : "There are currently no organizations in the system."}
-                                                onAction={() => router.push('/organizations/create')}
-                                                actionText="Add Organization"
-                                            />
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    currentOrganizations.map((org) => (
-                                        <tr key={org.id}>
-                                            <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                                                {org.name}
-                                            </td>
-                                            <td className="whitespace-wrap px-3 py-4 text-sm text-gray-500">{org.description}</td>
-                                            <td className="whitespace-wrap px-3 py-4 text-sm text-gray-500">{org.address}</td>
-                                            <td className="whitespace-wrap px-3 py-4 text-sm text-gray-500">{org.email}</td>
-                                            <td className="whitespace-wrap px-3 py-4 text-sm text-gray-500">
-                                                <Tag color="blue" className="capitalize">{org.plan_type}</Tag>
-                                            </td>
-                                            <td className="whitespace-wrap px-3 py-4 text-sm text-gray-500">
-                                                S: {org.max_shops} / U: {org.max_users}
-                                            </td>
-                                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                <Tag color={org.is_active ? 'green' : 'red'}>
-                                                    {org.is_active ? 'Active' : 'Inactive'}
-                                                </Tag>
-                                            </td>
-                                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                {new Date(org.created_at).toLocaleDateString()}
-                                            </td>
-                                            <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                                                <Dropdown
-                                                    menu={{
-                                                        items: [
-                                                            { key: 'changePlan', label: 'Change Plan', icon: <EditOutlined /> },
-                                                            { key: 'delete', label: 'Delete', icon: <DeleteOutlined />, danger: true },
-                                                        ],
-                                                        onClick: ({ key }) => {
-                                                            setSelectedOrg(org);
-                                                            if (key === 'changePlan') {
-                                                                setNewPlan(org.plan_type);
-                                                                setIsChangePlanModalVisible(true);
-                                                            } else if (key === 'delete') {
-                                                                setIsDeleteModalVisible(true);
-                                                            }
-                                                        }
-                                                    }}
-                                                    trigger={['click']}
+            <Card className="gap-0 overflow-hidden p-0">
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="pl-6">Name</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Plan</TableHead>
+                                <TableHead>Shops / Users</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Created</TableHead>
+                                <TableHead className="pr-6 w-[60px] text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                Array.from({ length: 6 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        {Array.from({ length: 8 }).map((_, j) => (
+                                            <TableCell key={j}><Skeleton className="h-5 w-full rounded" /></TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : current.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="py-20 text-center">
+                                        <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
+                                            <Building2 className="text-muted-foreground size-7" />
+                                        </div>
+                                        <p className="text-foreground font-semibold">No organizations found</p>
+                                        <p className="text-muted-foreground mt-1 text-sm">
+                                            {searchText ? 'Try a different search term.' : 'Create your first organization to get started.'}
+                                        </p>
+                                    </TableCell>
+                                </TableRow>
+                            ) : current.map(org => (
+                                <TableRow key={org.id}>
+                                    <TableCell className="pl-6 font-semibold">{org.name}</TableCell>
+                                    <TableCell className="text-muted-foreground max-w-xs line-clamp-1 text-sm">
+                                        {org.description || '—'}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground text-sm">{org.email}</TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            variant="outline"
+                                            className={cn("capitalize rounded-full text-xs", PLAN_COLORS[org.plan_type] ?? 'border-border bg-muted text-muted-foreground')}
+                                        >
+                                            {org.plan_type}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground text-sm">
+                                        {org.max_shops} shops / {org.max_users} users
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            variant="outline"
+                                            className={cn(
+                                                "rounded-full text-xs",
+                                                org.is_active
+                                                    ? "border-success/30 bg-success/10 text-success"
+                                                    : "border-destructive/30 bg-destructive/10 text-destructive"
+                                            )}
+                                        >
+                                            {org.is_active ? 'Active' : 'Inactive'}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground text-sm">
+                                        {new Date(org.created_at).toLocaleDateString()}
+                                    </TableCell>
+                                    <TableCell className="pr-6 text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="size-8">
+                                                    <MoreHorizontal className="size-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => {
+                                                    setSelectedOrg(org);
+                                                    setNewPlan(org.plan_type);
+                                                    setIsChangePlanOpen(true);
+                                                }}>
+                                                    <Pencil className="mr-2 size-4" /> Change Plan
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onClick={() => { setSelectedOrg(org); setIsDeleteOpen(true); }}
                                                 >
-                                                    <Button type="text" icon={<MoreOutlined rotate={90} />} />
-                                                </Dropdown>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                                    <Trash2 className="mr-2 size-4" /> Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
 
-                {/* Pagination Controls */}
-                {filteredOrganizations.length > itemsPerPage && (
-                    <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4">
-                        <div className="flex flex-1 justify-between sm:hidden">
-                            <button
-                                onClick={() => paginate(Math.max(1, currentPage - 1))}
-                                disabled={currentPage === 1}
-                                className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                            >
-                                Previous
-                            </button>
-                            <button
-                                onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                                disabled={currentPage === totalPages}
-                                className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                            >
-                                Next
-                            </button>
-                        </div>
-                        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                            <div>
-                                <p className="text-sm text-gray-700">
-                                    Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
-                                    <span className="font-medium">{Math.min(indexOfLastItem, filteredOrganizations.length)}</span> of{' '}
-                                    <span className="font-medium">{filteredOrganizations.length}</span> results
-                                </p>
-                            </div>
-                            <div>
-                                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                                    <button
-                                        onClick={() => paginate(Math.max(1, currentPage - 1))}
-                                        disabled={currentPage === 1}
-                                        className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                                    >
-                                        <span className="sr-only">Previous</span>
-                                        <svg className="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                            <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0">
-                                        Page {currentPage} of {totalPages}
-                                    </span>
-                                    <button
-                                        onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                                        disabled={currentPage === totalPages}
-                                        className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                                    >
-                                        <span className="sr-only">Next</span>
-                                        <svg className="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                            <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </nav>
-                            </div>
-                        </div>
+                {!loading && filtered.length > ITEMS_PER_PAGE && (
+                    <div className="border-border border-t px-6 py-3">
+                        <Pagination
+                            page={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            total={filtered.length}
+                            isLoading={loading}
+                        />
                     </div>
                 )}
-            </div>
+            </Card>
 
-            {/* Change Plan Modal */}
-            <Modal
-                title="Change Organization Plan"
-                open={isChangePlanModalVisible}
-                onOk={handleChangePlan}
-                onCancel={() => setIsChangePlanModalVisible(false)}
-                confirmLoading={actionLoading}
-            >
-                <div className="py-4">
-                    <p className="mb-2 text-sm text-gray-600">Select new plan for <strong>{selectedOrg?.name}</strong>:</p>
-                    <Select
-                        value={newPlan}
-                        onValueChange={(value) => setNewPlan(value)}
-                    >
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select a plan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="free">Free</SelectItem>
-                            <SelectItem value="basic">Basic</SelectItem>
-                            <SelectItem value="pro">Pro</SelectItem>
-                            <SelectItem value="enterprise">Enterprise</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </Modal>
+            {/* Change Plan Dialog */}
+            <Dialog open={isChangePlanOpen} onOpenChange={open => !open && setIsChangePlanOpen(false)}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Change Organization Plan</DialogTitle>
+                        <DialogDescription>
+                            Select a new plan for <strong>{selectedOrg?.name}</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                        <Label>New Plan</Label>
+                        <Select value={newPlan} onValueChange={setNewPlan}>
+                            <SelectTrigger><SelectValue placeholder="Select a plan" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="free">Free</SelectItem>
+                                <SelectItem value="starter">Starter</SelectItem>
+                                <SelectItem value="basic">Basic</SelectItem>
+                                <SelectItem value="professional">Professional</SelectItem>
+                                <SelectItem value="pro">Pro</SelectItem>
+                                <SelectItem value="enterprise">Enterprise</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsChangePlanOpen(false)}>Cancel</Button>
+                        <Button onClick={handleChangePlan} disabled={actionLoading || !newPlan}>
+                            {actionLoading ? 'Saving…' : 'Save Changes'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
-            {/* Delete Confirmation Modal */}
-            <Modal
-                title="Confirm Deletion"
-                open={isDeleteModalVisible}
-                onOk={handleDelete}
-                onCancel={() => setIsDeleteModalVisible(false)}
-                confirmLoading={actionLoading}
-                okText="Delete"
-                cancelText="Discard"
-                okButtonProps={{ danger: true }}
-            >
-                <div className="py-4 text-center">
-                    <DeleteOutlined className="text-red-500 text-5xl mb-4" />
-                    <p>Are you sure you want to delete <strong>{selectedOrg?.name}</strong>?</p>
-                    <p className="text-gray-500 text-sm mt-2">This action cannot be undone and will remove all associated data.</p>
-                </div>
-            </Modal>
-        </div >
-    )
+            {/* Delete Confirmation */}
+            <AlertDialog open={isDeleteOpen} onOpenChange={open => !open && setIsDeleteOpen(false)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Organization</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete <strong>{selectedOrg?.name}</strong>?
+                            This action cannot be undone and will remove all associated data.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={handleDelete}
+                            disabled={actionLoading}
+                        >
+                            {actionLoading ? 'Deleting…' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
+    );
 }

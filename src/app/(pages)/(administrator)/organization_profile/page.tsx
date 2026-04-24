@@ -1,234 +1,208 @@
 "use client"
 
 import { useEffect, useState, useCallback } from 'react';
-import { Form, Input, Card, Row, Col, Button, message, Divider } from 'antd';
-import { Building2, Mail, Phone, MapPin, Save, Info } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Building2, Mail, Phone, MapPin, Save, Info, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/(zustand-store)/authStore';
 import { getOrganizationProfileByOrgId, updateOrganizationProfile } from '@/(api-handlers)/organizationProfileHandler';
 import { OrganizationResponse } from '@/interfaces/organization';
 import PageHeader from '@/components/(shared-components)/PageHeader';
-import Loading from '@/components/(shared-components)/Loading';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import axios from 'axios';
 
-const { TextArea } = Input;
+const schema = z.object({
+    name:         z.string().min(1, 'Organization name is required'),
+    email:        z.string().email('Invalid email format'),
+    phone_number: z.string().min(1, 'Phone number is required'),
+    address:      z.string().min(1, 'Address is required'),
+    description:  z.string().optional(),
+});
+type FormValues = z.infer<typeof schema>;
 
 export default function OrganizationProfile() {
     const { user } = useAuthStore();
-    const [form] = Form.useForm<OrganizationResponse>();
+    const organizationId = user?.organization?.id || user?.employee_profile?.organization_id;
+
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [originalData, setOriginalData] = useState<OrganizationResponse | null>(null);
-    const [isChanged, setIsChanged] = useState(false);
 
-    const organizationId = user?.organization?.id || user?.employee_profile?.organization_id;
+    const {
+        register, handleSubmit, reset, formState: { errors, isDirty },
+    } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
     const fetchProfile = useCallback(async () => {
-        if (!organizationId) {
-            setLoading(false);
-            return;
-        }
+        if (!organizationId) { setLoading(false); return; }
         setLoading(true);
         try {
             const data = await getOrganizationProfileByOrgId(organizationId);
-            const profileData = Array.isArray(data) ? data[0] : data;
-
-            if (profileData) {
-                setOriginalData(profileData);
-                form.setFieldsValue(profileData);
+            const profile = Array.isArray(data) ? data[0] : data;
+            if (profile) {
+                setOriginalData(profile);
+                reset({
+                    name:         profile.name,
+                    email:        profile.email,
+                    phone_number: profile.phone_number,
+                    address:      profile.address,
+                    description:  profile.description || '',
+                });
             }
         } catch (error: unknown) {
-            let errorMessage = 'Failed to fetch organization profile';
-            if (axios.isAxiosError(error)) {
-                errorMessage = error.response?.data?.message || errorMessage;
-            }
-            message.error(errorMessage);
-            console.error(error);
+            const msg = axios.isAxiosError(error) ? error.response?.data?.message : undefined;
+            toast.error(msg || 'Failed to fetch organization profile');
         } finally {
             setLoading(false);
         }
-    }, [organizationId, form]);
+    }, [organizationId, reset]);
 
-    useEffect(() => {
-        fetchProfile();
-    }, [fetchProfile]);
+    useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
-    const onValuesChange = (_: unknown, allValues: Partial<OrganizationResponse>) => {
-        if (!originalData) return;
-
-        const hasChanged =
-            allValues.name !== originalData.name ||
-            (allValues.description || "") !== (originalData.description || "") ||
-            allValues.address !== originalData.address ||
-            allValues.email !== originalData.email ||
-            allValues.phone_number !== originalData.phone_number;
-
-        setIsChanged(hasChanged || false);
-    };
-
-    const handleUpdate = async (values: OrganizationResponse) => {
+    const onSubmit = async (values: FormValues) => {
         if (!organizationId) return;
         setUpdating(true);
         try {
-            await updateOrganizationProfile(organizationId, values);
-            message.success('Organization profile updated successfully');
-            setIsChanged(false);
+            await updateOrganizationProfile(organizationId, values as OrganizationResponse);
+            toast.success('Organization profile updated successfully');
             fetchProfile();
         } catch (error: unknown) {
-            let errorMessage = 'Failed to update profile';
-            if (axios.isAxiosError(error)) {
-                errorMessage = error.response?.data?.message || errorMessage;
-            }
-            message.error(errorMessage);
-            console.error(error);
+            const msg = axios.isAxiosError(error) ? error.response?.data?.message : undefined;
+            toast.error(msg || 'Failed to update profile');
         } finally {
             setUpdating(false);
         }
     };
 
-    if (loading) {
+    if (!organizationId) {
         return (
-            <div className="flex justify-center items-center h-[60vh]">
-                <Loading text="Loading organization profile..." />
+            <div className="flex flex-col gap-6">
+                <PageHeader title="Organization Profile" />
+                <div className="flex flex-col items-center py-20 text-center">
+                    <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
+                        <Info className="text-muted-foreground size-7" />
+                    </div>
+                    <p className="text-foreground font-semibold">Organization not found</p>
+                    <p className="text-muted-foreground mt-1 text-sm">Please log in again to continue.</p>
+                </div>
             </div>
         );
     }
 
-    if (!organizationId) {
-        return (
-            <div className="p-4">
-                <PageHeader title='Organization Profile' />
-                <Card className="text-center py-10 mt-6 border-gray-200">
-                    <Info className="size-10 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Organization identification not found. Please log in again.</p>
-                </Card>
-            </div>
-        )
-    }
-
     return (
-        <div className="max-w-4xl mx-auto p-4">
+        <div className="flex flex-col gap-6">
             <PageHeader
-                title='Organization Profile'
-                description='Manage and update your organization details.'
+                title="Organization Profile"
+                description="Manage and update your organization details."
             />
 
-            <Form
-                form={form}
-                layout="vertical"
-                onFinish={handleUpdate}
-                onValuesChange={onValuesChange}
-                className="mt-8"
-            >
-                <Card
-                    title={<div className="flex items-center gap-2"><Building2 className="size-5 text-primary" /> General Information</div>}
-                    className="shadow-sm border-gray-200"
-                >
-                    <Row gutter={24}>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="name"
-                                label="Organization Name"
-                                rules={[{ required: true, message: 'Please enter organization name' }]}
-                            >
-                                <Input placeholder="Acme Corp" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="email"
-                                label="Contact Email"
-                                rules={[
-                                    { required: true, message: 'Please enter contact email' },
-                                    { type: 'email', message: 'Invalid email format' }
-                                ]}
-                            >
-                                <Input placeholder="contact@acme.com" prefix={<Mail className="size-4 text-gray-400 mr-2" />} />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="phone_number"
-                                label="Phone Number"
-                                rules={[{ required: true, message: 'Please enter phone number' }]}
-                            >
-                                <Input placeholder="+233..." prefix={<Phone className="size-4 text-gray-400 mr-2" />} />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="address"
-                                label="Physical Address"
-                                rules={[{ required: true, message: 'Please enter address' }]}
-                            >
-                                <Input placeholder="123 Street, City" prefix={<MapPin className="size-4 text-gray-400 mr-2" />} />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24}>
-                            <Form.Item
-                                name="description"
-                                label="Description"
-                            >
-                                <TextArea rows={4} placeholder="A short description of your organization..." />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                </Card>
-
-                <Card
-                    title={<div className="flex items-center gap-2 mt-4"><Info className="size-5 text-gray-400" /> Subscription & Limits</div>}
-                    className="shadow-sm border-gray-200 mt-6 bg-gray-50/50"
-                >
-                    <p className="text-sm text-gray-500 mb-6 font-medium">Subscription details are managed by the platform administrator and cannot be modified here.</p>
-                    <Row gutter={24}>
-                        <Col xs={24} sm={12} md={6}>
-                            <Form.Item label="Currency" name="currency">
-                                <Input disabled className="bg-gray-100! text-gray-600 font-medium" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} sm={12} md={6}>
-                            <Form.Item label="Plan Type" name="plan_type">
-                                <Input disabled className="bg-gray-100! text-gray-600 font-medium capitalize" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} sm={12} md={6}>
-                            <Form.Item label="Max Shops" name="max_shops">
-                                <Input disabled className="bg-gray-100! text-gray-600 font-medium" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} sm={12} md={6}>
-                            <Form.Item label="Max Users" name="max_users">
-                                <Input disabled className="bg-gray-100! text-gray-600 font-medium" />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                    <Divider className="my-4" />
-                    <Row gutter={24}>
-                        <Col xs={24} md={12}>
-                            <Form.Item label="Created On" labelCol={{ span: 24 }}>
-                                <Input value={originalData?.created_at ? new Date(originalData.created_at).toLocaleString() : ''} disabled className="bg-gray-100! text-gray-600" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item label="Last Updated" labelCol={{ span: 24 }}>
-                                <Input value={originalData?.updated_at ? new Date(originalData.updated_at).toLocaleString() : ''} disabled className="bg-gray-100! text-gray-600" />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                </Card>
-
-                <div className="mt-8 flex justify-end">
-                    <Button
-                        type="primary"
-                        htmlType="submit"
-                        disabled={!isChanged || updating}
-                        loading={updating}
-                        icon={!updating && <Save className="size-4" />}
-                        className="bg-primary hover:bg-primary/90 min-w-[170px] h-11 flex items-center justify-center gap-2 rounded-md font-medium"
-                    >
-                        {updating ? 'Updating...' : 'Update Profile'}
-                    </Button>
+            {loading ? (
+                <div className="flex flex-col gap-6">
+                    <Skeleton className="h-64 rounded-2xl" />
+                    <Skeleton className="h-48 rounded-2xl" />
                 </div>
-            </Form>
+            ) : (
+                <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+                    {/* General Information */}
+                    <Card>
+                        <CardHeader className="border-b">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Building2 className="text-primary size-5" /> General Information
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="space-y-1.5">
+                                    <Label>Organization Name <span className="text-destructive">*</span></Label>
+                                    <Input {...register('name')} placeholder="Acme Corp" className={cn(errors.name && 'border-destructive')} />
+                                    {errors.name && <p className="text-destructive text-xs">{errors.name.message}</p>}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="flex items-center gap-1.5"><Mail className="size-3.5" /> Contact Email <span className="text-destructive">*</span></Label>
+                                    <Input {...register('email')} placeholder="contact@acme.com" className={cn(errors.email && 'border-destructive')} />
+                                    {errors.email && <p className="text-destructive text-xs">{errors.email.message}</p>}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="flex items-center gap-1.5"><Phone className="size-3.5" /> Phone Number <span className="text-destructive">*</span></Label>
+                                    <Input {...register('phone_number')} placeholder="+233..." className={cn(errors.phone_number && 'border-destructive')} />
+                                    {errors.phone_number && <p className="text-destructive text-xs">{errors.phone_number.message}</p>}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="flex items-center gap-1.5"><MapPin className="size-3.5" /> Physical Address <span className="text-destructive">*</span></Label>
+                                    <Input {...register('address')} placeholder="123 Street, City" className={cn(errors.address && 'border-destructive')} />
+                                    {errors.address && <p className="text-destructive text-xs">{errors.address.message}</p>}
+                                </div>
+                                <div className="md:col-span-2 space-y-1.5">
+                                    <Label>Description</Label>
+                                    <Textarea {...register('description')} placeholder="A short description of your organization..." className="resize-none" rows={4} />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Subscription Info (read-only) */}
+                    <Card className="bg-muted/30">
+                        <CardHeader className="border-b">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Info className="text-muted-foreground size-5" /> Subscription & Limits
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <p className="text-muted-foreground text-sm mb-5">
+                                Subscription details are managed by the platform administrator and cannot be modified here.
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                {[
+                                    { label: 'Currency',  value: originalData?.currency },
+                                    { label: 'Plan Type', value: originalData?.plan_type },
+                                    { label: 'Max Shops', value: String(originalData?.max_shops ?? '—') },
+                                    { label: 'Max Users', value: String(originalData?.max_users ?? '—') },
+                                ].map(row => (
+                                    <div key={row.label} className="space-y-1.5">
+                                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">{row.label}</Label>
+                                        <div className="bg-muted/50 rounded-md border px-3 py-2 text-sm font-medium capitalize">
+                                            {row.value || '—'}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <Separator className="my-5" />
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {[
+                                    { label: 'Created On',    value: originalData?.created_at ? new Date(originalData.created_at).toLocaleString() : '—' },
+                                    { label: 'Last Updated',  value: originalData?.updated_at ? new Date(originalData.updated_at).toLocaleString() : '—' },
+                                ].map(row => (
+                                    <div key={row.label} className="space-y-1.5">
+                                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">{row.label}</Label>
+                                        <div className="bg-muted/50 rounded-md border px-3 py-2 text-sm">
+                                            {row.value}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div className="flex justify-end">
+                        <Button type="submit" disabled={!isDirty || updating} className="min-w-[170px]">
+                            {updating
+                                ? <><Loader2 className="mr-2 size-4 animate-spin" /> Updating…</>
+                                : <><Save className="mr-2 size-4" /> Update Profile</>
+                            }
+                        </Button>
+                    </div>
+                </form>
+            )}
         </div>
     );
 }

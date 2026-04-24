@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import {
     FileText, Download, Calendar, Clock, CheckCircle, XCircle,
-    ArrowLeft, Printer, HardDrive, Info, Eye, Settings, BarChart2,
+    ArrowLeft, Printer, HardDrive, Info, Eye, Settings, BarChart2, RefreshCcw,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -13,17 +13,21 @@ import EmptyState from '@/components/(shared-components)/EmptyState';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+    Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from '@/components/ui/table';
+import { cn } from '@/lib/utils';
+import PageHeader from '@/components/(shared-components)/PageHeader';
 
-/* ---------------------------------------------------------------------- */
-/*  Helpers                                                                 */
-/* ---------------------------------------------------------------------- */
 const REPORT_TYPES = [
-    { value: 'daily_sales', label: 'Daily Sales Report' },
-    { value: 'monthly_financial', label: 'Monthly Financial Report' },
-    { value: 'inventory', label: 'Inventory Report' },
+    { value: 'daily_sales',          label: 'Daily Sales Report' },
+    { value: 'monthly_financial',    label: 'Monthly Financial Report' },
+    { value: 'inventory',            label: 'Inventory Report' },
     { value: 'employee_performance', label: 'Employee Performance Report' },
-    { value: 'customer_analytics', label: 'Customer Analytics Report' },
+    { value: 'customer_analytics',   label: 'Customer Analytics Report' },
 ];
 
 const formatFileSize = (bytes: number): string => {
@@ -34,32 +38,33 @@ const formatFileSize = (bytes: number): string => {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 };
 
-const STATUS_CONFIG: Record<string, { icon: React.ReactNode; text: string; bg: string; iconBg: string }> = {
-    pending: { icon: <Clock className="size-4" />, text: 'Pending Approval', bg: 'bg-amber-50', iconBg: 'bg-amber-100 text-amber-600' },
-    approved: { icon: <CheckCircle className="size-4" />, text: 'Approved', bg: 'bg-blue-50', iconBg: 'bg-blue-100 text-blue-600' },
-    processing: { icon: <Clock className="size-4" />, text: 'Processing', bg: 'bg-indigo-50', iconBg: 'bg-indigo-100 text-indigo-600' },
-    completed: { icon: <CheckCircle className="size-4" />, text: 'Completed', bg: 'bg-emerald-50', iconBg: 'bg-emerald-100 text-emerald-600' },
-    failed: { icon: <XCircle className="size-4" />, text: 'Failed', bg: 'bg-rose-50', iconBg: 'bg-rose-100 text-rose-600' },
-    rejected: { icon: <XCircle className="size-4" />, text: 'Rejected', bg: 'bg-rose-50', iconBg: 'bg-rose-100 text-rose-600' },
+const STATUS_CONFIG: Record<string, {
+    Icon: React.ElementType;
+    text: string;
+    badgeClass: string;
+}> = {
+    pending:    { Icon: Clock,         text: 'Pending Approval', badgeClass: 'border-warning/30 bg-warning/10 text-warning-foreground'    },
+    approved:   { Icon: CheckCircle,   text: 'Approved',         badgeClass: 'border-primary/20 bg-primary/10 text-primary'               },
+    processing: { Icon: Clock,         text: 'Processing',       badgeClass: 'border-info/30 bg-info/10 text-info'                        },
+    completed:  { Icon: CheckCircle,   text: 'Completed',        badgeClass: 'border-success/30 bg-success/10 text-success'               },
+    failed:     { Icon: XCircle,       text: 'Failed',           badgeClass: 'border-destructive/30 bg-destructive/10 text-destructive'   },
+    rejected:   { Icon: XCircle,       text: 'Rejected',         badgeClass: 'border-destructive/30 bg-destructive/10 text-destructive'   },
 };
 
 const STATUS_MESSAGES: Record<ReportStatus, string> = {
-    completed: 'This report has been successfully generated and is ready for analysis. You can download it in the format requested.',
-    pending: 'The generation request is currently awaiting administrator review. You will be notified once it is approved.',
-    approved: 'This report request has been approved and will begin processing shortly.',
-    processing: 'The report is currently being processed by our generation engine. This might take a few moments depending on the data size.',
-    failed: 'An error occurred while generating this report. Please try submitting a new request.',
-    rejected: 'This report request was rejected. See the rejection feedback below for more details.',
+    completed:  'This report has been successfully generated and is ready for analysis. You can download it in the format requested.',
+    pending:    'The generation request is currently awaiting administrator review. You will be notified once it is approved.',
+    approved:   'This report request has been approved and will begin processing shortly.',
+    processing: 'The report is currently being processed. This might take a few moments depending on the data size.',
+    failed:     'An error occurred while generating this report. Please try submitting a new request.',
+    rejected:   'This report request was rejected. See the rejection feedback below for more details.',
 };
 
-/* ---------------------------------------------------------------------- */
-/*  Page                                                                    */
-/* ---------------------------------------------------------------------- */
 export default function ReportDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const [report, setReport] = useState<ReportResponse | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [report, setReport]           = useState<ReportResponse | null>(null);
+    const [loading, setLoading]         = useState(true);
     const [downloading, setDownloading] = useState(false);
     const [previewData, setPreviewData] = useState<ReportPreviewData | null>(null);
 
@@ -72,11 +77,7 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                 const r = await getReportByID(Number.parseInt(id));
                 setReport(r);
                 if (r.status === 'completed' && PREVIEW_TYPES.includes(r.report_type)) {
-                    try {
-                        setPreviewData(await getReportPreview(r.id));
-                    } catch {
-                        // preview is optional — don't block the page
-                    }
+                    try { setPreviewData(await getReportPreview(r.id)); } catch { /* preview optional */ }
                 }
             } catch (error: unknown) {
                 handleErrorMessage(error, 'Failed to fetch report details');
@@ -101,20 +102,30 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
         }
     };
 
-    /* ---- Loading ---- */
     if (loading) {
         return (
-            <div className="h-screen flex flex-col items-center justify-center gap-3 text-slate-400 bg-slate-50/40">
-                <RefreshCcw className="size-6 animate-spin" />
-                <p className="text-sm font-medium">Loading report intelligence…</p>
+            <div className="flex flex-col gap-6">
+                <div className="flex items-center gap-4">
+                    <Skeleton className="size-9 rounded-lg" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-7 w-56" />
+                        <Skeleton className="h-4 w-40" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    <div className="space-y-6 lg:col-span-2">
+                        <Skeleton className="h-24 w-full rounded-xl" />
+                        <Skeleton className="h-48 w-full rounded-xl" />
+                    </div>
+                    <Skeleton className="h-64 w-full rounded-xl" />
+                </div>
             </div>
         );
     }
 
-    /* ---- Not found ---- */
     if (!report) {
         return (
-            <div className="p-8 min-h-screen">
+            <div className="flex flex-col gap-6">
                 <EmptyState
                     title="Report Not Found"
                     description="The report you are looking for might have been deleted or moved."
@@ -129,119 +140,97 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
     }
 
     const statusConf = STATUS_CONFIG[report.status] ?? STATUS_CONFIG.pending;
+    const { Icon: StatusIcon } = statusConf;
     const typeLabel = REPORT_TYPES.find(t => t.value === report.report_type)?.label ?? report.report_type;
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
-            {/* ---- Breadcrumb + Header ---- */}
-            <div className="max-w-7xl mx-auto mb-8">
-                {/* Breadcrumb */}
-                <nav className="flex items-center gap-1.5 text-xs text-slate-500 mb-4">
-                    <Link href="/report" className="hover:text-blue-600 transition-colors">Reports</Link>
-                    <span>/</span>
-                    <span className="text-slate-700 font-medium line-clamp-1">{report.report_name}</span>
-                </nav>
+        <div className="flex flex-col gap-6">
+            {/* Breadcrumb */}
+            <nav className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                <Link href="/report" className="hover:text-foreground transition-colors">Reports</Link>
+                <span>/</span>
+                <span className="text-foreground line-clamp-1 font-medium">{report.report_name}</span>
+            </nav>
 
-                {/* Title row */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                        <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-100 shrink-0">
-                            <FileText className="size-8 text-primary" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-slate-800 mb-1">{report.report_name}</h1>
-                            <div className="flex items-center gap-2 flex-wrap text-slate-500 text-sm">
-                                <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
-                                    {typeLabel}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <Calendar className="size-3" />
-                                    Requested {new Date(report.created_at).toLocaleDateString()}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <Clock className="size-3" />
-                                    {new Date(report.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Button variant="outline" onClick={() => globalThis.print()} className="gap-2 rounded-xl">
-                            <Printer className="size-4" /> Print Details
+            <PageHeader
+                title={report.report_name}
+                description={`${typeLabel} · Requested ${new Date(report.created_at).toLocaleDateString()}`}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => globalThis.print()} className="h-9">
+                            <Printer className="mr-2 size-4" /> Print
                         </Button>
                         <Button
+                            size="sm"
+                            className="h-9"
                             onClick={handleDownload}
                             disabled={downloading || report.status !== 'completed'}
-                            className="gap-2 rounded-xl px-6 shadow-md shadow-blue-100"
                         >
                             {downloading
-                                ? <><span className="size-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Downloading…</>
-                                : <><Download className="size-4" /> Download Report</>}
+                                ? <><RefreshCcw className="mr-2 size-4 animate-spin" /> Downloading…</>
+                                : <><Download className="mr-2 size-4" /> Download</>
+                            }
                         </Button>
                     </div>
-                </div>
-            </div>
+                }
+            />
 
-            {/* ---- Grid ---- */}
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                {/* ---- Left / Main ---- */}
-                <div className="lg:col-span-2 space-y-6">
-
-                    {/* Status Banner */}
-                    <div className={`${statusConf.bg} rounded-2xl p-5 flex items-start gap-4`}>
-                        <div className={`p-2 rounded-lg shrink-0 ${statusConf.iconBg}`}>
-                            {statusConf.icon}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Left — main content */}
+                <div className="space-y-6 lg:col-span-2">
+                    {/* Status banner */}
+                    <Card className={cn('flex items-start gap-4 p-5', statusConf.badgeClass.replace(/border-\S+/, ''))}>
+                        <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', statusConf.badgeClass)}>
+                            <StatusIcon className="size-4" />
                         </div>
                         <div>
-                            <p className="font-semibold text-slate-800 mb-1">Current Status: {statusConf.text}</p>
-                            <p className="text-xs text-slate-600 leading-relaxed">
+                            <p className="text-foreground mb-1 font-semibold">Status: {statusConf.text}</p>
+                            <p className="text-muted-foreground text-xs leading-relaxed">
                                 {STATUS_MESSAGES[report.status]}
                             </p>
                         </div>
-                    </div>
+                    </Card>
 
-                    {/* Summary Card */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                            <span className="font-semibold text-slate-700 flex items-center gap-2">
-                                <Eye className="size-4" /> Report Summary Intelligence
-                            </span>
-                            <Settings className="size-4 text-slate-400" />
-                        </div>
-                        <div className="p-8">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                    {/* Summary */}
+                    <Card className="gap-0 overflow-hidden p-0">
+                        <CardHeader className="border-border bg-muted/30 flex flex-row items-center justify-between border-b px-6 py-4">
+                            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                                <Eye className="size-4" /> Report Summary
+                            </CardTitle>
+                            <Settings className="text-muted-foreground size-4" />
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
                                 {[
-                                    { label: 'Format', value: report.file_format.toUpperCase() },
-                                    { label: 'Size', value: formatFileSize(report.file_size) },
-                                    { label: 'Pages', value: '12 (Est.)' },
+                                    { label: 'Format',     value: report.file_format.toUpperCase() },
+                                    { label: 'Size',       value: formatFileSize(report.file_size) },
+                                    { label: 'Pages',      value: '12 (Est.)' },
                                     { label: 'Expiration', value: report.expires_at ? new Date(report.expires_at).toLocaleDateString() : 'None' },
                                 ].map(({ label, value }) => (
                                     <div key={label} className="space-y-1">
-                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{label}</p>
-                                        <p className="text-lg font-semibold text-slate-800">{value}</p>
+                                        <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">{label}</p>
+                                        <p className="text-foreground text-lg font-semibold">{value}</p>
                                     </div>
                                 ))}
                             </div>
 
-                            <hr className="my-8 border-slate-100" />
+                            <hr className="border-border my-6" />
 
-                            <div className="space-y-6">
+                            <div className="space-y-5">
                                 <div className="flex items-start gap-3">
-                                    <div className="size-2 rounded-full bg-blue-500 mt-2 shrink-0" />
+                                    <div className="bg-primary mt-1.5 size-2 shrink-0 rounded-full" />
                                     <div>
-                                        <p className="font-medium text-slate-700">Organization Context</p>
-                                        <p className="text-sm text-slate-500">
-                                            Generated for Organization ID #{report.organization_id} by User #{report.generated_by}
+                                        <p className="text-foreground font-medium">Organization Context</p>
+                                        <p className="text-muted-foreground text-sm">
+                                            Generated for Organization #{report.organization_id} by User #{report.generated_by}
                                         </p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-3">
-                                    <div className="size-2 rounded-full bg-indigo-500 mt-2 shrink-0" />
+                                    <div className="bg-info mt-1.5 size-2 shrink-0 rounded-full" />
                                     <div>
-                                        <p className="font-medium text-slate-700">Temporal Range</p>
-                                        <p className="text-sm text-slate-500">
+                                        <p className="text-foreground font-medium">Temporal Range</p>
+                                        <p className="text-muted-foreground text-sm">
                                             {new Date(report.period_start).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
                                             {' — '}
                                             {new Date(report.period_end).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -249,82 +238,84 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
 
-                    {/* Data Preview */}
+                    {/* Data preview */}
                     {previewData && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-slate-50 flex items-center gap-2 bg-slate-50/50">
-                                <BarChart2 className="size-4 text-primary" />
-                                <span className="font-semibold text-slate-700">{previewData.title}</span>
-                                <span className="ml-auto text-xs text-slate-400">{previewData.period}</span>
-                            </div>
+                        <Card className="gap-0 overflow-hidden p-0">
+                            <CardHeader className="border-border bg-muted/30 flex flex-row items-center gap-2 border-b px-6 py-4">
+                                <BarChart2 className="text-primary size-4" />
+                                <CardTitle className="flex-1 text-sm font-semibold">{previewData.title}</CardTitle>
+                                <span className="text-muted-foreground text-xs">{previewData.period}</span>
+                            </CardHeader>
 
                             {/* Summary stats */}
-                            <div className="px-6 pt-5 pb-4 grid grid-cols-2 md:grid-cols-3 gap-4 border-b border-slate-100">
+                            <div className="border-border grid grid-cols-2 gap-4 border-b px-6 py-4 md:grid-cols-3">
                                 {Object.entries(previewData.summary).map(([key, val]) => (
                                     <div key={key} className="space-y-0.5">
-                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                        <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
                                             {key.replace(/_/g, ' ')}
                                         </p>
-                                        <p className="text-sm font-semibold text-slate-800">{String(val)}</p>
+                                        <p className="text-foreground text-sm font-semibold">{String(val)}</p>
                                     </div>
                                 ))}
                             </div>
 
-                            {/* Data table */}
                             <div className="overflow-x-auto">
-                                <table className="w-full text-xs">
-                                    <thead>
-                                        <tr className="bg-slate-50/70">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
                                             {previewData.headers.map(h => (
-                                                <th key={h} className="px-4 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wide text-[10px]">
+                                                <TableHead key={h} className="text-[10px] font-bold uppercase tracking-wide">
                                                     {h}
-                                                </th>
+                                                </TableHead>
                                             ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
                                         {previewData.rows.slice(0, 15).map((row, i) => (
-                                            <tr key={i} className="border-t border-slate-50 hover:bg-slate-50/50">
+                                            <TableRow key={i}>
                                                 {row.map((cell, j) => (
-                                                    <td key={j} className="px-4 py-2.5 text-slate-700">{String(cell)}</td>
+                                                    <TableCell key={j} className="text-foreground text-xs">{String(cell)}</TableCell>
                                                 ))}
-                                            </tr>
+                                            </TableRow>
                                         ))}
                                         {previewData.rows.length > 15 && (
-                                            <tr className="border-t border-slate-50">
-                                                <td colSpan={previewData.headers.length} className="px-4 py-2.5 text-slate-400 text-center italic">
-                                                    + {previewData.rows.length - 15} more rows — download the full report for complete data
-                                                </td>
-                                            </tr>
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={previewData.headers.length}
+                                                    className="text-muted-foreground py-3 text-center text-xs italic"
+                                                >
+                                                    +{previewData.rows.length - 15} more rows — download the full report for complete data
+                                                </TableCell>
+                                            </TableRow>
                                         )}
-                                    </tbody>
-                                </table>
+                                    </TableBody>
+                                </Table>
                             </div>
-                        </div>
+                        </Card>
                     )}
 
-                    {/* Activity Timeline */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                        <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2 mb-6">
-                            <Info className="size-4 text-slate-400" /> Activity Timeline
+                    {/* Activity timeline */}
+                    <Card className="gap-0 p-6">
+                        <h2 className="text-foreground mb-6 flex items-center gap-2 text-base font-semibold">
+                            <Info className="text-muted-foreground size-4" /> Activity Timeline
                         </h2>
-                        <div className="space-y-6 relative ml-4 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 before:-ml-4">
+                        <div className="before:bg-border relative ml-4 space-y-6 before:absolute before:-ml-4 before:left-0 before:top-2 before:bottom-2 before:w-[2px]">
                             <div className="relative">
-                                <div className="absolute size-3 rounded-full bg-primary border-4 border-white shadow-sm -left-[21px] top-1" />
+                                <div className="bg-primary border-background absolute -left-[21px] top-1 size-3 rounded-full border-4 shadow-sm" />
                                 <div className="pl-4">
-                                    <p className="text-sm font-semibold text-slate-800">Generation Initiated</p>
-                                    <p className="text-xs text-slate-500">{new Date(report.created_at).toLocaleString()}</p>
+                                    <p className="text-foreground text-sm font-semibold">Generation Initiated</p>
+                                    <p className="text-muted-foreground text-xs">{new Date(report.created_at).toLocaleString()}</p>
                                 </div>
                             </div>
                             {report.approved_at && (
                                 <div className="relative">
-                                    <div className="absolute size-3 rounded-full bg-emerald-500 border-4 border-white shadow-sm -left-[21px] top-1" />
+                                    <div className="bg-success border-background absolute -left-[21px] top-1 size-3 rounded-full border-4 shadow-sm" />
                                     <div className="pl-4">
-                                        <p className="text-sm font-semibold text-slate-800">Admin Approval Granted</p>
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-foreground text-sm font-semibold">Admin Approval Granted</p>
+                                        <p className="text-muted-foreground text-xs">
                                             Approved by User #{report.approved_by} at {new Date(report.approved_at).toLocaleString()}
                                         </p>
                                     </div>
@@ -332,58 +323,65 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                             )}
                             {report.status === 'completed' && (
                                 <div className="relative">
-                                    <div className="absolute size-3 rounded-full bg-indigo-500 border-4 border-white shadow-sm -left-[21px] top-1" />
+                                    <div className="bg-info border-background absolute -left-[21px] top-1 size-3 rounded-full border-4 shadow-sm" />
                                     <div className="pl-4">
-                                        <p className="text-sm font-semibold text-slate-800">File Rendering Successful</p>
-                                        <p className="text-xs text-slate-500">{new Date(report.generated_at).toLocaleString()}</p>
+                                        <p className="text-foreground text-sm font-semibold">File Rendering Successful</p>
+                                        <p className="text-muted-foreground text-xs">{new Date(report.generated_at).toLocaleString()}</p>
                                     </div>
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </Card>
                 </div>
 
-                {/* ---- Right / Sidebar ---- */}
+                {/* Right — sidebar */}
                 <div className="space-y-6">
                     {/* Parameters */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 relative overflow-hidden">
-                        <div className="absolute -top-4 -right-4 size-24 bg-slate-50 rounded-full" />
-                        <h2 className="text-base font-semibold text-slate-800 mb-6 relative">Parameters Used</h2>
-                        <div className="space-y-5 relative">
+                    <Card className="gap-0 p-6">
+                        <h2 className="text-foreground mb-6 text-base font-semibold">Parameters</h2>
+                        <div className="space-y-5">
                             {[
-                                { icon: <HardDrive className="size-4" />, label: 'Target Shop ID', value: report.parameters.shop_id },
-                                { icon: <CheckCircle className="size-4" />, label: 'Tax Inclusion', value: report.parameters.include_tax ? 'Active' : 'Disabled' },
-                                { icon: <Clock className="size-4" />, label: 'Payment Mode', value: report.parameters.payment_method || 'All Methods' },
-                                { icon: <Settings className="size-4" />, label: 'Generation Engine', value: 'Paynest v2.1' },
-                            ].map(item => (
-                                <div key={item.label} className="flex items-center justify-between">
+                                { icon: HardDrive,   label: 'Target Shop',     value: report.parameters.shop_id },
+                                { icon: CheckCircle, label: 'Tax Inclusion',    value: report.parameters.include_tax ? 'Active' : 'Disabled' },
+                                { icon: Clock,       label: 'Payment Mode',     value: report.parameters.payment_method || 'All Methods' },
+                                { icon: Settings,    label: 'Engine',           value: 'Paynest v2.1' },
+                            ].map(({ icon: ItemIcon, label, value }) => (
+                                <div key={label} className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-1.5 bg-slate-50 rounded-md text-slate-400">{item.icon}</div>
-                                        <span className="text-xs text-slate-500 font-medium">{item.label}</span>
+                                        <div className="bg-muted flex size-7 items-center justify-center rounded-md">
+                                            <ItemIcon className="text-muted-foreground size-3.5" />
+                                        </div>
+                                        <span className="text-muted-foreground text-xs font-medium">{label}</span>
                                     </div>
-                                    <span className="text-xs font-bold text-slate-800 uppercase">{item.value}</span>
+                                    <span className="text-foreground text-xs font-bold uppercase">{value}</span>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </Card>
 
-                    {/* Paynest branding chip */}
-                    <div className="bg-slate-900 rounded-2xl p-6">
-                        <p className="text-white text-[10px] uppercase font-bold tracking-widest leading-none">
-                            Intelligence Generated by Paynest POS
-                        </p>
-                    </div>
+                    {/* Type badge */}
+                    <Card className="bg-primary text-primary-foreground gap-0 p-5">
+                        <div className="flex items-center gap-3">
+                            <div className="flex size-9 items-center justify-center rounded-lg bg-white/10">
+                                <FileText className="size-5" />
+                            </div>
+                            <div>
+                                <p className="text-primary-foreground/60 text-[10px] font-bold uppercase tracking-widest">Type</p>
+                                <p className="text-sm font-semibold">{typeLabel}</p>
+                            </div>
+                        </div>
+                    </Card>
 
                     {/* Rejection reason */}
                     {report.rejection_reason && (
-                        <div className="bg-rose-50/30 rounded-2xl border border-rose-100 p-6">
-                            <h2 className="text-sm font-semibold text-rose-800 flex items-center gap-2 mb-4 italic">
+                        <Card className="border-destructive/30 bg-destructive/5 gap-0 p-5">
+                            <h2 className="text-destructive mb-3 flex items-center gap-2 text-sm font-semibold italic">
                                 <XCircle className="size-4" /> Rejection Feedback
                             </h2>
-                            <p className="text-sm text-rose-700 italic border-l-2 border-rose-200 pl-3">
+                            <p className="text-destructive border-destructive/20 border-l-2 pl-3 text-sm italic">
                                 &apos;{report.rejection_reason}&apos;
                             </p>
-                        </div>
+                        </Card>
                     )}
                 </div>
             </div>

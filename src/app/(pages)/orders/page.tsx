@@ -2,66 +2,45 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-    Search, RefreshCcw,
-    Eye, CheckCircle2,
-    Calendar, User,
-    CreditCard, ShoppingBag,
-    Filter,
-    CheckCircle, Clock, Truck, Package, XCircle,
-    MoreVertical
+    Search, RefreshCcw, Eye, CheckCircle2,
+    Calendar, User, CreditCard, ShoppingBag,
+    Filter, CheckCircle, Clock, Truck, Package, XCircle, MoreVertical,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import Pagination from '@/components/(shared-components)/Pagination';
+import { StatusPill } from '@/components/(shared-components)/StatusPill';
 import { GetWalkinOrdersList, CloseOrder, UpdateOrderStatus } from '@/(api-handlers)/orders_walkinsHandler';
 import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
 import { useAuthStore } from '@/(zustand-store)/authStore';
 import { OrderWalkInsResponse, OrderStatus } from '@/interfaces/orders_walkins';
 import { OrganizationShopResponse } from '@/interfaces/organizationShops';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
-
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
-    Table,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableHead,
-    TableCell,
+    Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuSeparator,
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
-const statusConfig: Record<OrderStatus, { label: string, color: string, icon: React.ElementType }> = {
-    initiated: { label: 'Initiated', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Clock },
-    preparing: { label: 'Preparing', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Package },
-    ready: { label: 'Ready', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: CheckCircle },
-    transported: { label: 'In Transit', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Truck },
-    delivered: { label: 'Delivered', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
-};
-
-const paymentStatusConfig = {
-    paid: { label: 'Paid', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-    unpaid: { label: 'Unpaid', color: 'bg-rose-100 text-rose-700 border-rose-200' },
-    failed: { label: 'Failed', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+const FULFILLMENT_ICON: Record<OrderStatus, React.ElementType> = {
+    initiated: Clock,
+    preparing: Package,
+    ready: CheckCircle,
+    transported: Truck,
+    delivered: CheckCircle2,
 };
 
 const PAGE_SIZE = 20;
@@ -71,183 +50,139 @@ export default function OrdersPage() {
     const [orders, setOrders] = useState<OrderWalkInsResponse[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
-
     const totalPages = Math.ceil(total / PAGE_SIZE);
 
-    // Shop filtering
     const { user } = useAuthStore();
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
-    const [selectedShopId, setSelectedShopId] = useState<string>('all');
-    const role = (user?.role || "attendant").toLowerCase();
+    const [selectedShopId, setSelectedShopId] = useState('all');
+    const role = (user?.role || 'attendant').toLowerCase();
     const isAdmin = role === 'admin' || role === 'superadmin';
 
-    const fetchShops = useCallback(async () => {
-        if (!isAdmin) return;
-        try {
-            const data = await getOrganizationShops();
-            setShops(data);
-        } catch (error) {
-            console.error('Failed to fetch shops:', error);
-        }
-    }, [isAdmin]);
-
     useEffect(() => {
-        fetchShops();
-    }, [fetchShops]);
+        if (!isAdmin) return;
+        getOrganizationShops().then(setShops).catch(console.error);
+    }, [isAdmin]);
 
     const fetchOrders = useCallback(async (p: number) => {
         setLoading(true);
         try {
-            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
-            const data = await GetWalkinOrdersList(shopIdParams, (p - 1) * PAGE_SIZE, PAGE_SIZE);
+            const shopId = selectedShopId === 'all' ? undefined : Number(selectedShopId);
+            const data = await GetWalkinOrdersList(shopId, (p - 1) * PAGE_SIZE, PAGE_SIZE);
             setOrders(data.items);
             setTotal(data.total);
-        } catch (error: unknown) {
+        } catch (error) {
             handleErrorMessage(error, 'Failed to fetch orders');
         } finally {
             setLoading(false);
         }
     }, [selectedShopId]);
 
-    useEffect(() => {
-        fetchOrders(page);
-    }, [page, fetchOrders, selectedShopId]);
+    useEffect(() => { fetchOrders(page); }, [page, fetchOrders]);
 
     const handleUpdateStatus = async (id: number, status: OrderStatus) => {
         try {
             await UpdateOrderStatus(id, status);
             toast.success(`Order status updated to ${status}`);
             fetchOrders(page);
-        } catch (error) {
-            handleErrorMessage(error, 'Failed to update order status');
-        }
+        } catch (error) { handleErrorMessage(error, 'Failed to update status'); }
     };
 
     const handleCloseOrder = async (id: number) => {
         try {
             await CloseOrder(id);
-            toast.success('Order closed successfully');
+            toast.success('Order closed');
             fetchOrders(page);
-        } catch (error) {
-            handleErrorMessage(error, 'Failed to close order');
-        }
+        } catch (error) { handleErrorMessage(error, 'Failed to close order'); }
     };
 
-    const filteredOrders = orders.filter(order => {
-        const matchesSearch =
-            order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (order.delivery_address?.toLowerCase().includes(searchTerm.toLowerCase()));
-
-        const matchesStatus = filterStatus === 'all' || order.order_status === filterStatus;
-
-        return matchesSearch && matchesStatus;
+    const filtered = orders.filter(o => {
+        const ms = o.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (o.delivery_address?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+        const mf = filterStatus === 'all' || o.order_status === filterStatus;
+        return ms && mf;
     });
 
-    const getStatusIcon = (status: OrderStatus) => {
-        const Icon = statusConfig[status]?.icon || Clock;
-        return <Icon className="size-3.5 mr-1" />;
-    };
+    const newCount       = orders.filter(o => o.order_status === 'initiated').length;
+    const preparingCount = orders.filter(o => o.order_status === 'preparing').length;
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
+        <div className="flex flex-col gap-6">
             <PageHeader
                 title="Orders & Walk-ins"
                 description="Manage customer orders, track fulfillment status, and process walk-in sales."
-            >
-                <div className="flex gap-3">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => fetchOrders(page)}
-                        className="rounded-xl border-slate-200"
-                        disabled={loading}
-                    >
-                        <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
-                    </Button>
-                    <Button
-                        onClick={() => router.push('/sales')}
-                        className="flex items-center gap-2 rounded-md bg-primary-color hover:opacity-90 shadow-lg shadow-blue-100"
-                    >
-                        <ShoppingBag className="size-4" />
-                        New Sale / Order
-                    </Button>
-                </div>
-            </PageHeader>
+                actions={
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="icon" onClick={() => fetchOrders(page)} disabled={loading}>
+                            <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
+                        </Button>
+                        <Button onClick={() => router.push('/sales')}>
+                            <ShoppingBag data-icon="inline-start" />
+                            New Sale
+                        </Button>
+                    </div>
+                }
+            />
 
-            <Card className="mt-8 rounded-md border-slate-100 shadow-sm overflow-hidden p-0">
+            <Card className="gap-0 overflow-hidden p-0">
                 {/* Toolbar */}
-                <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between gap-4 bg-slate-50/50">
-                    <div className="flex items-center gap-4 flex-1">
-                        <div className="relative max-w-xs w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
-                            <Input
-                                placeholder="Search order # or address..."
-                                className="pl-9 rounded-md border-slate-200 focus:ring-primary-color"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
+                <div className="border-border bg-muted/30 flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:px-6">
+                    <div className="relative flex-1">
+                        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                        <Input
+                            placeholder="Search order # or address…"
+                            className="h-9 pl-9"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
 
-                        <div className="flex items-center gap-2">
-                            <Select
-                                value={filterStatus}
-                                onValueChange={(val) => setFilterStatus(val as OrderStatus | 'all')}
-                            >
-                                <SelectTrigger className="h-10 w-[160px] bg-white border-slate-200 rounded-[8px]">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Select value={filterStatus} onValueChange={v => setFilterStatus(v as OrderStatus | 'all')}>
+                            <SelectTrigger className="h-9 w-[160px]">
+                                <div className="flex items-center gap-2">
+                                    <Filter className="text-muted-foreground size-3.5" />
+                                    <SelectValue placeholder="All statuses" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All statuses</SelectItem>
+                                <SelectItem value="initiated">Initiated</SelectItem>
+                                <SelectItem value="preparing">Preparing</SelectItem>
+                                <SelectItem value="ready">Ready</SelectItem>
+                                <SelectItem value="transported">In Transit</SelectItem>
+                                <SelectItem value="delivered">Delivered</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {isAdmin && (
+                            <Select value={selectedShopId} onValueChange={setSelectedShopId}>
+                                <SelectTrigger className="h-9 w-[170px]">
                                     <div className="flex items-center gap-2">
-                                        <Filter className="size-4 text-slate-400" />
-                                        <SelectValue placeholder="All Statuses" />
+                                        <ShoppingBag className="text-muted-foreground size-3.5" />
+                                        <SelectValue placeholder="All shops" />
                                     </div>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Statuses</SelectItem>
-                                    <SelectItem value="initiated">Initiated</SelectItem>
-                                    <SelectItem value="preparing">Preparing</SelectItem>
-                                    <SelectItem value="ready">Ready</SelectItem>
-                                    <SelectItem value="transported">In Transit</SelectItem>
-                                    <SelectItem value="delivered">Delivered</SelectItem>
+                                    <SelectItem value="all">All shops</SelectItem>
+                                    {shops.map(s => (
+                                        <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
-                        </div>
-
-                        {isAdmin && (
-                            <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
-                                <Select
-                                    value={selectedShopId}
-                                    onValueChange={(val) => setSelectedShopId(val)}
-                                >
-                                    <SelectTrigger className="h-10 w-[180px] bg-white border-slate-200 rounded-[8px]">
-                                        <div className="flex items-center gap-2">
-                                            <ShoppingBag className="size-4 text-slate-400" />
-                                            <SelectValue placeholder="All Shops" />
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Shops</SelectItem>
-                                        {shops.map((shop) => (
-                                            <SelectItem key={shop.id} value={shop.id.toString()}>
-                                                {shop.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
                         )}
-                    </div>
 
-                    <div className="flex items-center gap-6">
-                        <div className="hidden lg:flex items-center gap-4 text-sm font-medium text-slate-500">
-                            <div className="flex items-center gap-1.5">
-                                <span className="size-2 rounded-full bg-blue-500" />
-                                <span>{orders.filter(o => o.order_status === 'initiated').length} New</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <span className="size-2 rounded-full bg-amber-500" />
-                                <span>{orders.filter(o => o.order_status === 'preparing').length} In Progress</span>
-                            </div>
+                        <div className="text-muted-foreground hidden items-center gap-3 text-xs lg:flex">
+                            <span className="flex items-center gap-1.5">
+                                <span className="bg-info size-2 rounded-full" />
+                                {newCount} new
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                                <span className="bg-warning size-2 rounded-full" />
+                                {preparingCount} preparing
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -256,190 +191,151 @@ export default function OrdersPage() {
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-slate-50/50 border-b border-slate-100">
-                                <TableHead className="px-6 py-4 font-semibold text-slate-600">Order ID</TableHead>
-                                <TableHead className="px-6 py-4 font-semibold text-slate-600">Customer / Type</TableHead>
-                                <TableHead className="px-6 py-4 font-semibold text-slate-600">Date & Time</TableHead>
-                                <TableHead className="px-6 py-4 font-semibold text-slate-600">Total Amount</TableHead>
-                                <TableHead className="px-6 py-4 font-semibold text-slate-600">Fulfillment</TableHead>
-                                <TableHead className="px-6 py-4 font-semibold text-slate-600 w-[100px]">Payment</TableHead>
-                                <TableHead className="px-6 py-4 font-semibold text-slate-600 text-right">Actions</TableHead>
+                            <TableRow>
+                                <TableHead className="pl-6">Order</TableHead>
+                                <TableHead>Customer</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead>Fulfillment</TableHead>
+                                <TableHead>Payment</TableHead>
+                                <TableHead className="pr-6 text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
+                                Array.from({ length: 6 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        {Array.from({ length: 7 }).map((_, j) => (
+                                            <TableCell key={j}>
+                                                <Skeleton className="h-5 w-full rounded" />
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : filtered.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-20 text-slate-400">
-                                        <RefreshCcw className="size-6 animate-spin mx-auto mb-3 text-primary-color opacity-50" />
-                                        <p className="text-sm font-medium">Fetching orders list...</p>
-                                    </TableCell>
-                                </TableRow>
-                            ) : filteredOrders.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-20 text-slate-400">
-                                        <div className="bg-slate-50 size-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <ShoppingBag className="size-8 text-slate-200" />
+                                    <TableCell colSpan={7} className="py-20 text-center">
+                                        <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
+                                            <ShoppingBag className="text-muted-foreground size-7" />
                                         </div>
-                                        <p className="text-sm font-medium">No orders found matching your criteria.</p>
+                                        <p className="text-muted-foreground text-sm">No orders match your criteria.</p>
                                     </TableCell>
                                 </TableRow>
-                            ) : (
-                                filteredOrders.map((order) => (
-                                    <TableRow key={order.id} className="hover:bg-slate-50/40 transition-colors group">
-                                        {/* Order ID */}
-                                        <TableCell className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-slate-800">#{order.order_number}</span>
-                                                <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">ID: {order.id}</span>
-                                            </div>
+                            ) : filtered.map(order => {
+                                const FulIcon = FULFILLMENT_ICON[order.order_status] ?? Clock;
+                                return (
+                                    <TableRow
+                                        key={order.id}
+                                        className="cursor-pointer"
+                                        onClick={() => router.push(`/orders/${order.id}`)}
+                                    >
+                                        <TableCell className="pl-6">
+                                            <p className="text-foreground font-bold">#{order.order_number}</p>
+                                            <p className="text-muted-foreground num-tabular font-mono text-[10px]">ID {order.id}</p>
                                         </TableCell>
 
-                                        {/* Customer / Type */}
-                                        <TableCell className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                                                    <User className="size-3.5 text-slate-400" />
-                                                    {order.customer ? `${order.customer.first_name} ${order.customer.last_name}` : (order.customer_id ? `Customer #${order.customer_id}` : 'Walk-in Customer')}
-                                                </div>
-                                                <div className="flex items-center gap-1.5 mt-1">
-                                                    <Badge variant="outline" className={cn(
-                                                        "text-[10px] uppercase font-bold px-1.5 py-0 border-slate-200",
-                                                        order.order_type === 'sale' ? "text-emerald-600 bg-emerald-50" : "text-amber-600 bg-amber-50"
-                                                    )}>
-                                                        {order.order_type}
-                                                    </Badge>
-                                                    {order.close_at && (
-                                                        <Badge className="text-[10px] bg-slate-100 text-slate-500 hover:bg-slate-100 border-none">Closed</Badge>
-                                                    )}
-                                                </div>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1.5">
+                                                <User className="text-muted-foreground size-3.5 shrink-0" />
+                                                <span className="text-foreground text-sm font-medium">
+                                                    {order.customer
+                                                        ? `${order.customer.first_name} ${order.customer.last_name}`
+                                                        : order.customer_id ? `Customer #${order.customer_id}` : 'Walk-in'}
+                                                </span>
                                             </div>
-                                        </TableCell>
-
-                                        {/* Date & Time */}
-                                        <TableCell className="px-6 py-4">
-                                            <div className="flex flex-col text-sm text-slate-600">
-                                                <div className="flex items-center gap-1.5">
-                                                    <Calendar className="size-3.5 text-slate-400" />
-                                                    {format(new Date(order.created_at), 'MMM dd, yyyy')}
-                                                </div>
-                                                <span className="text-xs text-slate-400 mt-0.5 ml-5">{order.order_time}</span>
-                                            </div>
-                                        </TableCell>
-
-                                        {/* Total Amount */}
-                                        <TableCell className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="font-black text-slate-900">GHS {(order.total_amount ?? order.amount_paid ?? 0).toFixed(2)}</span>
-                                                <span className="text-[10px] text-slate-400 uppercase font-medium">{order.items?.length ?? 0} Items</span>
-                                            </div>
-                                        </TableCell>
-
-                                        {/* Fulfillment Status */}
-                                        <TableCell className="px-6 py-4">
-                                            <div className="flex flex-col gap-1.5">
-                                                <Badge className={cn(
-                                                    "w-fit flex items-center shadow-none px-2.5 py-1 rounded-full text-[11px] font-bold border",
-                                                    statusConfig[order.order_status]?.color
-                                                )}>
-                                                    {getStatusIcon(order.order_status)}
-                                                    {statusConfig[order.order_status]?.label}
-                                                </Badge>
-                                                
-                                                {order.delivery_address && (
-                                                    <span className="text-[10px] text-slate-400 truncate max-w-[120px] mt-1" title={order.delivery_address}>
-                                                        {order.delivery_address}
-                                                    </span>
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    'mt-1 border-0 px-1.5 py-0 text-[10px] font-bold uppercase',
+                                                    order.order_type === 'sale'
+                                                        ? 'bg-success/10 text-success'
+                                                        : 'bg-warning/10 text-warning-foreground',
                                                 )}
+                                            >
+                                                {order.order_type}
+                                            </Badge>
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <div className="flex items-center gap-1.5 text-sm">
+                                                <Calendar className="text-muted-foreground size-3.5 shrink-0" />
+                                                <span>{format(new Date(order.created_at), 'MMM dd, yyyy')}</span>
+                                            </div>
+                                            <p className="text-muted-foreground mt-0.5 ml-5 text-xs">{order.order_time}</p>
+                                        </TableCell>
+
+                                        <TableCell className="text-right">
+                                            <p className="text-foreground num-tabular font-bold">
+                                                GHS {(order.total_amount ?? order.amount_paid ?? 0).toFixed(2)}
+                                            </p>
+                                            <p className="text-muted-foreground text-[10px]">
+                                                {order.items?.length ?? 0} items
+                                            </p>
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <div className="flex items-center gap-1.5">
+                                                <FulIcon className="text-muted-foreground size-3.5 shrink-0" />
+                                                <StatusPill status={order.order_status} showIcon={false} />
+                                            </div>
+                                            {order.delivery_address && (
+                                                <p className="text-muted-foreground mt-1 max-w-[120px] truncate text-[10px]">
+                                                    {order.delivery_address}
+                                                </p>
+                                            )}
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <StatusPill status={order.payment_status ?? 'muted'} />
+                                            <div className="text-muted-foreground mt-1 flex items-center gap-1 text-[10px] font-medium uppercase">
+                                                <CreditCard className="size-2.5" />
+                                                {order.payment_method ?? 'N/A'}
                                             </div>
                                         </TableCell>
 
-                                        {/* Payment Status */}
-                                        <TableCell className="px-6 py-4">
-                                            <div className="flex flex-col gap-1">
-                                                <Badge className={cn(
-                                                    "w-fit shadow-none px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-tight border",
-                                                    order.payment_status ? paymentStatusConfig[order.payment_status]?.color : "bg-gray-100 text-gray-700"
-                                                )}>
-                                                    {order.payment_status ?? 'Unknown'}
-                                                </Badge>
-                                                <div className="flex items-center gap-1 text-[10px] text-slate-400 uppercase font-bold">
-                                                    <CreditCard className="size-2.5" />
-                                                    {order.payment_method ?? 'N/A'}
-                                                </div>
-                                            </div>
-                                        </TableCell>
-
-                                        {/* Actions */}
-                                        <TableCell className="px-6 py-4 text-right">
+                                        <TableCell className="pr-6 text-right" onClick={e => e.stopPropagation()}>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-slate-100">
-                                                        <MoreVertical className="size-4 text-slate-500" />
+                                                    <Button variant="ghost" size="icon" className="size-8">
+                                                        <MoreVertical className="size-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-52 rounded-xl border-slate-100 p-1.5 shadow-xl">
-                                                    <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">General</div>
-                                                    <DropdownMenuItem
-                                                        onClick={() => router.push(`/orders/${order.id}`)}
-                                                        className="rounded-lg py-2 cursor-pointer"
-                                                    >
-                                                        <Eye className="size-4 mr-2 text-slate-400" />
-                                                        View Order Details
+                                                <DropdownMenuContent align="end" className="w-52">
+                                                    <DropdownMenuLabel>General</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => router.push(`/orders/${order.id}`)}>
+                                                        <Eye className="size-4" /> View details
                                                     </DropdownMenuItem>
-
-                                                    {!order.close_at && <DropdownMenuSeparator className="bg-slate-50" />}
-
-                                                    {/* Fulfillment Actions */}
-                                                    {!order.close_at && (
-                                                        <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fulfillment</div>
-                                                    )}
-
-                                                    {order.order_status === 'initiated' && (
-                                                        <DropdownMenuItem
-                                                            onClick={() => handleUpdateStatus(order.id, 'preparing')}
-                                                            className="rounded-lg py-2 text-amber-600 bg-amber-50/50 focus:bg-amber-50 focus:text-amber-700 cursor-pointer"
-                                                        >
-                                                            <Package className="size-4 mr-2" />
-                                                            Start Preparing
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {order.order_status === 'preparing' && (
-                                                        <DropdownMenuItem
-                                                            onClick={() => handleUpdateStatus(order.id, 'ready')}
-                                                            className="rounded-lg py-2 text-indigo-600 bg-indigo-50/50 focus:bg-indigo-50 focus:text-indigo-700 cursor-pointer"
-                                                        >
-                                                            <CheckCircle className="size-4 mr-2" />
-                                                            Mark as Ready
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {order.order_status === 'ready' && (
-                                                        <DropdownMenuItem
-                                                            onClick={() => handleUpdateStatus(order.id, 'transported')}
-                                                            className="rounded-lg py-2 text-purple-600 bg-purple-50/50 focus:bg-purple-50 focus:text-purple-700 cursor-pointer"
-                                                        >
-                                                            <Truck className="size-4 mr-2" />
-                                                            Dispatch Order
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {order.order_status === 'transported' && (
-                                                        <DropdownMenuItem
-                                                            onClick={() => handleUpdateStatus(order.id, 'delivered')}
-                                                            className="rounded-lg py-2 text-emerald-600 bg-emerald-50/50 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer"
-                                                        >
-                                                            <CheckCircle2 className="size-4 mr-2" />
-                                                            Confirm Delivery
-                                                        </DropdownMenuItem>
-                                                    )}
 
                                                     {!order.close_at && (
                                                         <>
-                                                            <DropdownMenuSeparator className="bg-slate-50" />
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuLabel>Fulfillment</DropdownMenuLabel>
+                                                            {order.order_status === 'initiated' && (
+                                                                <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'preparing')}>
+                                                                    <Package className="size-4" /> Start preparing
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {order.order_status === 'preparing' && (
+                                                                <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'ready')}>
+                                                                    <CheckCircle className="size-4" /> Mark as ready
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {order.order_status === 'ready' && (
+                                                                <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'transported')}>
+                                                                    <Truck className="size-4" /> Dispatch
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {order.order_status === 'transported' && (
+                                                                <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'delivered')}>
+                                                                    <CheckCircle2 className="size-4" /> Confirm delivery
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            <DropdownMenuSeparator />
                                                             <DropdownMenuItem
+                                                                className="text-destructive focus:text-destructive"
                                                                 onClick={() => handleCloseOrder(order.id)}
-                                                                className="rounded-lg py-2 text-rose-600 focus:bg-rose-50 focus:text-rose-700 cursor-pointer"
                                                             >
-                                                                <XCircle className="size-4 mr-2" />
-                                                                Close Order & Finalize
+                                                                <XCircle className="size-4" /> Close & finalise
                                                             </DropdownMenuItem>
                                                         </>
                                                     )}
@@ -447,31 +343,27 @@ export default function OrdersPage() {
                                             </DropdownMenu>
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 </div>
 
                 {/* Footer */}
-                {!loading && filteredOrders.length > 0 && (
-                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                        <span>Showing {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} on this page</span>
-                        <div className="flex items-center gap-1.5 uppercase font-bold tracking-widest text-[9px]">
-                            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                            Live Order Data
+                {!loading && filtered.length > 0 && (
+                    <div className="border-border bg-muted/30 flex items-center justify-between border-t px-6 py-3 text-xs">
+                        <span className="text-muted-foreground">
+                            {filtered.length} order{filtered.length !== 1 ? 's' : ''} on this page
+                        </span>
+                        <div className="text-muted-foreground flex items-center gap-1.5 font-medium uppercase tracking-widest text-[9px]">
+                            <span className="bg-success size-1.5 animate-pulse rounded-full" />
+                            Live data
                         </div>
                     </div>
                 )}
             </Card>
 
-            <Pagination
-                page={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-                isLoading={loading}
-                total={total}
-            />
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} isLoading={loading} total={total} />
         </div>
     );
 }

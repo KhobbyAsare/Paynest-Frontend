@@ -2,16 +2,25 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { GetFinanceOverview } from '@/(api-handlers)/financeHandler';
 import { GetInventoryStatistics } from '@/(api-handlers)/inventoryHandler';
 import { FinanceOverviewResponse } from '@/interfaces/finance';
 import { InventoryStats } from '@/interfaces/inventory';
 import {
-    TrendingUp, TrendingDown, ShoppingCart, DollarSign,
+    TrendingUp, ShoppingCart, DollarSign,
     Package, AlertTriangle, XCircle, RefreshCcw,
-    Store, ArrowUpRight, Activity, Percent
+    Store, ArrowUpRight, Activity, Percent, TrendingDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { StatCard } from '@/components/(shared-components)/StatCard';
+import PageHeader from '@/components/(shared-components)/PageHeader';
 import { cn } from '@/lib/utils';
 
 // Dynamically import recharts to avoid SSR issues
@@ -35,75 +44,36 @@ const RANGES = [
     { label: '90D', days: 90 },
 ];
 
-const PIE_COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+// Brand palette for charts — maps to CSS variables at runtime
+const CHART_PRIMARY = 'hsl(var(--primary))';
+const CHART_INFO    = 'hsl(var(--info))';
+const PIE_COLORS = [
+    'hsl(var(--primary))',
+    'hsl(var(--info))',
+    'hsl(var(--success))',
+    'hsl(var(--warning))',
+    'hsl(var(--destructive))',
+    '#8b5cf6',
+    '#ec4899',
+];
 
-// ─── KPI Card ────────────────────────────────────────────────────────────────
-function KpiCard({
-    label, value, sub, icon, trend, trendLabel, colorClass = 'text-slate-900', loading
-}: {
-    label: string;
-    value: string;
-    sub?: string;
-    icon: React.ReactNode;
-    trend?: 'up' | 'down' | 'neutral';
-    trendLabel?: string;
-    colorClass?: string;
-    loading?: boolean;
+// ─── Custom chart tooltip ─────────────────────────────────────────────────────
+function ChartTooltip({ active, payload, label }: {
+    active?: boolean;
+    payload?: { value: number; name: string }[];
+    label?: string;
 }) {
-    return (
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
-                <div className="size-9 rounded-xl flex items-center justify-center bg-slate-50">
-                    {icon}
-                </div>
-            </div>
-            <div>
-                <p className={cn('text-2xl font-bold tracking-tight', colorClass)}>
-                    {loading ? (
-                        <span className="inline-block w-24 h-7 bg-slate-100 rounded animate-pulse" />
-                    ) : value}
-                </p>
-                {sub && (
-                    <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
-                )}
-            </div>
-            {trendLabel && (
-                <div className={cn(
-                    'flex items-center gap-1 text-xs font-medium',
-                    trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-rose-500' : 'text-slate-500'
-                )}>
-                    {trend === 'up' && <TrendingUp className="size-3.5" />}
-                    {trend === 'down' && <TrendingDown className="size-3.5" />}
-                    {trend === 'neutral' && <Activity className="size-3.5" />}
-                    <span>{trendLabel}</span>
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ─── Section Header ───────────────────────────────────────────────────────────
-function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
-    return (
-        <div className="mb-4">
-            <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-            {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
-        </div>
-    );
-}
-
-// ─── Custom Tooltip ───────────────────────────────────────────────────────────
-function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string }[]; label?: string }) {
     if (!active || !payload?.length) return null;
     return (
-        <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-lg text-xs">
-            <p className="font-semibold text-slate-700 mb-2">{label}</p>
+        <div className="bg-card border-border rounded-xl border p-3 shadow-lg text-xs">
+            <p className="text-foreground mb-2 font-semibold">{label}</p>
             {payload.map((p, i) => (
-                <div key={i} className="flex justify-between gap-4">
-                    <span className="text-slate-500 capitalize">{p.name}</span>
-                    <span className="font-semibold text-slate-900">
-                        {p.name === 'revenue' ? `GHS ${p.value.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : p.value}
+                <div key={i} className="flex justify-between gap-6">
+                    <span className="text-muted-foreground capitalize">{p.name}</span>
+                    <span className="text-foreground font-semibold num-tabular">
+                        {p.name === 'revenue'
+                            ? `GHS ${p.value.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`
+                            : p.value}
                     </span>
                 </div>
             ))}
@@ -111,7 +81,37 @@ function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?
     );
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+// ─── Chart container card ─────────────────────────────────────────────────────
+function ChartCard({
+    title, subtitle, children, loading, empty, className,
+}: {
+    title: string;
+    subtitle?: string;
+    children: React.ReactNode;
+    loading?: boolean;
+    empty?: boolean;
+    className?: string;
+}) {
+    return (
+        <Card className={cn('gap-0 overflow-hidden', className)}>
+            <CardHeader className="border-border border-b px-6 py-4">
+                <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+                {subtitle && <CardDescription className="text-xs">{subtitle}</CardDescription>}
+            </CardHeader>
+            <CardContent className="p-6">
+                {loading ? (
+                    <Skeleton className="h-56 w-full rounded-lg" />
+                ) : empty ? (
+                    <div className="text-muted-foreground flex h-56 items-center justify-center text-sm">
+                        No data for selected period
+                    </div>
+                ) : children}
+            </CardContent>
+        </Card>
+    );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export const AdminView = () => {
     const [finance, setFinance] = useState<FinanceOverviewResponse | null>(null);
     const [invStats, setInvStats] = useState<InventoryStats | null>(null);
@@ -125,7 +125,6 @@ export const AdminView = () => {
             const start = new Date();
             start.setDate(end.getDate() - days);
             const fmt = (d: Date) => d.toISOString().split('T')[0];
-
             const [fin, inv] = await Promise.all([
                 GetFinanceOverview(undefined, fmt(start), fmt(end)),
                 GetInventoryStatistics(),
@@ -133,7 +132,7 @@ export const AdminView = () => {
             setFinance(fin);
             setInvStats(inv);
         } catch {
-            // silently fail — dashboard is informational
+            // Dashboard is informational — silent fail
         } finally {
             setLoading(false);
         }
@@ -141,30 +140,23 @@ export const AdminView = () => {
 
     useEffect(() => { load(range); }, [load, range]);
 
-    const handleRange = (days: number) => {
-        setRange(days);
-    };
-
-    // Derived data
     const s = finance?.summary;
     const avgOrderValue = s && s.total_orders > 0 ? s.total_revenue / s.total_orders : 0;
-    const profitMargin = s && s.total_revenue > 0 ? (s.gross_profit / s.total_revenue) * 100 : 0;
+    const profitMargin  = s && s.total_revenue > 0 ? (s.gross_profit / s.total_revenue) * 100 : 0;
 
-    const fmt = (n: number) => `GHS ${n.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const fmt      = (n: number) => `GHS ${n.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const fmtShort = (n: number) => {
         if (n >= 1_000_000) return `GHS ${(n / 1_000_000).toFixed(1)}M`;
-        if (n >= 1_000) return `GHS ${(n / 1_000).toFixed(1)}K`;
+        if (n >= 1_000)     return `GHS ${(n / 1_000).toFixed(1)}K`;
         return fmt(n);
     };
 
-    // Chart data: thin out dates for readability
-    const trendData = (finance?.trends ?? []).map((t) => ({
+    const trendData = (finance?.trends ?? []).map(t => ({
         date: new Date(t.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
         revenue: Number(t.revenue.toFixed(2)),
         orders: t.orders,
     }));
 
-    // Sample every N points for 90d to avoid overcrowding
     const visibleTrend = range > 30
         ? trendData.filter((_, i) => i % 3 === 0)
         : range > 14
@@ -178,362 +170,345 @@ export const AdminView = () => {
         profit: Number(sh.profit.toFixed(2)),
     }));
 
+    const axisStyle = { fontSize: 10 };
+
     return (
-        <div className="space-y-8 font-sans">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-bold text-slate-900">Organization Dashboard</h2>
-                    <p className="text-sm text-slate-500 mt-0.5">Real-time performance overview</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-0.5">
-                        {RANGES.map(r => (
-                            <button
-                                key={r.days}
-                                onClick={() => handleRange(r.days)}
-                                className={cn(
-                                    'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
-                                    range === r.days
-                                        ? 'bg-white text-slate-900 shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700'
-                                )}
-                            >
-                                {r.label}
-                            </button>
-                        ))}
+        <div className="flex flex-col gap-8">
+            {/* Page header */}
+            <PageHeader
+                title="Dashboard"
+                description="Organization-wide performance overview"
+                separator={false}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <ToggleGroup
+                            type="single"
+                            value={String(range)}
+                            onValueChange={v => v && setRange(Number(v))}
+                            variant="outline"
+                            size="sm"
+                        >
+                            {RANGES.map(r => (
+                                <ToggleGroupItem key={r.days} value={String(r.days)}>
+                                    {r.label}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="size-9"
+                            onClick={() => load(range)}
+                            title="Refresh"
+                        >
+                            <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
+                        </Button>
                     </div>
-                    <button
-                        onClick={() => load(range)}
-                        className="size-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition-colors"
-                        title="Refresh"
-                    >
-                        <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
-                    </button>
+                }
+            />
+
+            {/* ── Financial KPIs ─────────────────────────────────────────── */}
+            <div>
+                <p className="text-overline text-muted-foreground mb-3">Financial</p>
+                <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                    <StatCard
+                        label="Total Revenue"
+                        value={s ? fmtShort(s.total_revenue) : 'GHS 0'}
+                        sub={s ? fmt(s.total_revenue) : undefined}
+                        icon={DollarSign}
+                        trend={{ direction: 'up', label: `${range}d period` }}
+                        loading={loading}
+                    />
+                    <StatCard
+                        label="Gross Profit"
+                        value={s ? fmtShort(s.gross_profit) : 'GHS 0'}
+                        sub={s ? `Margin ${profitMargin.toFixed(1)}%` : undefined}
+                        icon={TrendingUp}
+                        trend={{ direction: profitMargin > 20 ? 'up' : 'neutral', label: `${profitMargin.toFixed(1)}% margin` }}
+                        loading={loading}
+                    />
+                    <StatCard
+                        label="Total Orders"
+                        value={s ? s.total_orders.toLocaleString() : '0'}
+                        sub={s ? `GHS ${s.total_discounts.toFixed(2)} discounts` : undefined}
+                        icon={ShoppingCart}
+                        trend={{ direction: 'neutral', label: 'paid orders' }}
+                        loading={loading}
+                    />
+                    <StatCard
+                        label="Avg Order Value"
+                        value={s && s.total_orders > 0 ? fmtShort(avgOrderValue) : 'GHS 0'}
+                        sub={s ? `Tax: ${fmtShort(s.total_tax)}` : undefined}
+                        icon={Percent}
+                        trend={{ direction: 'neutral', label: 'per transaction' }}
+                        loading={loading}
+                    />
                 </div>
             </div>
 
-            {/* KPI Row 1 — Financial */}
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-                <KpiCard
-                    label="Total Revenue"
-                    value={s ? fmtShort(s.total_revenue) : 'GHS 0'}
-                    sub={s ? fmt(s.total_revenue) : undefined}
-                    icon={<DollarSign className="size-4 text-emerald-600" />}
-                    colorClass="text-emerald-700"
-                    trend="up"
-                    trendLabel={`${range}d period`}
-                    loading={loading}
-                />
-                <KpiCard
-                    label="Gross Profit"
-                    value={s ? fmtShort(s.gross_profit) : 'GHS 0'}
-                    sub={s ? `Margin: ${profitMargin.toFixed(1)}%` : undefined}
-                    icon={<TrendingUp className="size-4 text-blue-600" />}
-                    colorClass="text-blue-700"
-                    trend={profitMargin > 20 ? 'up' : 'neutral'}
-                    trendLabel={`${profitMargin.toFixed(1)}% margin`}
-                    loading={loading}
-                />
-                <KpiCard
-                    label="Total Orders"
-                    value={s ? s.total_orders.toLocaleString() : '0'}
-                    sub={s ? `GHS ${s.total_discounts.toFixed(2)} discounts` : undefined}
-                    icon={<ShoppingCart className="size-4 text-violet-600" />}
-                    colorClass="text-violet-700"
-                    trend="neutral"
-                    trendLabel="paid orders"
-                    loading={loading}
-                />
-                <KpiCard
-                    label="Avg Order Value"
-                    value={s && s.total_orders > 0 ? fmtShort(avgOrderValue) : 'GHS 0'}
-                    sub={s ? `Tax collected: ${fmtShort(s.total_tax)}` : undefined}
-                    icon={<Percent className="size-4 text-amber-600" />}
-                    colorClass="text-amber-700"
-                    trend="neutral"
-                    trendLabel="per transaction"
-                    loading={loading}
-                />
+            {/* ── Inventory KPIs ─────────────────────────────────────────── */}
+            <div>
+                <p className="text-overline text-muted-foreground mb-3">Inventory</p>
+                <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                    <StatCard
+                        label="Total Items"
+                        value={invStats ? invStats.total_items.toLocaleString() : '0'}
+                        icon={Package}
+                        trend={{ direction: 'neutral', label: 'in catalogue' }}
+                        loading={loading}
+                    />
+                    <StatCard
+                        label="Inventory Value"
+                        value={invStats ? fmtShort(invStats.total_inventory_value) : 'GHS 0'}
+                        sub={invStats ? fmt(invStats.total_inventory_value) : undefined}
+                        icon={DollarSign}
+                        trend={{ direction: 'neutral', label: 'at cost price' }}
+                        loading={loading}
+                    />
+                    <StatCard
+                        label="Low Stock"
+                        value={invStats ? invStats.low_stock_items.toLocaleString() : '0'}
+                        sub={invStats ? `${invStats.needs_reorder_items} need reorder` : undefined}
+                        icon={AlertTriangle}
+                        trend={{
+                            direction: (invStats?.low_stock_items ?? 0) > 0 ? 'down' : 'up',
+                            label: (invStats?.low_stock_items ?? 0) > 0 ? 'action required' : 'healthy',
+                        }}
+                        loading={loading}
+                    />
+                    <StatCard
+                        label="Out of Stock"
+                        value={invStats ? invStats.out_of_stock_items.toLocaleString() : '0'}
+                        icon={XCircle}
+                        trend={{
+                            direction: (invStats?.out_of_stock_items ?? 0) > 0 ? 'down' : 'up',
+                            label: (invStats?.out_of_stock_items ?? 0) > 0 ? 'critical' : 'all stocked',
+                        }}
+                        loading={loading}
+                    />
+                </div>
             </div>
 
-            {/* KPI Row 2 — Inventory */}
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-                <KpiCard
-                    label="Total Items"
-                    value={invStats ? invStats.total_items.toLocaleString() : '0'}
-                    icon={<Package className="size-4 text-slate-600" />}
-                    trend="neutral"
-                    trendLabel="in catalogue"
-                    loading={loading}
-                />
-                <KpiCard
-                    label="Inventory Value"
-                    value={invStats ? fmtShort(invStats.total_inventory_value) : 'GHS 0'}
-                    sub={invStats ? fmt(invStats.total_inventory_value) : undefined}
-                    icon={<DollarSign className="size-4 text-teal-600" />}
-                    colorClass="text-teal-700"
-                    trend="neutral"
-                    trendLabel="at cost price"
-                    loading={loading}
-                />
-                <KpiCard
-                    label="Low Stock Items"
-                    value={invStats ? invStats.low_stock_items.toLocaleString() : '0'}
-                    sub={invStats ? `${invStats.needs_reorder_items} need reorder` : undefined}
-                    icon={<AlertTriangle className="size-4 text-amber-500" />}
-                    colorClass={(invStats?.low_stock_items ?? 0) > 0 ? 'text-amber-600' : 'text-slate-900'}
-                    trend={(invStats?.low_stock_items ?? 0) > 0 ? 'down' : 'up'}
-                    trendLabel={(invStats?.low_stock_items ?? 0) > 0 ? 'action required' : 'healthy'}
-                    loading={loading}
-                />
-                <KpiCard
-                    label="Out of Stock"
-                    value={invStats ? invStats.out_of_stock_items.toLocaleString() : '0'}
-                    icon={<XCircle className="size-4 text-rose-500" />}
-                    colorClass={(invStats?.out_of_stock_items ?? 0) > 0 ? 'text-rose-600' : 'text-slate-900'}
-                    trend={(invStats?.out_of_stock_items ?? 0) > 0 ? 'down' : 'up'}
-                    trendLabel={(invStats?.out_of_stock_items ?? 0) > 0 ? 'critical' : 'all stocked'}
-                    loading={loading}
-                />
-            </div>
+            {/* ── Revenue trend area chart ────────────────────────────────── */}
+            <ChartCard
+                title="Revenue Trend"
+                subtitle={`Daily revenue over the last ${range} days`}
+                loading={loading}
+                empty={!loading && visibleTrend.length === 0}
+            >
+                <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={visibleTrend} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%"  stopColor={CHART_PRIMARY} stopOpacity={0.18} />
+                                    <stop offset="95%" stopColor={CHART_PRIMARY} stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                            <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                            <YAxis
+                                tick={axisStyle}
+                                axisLine={false}
+                                tickLine={false}
+                                width={52}
+                                tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v}
+                            />
+                            <Tooltip content={<ChartTooltip />} />
+                            <Area
+                                type="monotone"
+                                dataKey="revenue"
+                                stroke={CHART_PRIMARY}
+                                strokeWidth={2}
+                                fill="url(#revenueGrad)"
+                                dot={false}
+                                activeDot={{ r: 4, fill: CHART_PRIMARY, strokeWidth: 0 }}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </ChartCard>
 
-            {/* Revenue Trend — Area Chart */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                <SectionHeader
-                    title="Revenue Trend"
-                    subtitle={`Daily revenue over the last ${range} days`}
-                />
-                {loading ? (
-                    <div className="h-64 bg-slate-50 rounded-xl animate-pulse" />
-                ) : visibleTrend.length === 0 ? (
-                    <div className="h-64 flex items-center justify-center text-slate-400 text-sm">No data for selected period</div>
-                ) : (
-                    <div className="h-64">
+            {/* ── Orders bar + shop pie ───────────────────────────────────── */}
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+                <ChartCard
+                    title="Daily Orders"
+                    subtitle="Orders processed per day"
+                    loading={loading}
+                    empty={!loading && visibleTrend.length === 0}
+                    className="xl:col-span-3"
+                >
+                    <div className="h-56">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={visibleTrend} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                                <XAxis
-                                    dataKey="date"
-                                    tick={{ fontSize: 10, fill: '#94a3b8' }}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    interval="preserveStartEnd"
-                                />
-                                <YAxis
-                                    tick={{ fontSize: 10, fill: '#94a3b8' }}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v}
-                                    width={50}
-                                />
-                                <Tooltip content={<RevenueTooltip />} />
-                                <Area
-                                    type="monotone"
-                                    dataKey="revenue"
-                                    stroke="#6366f1"
-                                    strokeWidth={2.5}
-                                    fill="url(#revenueGradient)"
-                                    dot={false}
-                                    activeDot={{ r: 5, fill: '#6366f1', strokeWidth: 0 }}
-                                />
-                            </AreaChart>
+                            <BarChart
+                                data={visibleTrend}
+                                margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
+                                barSize={range <= 14 ? 20 : range <= 30 ? 10 : 6}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                                <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                                <YAxis tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} width={30} />
+                                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
+                                <Bar dataKey="orders" fill={CHART_PRIMARY} radius={[4, 4, 0, 0]} />
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
-                )}
-            </div>
+                </ChartCard>
 
-            {/* Orders Bar + Shop Pie */}
-            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-                {/* Orders Bar Chart */}
-                <div className="xl:col-span-3 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                    <SectionHeader
-                        title="Daily Orders"
-                        subtitle="Number of orders processed per day"
-                    />
-                    {loading ? (
-                        <div className="h-56 bg-slate-50 rounded-xl animate-pulse" />
-                    ) : visibleTrend.length === 0 ? (
-                        <div className="h-56 flex items-center justify-center text-slate-400 text-sm">No data</div>
-                    ) : (
-                        <div className="h-56">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={visibleTrend} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barSize={range <= 14 ? 20 : range <= 30 ? 10 : 6}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                                    <XAxis
-                                        dataKey="date"
-                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
-                                        axisLine={false}
-                                        tickLine={false}
-                                        interval="preserveStartEnd"
-                                    />
-                                    <YAxis
-                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
-                                        axisLine={false}
-                                        tickLine={false}
-                                        allowDecimals={false}
-                                        width={30}
-                                    />
-                                    <Tooltip
-                                        content={<RevenueTooltip />}
-                                        cursor={{ fill: '#f8fafc' }}
-                                    />
-                                    <Bar dataKey="orders" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    )}
-                </div>
-
-                {/* Shop Revenue Pie */}
-                <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                    <SectionHeader
-                        title="Revenue by Shop"
-                        subtitle="Distribution across locations"
-                    />
-                    {loading ? (
-                        <div className="h-56 bg-slate-50 rounded-xl animate-pulse" />
-                    ) : shopData.length === 0 ? (
-                        <div className="h-56 flex items-center justify-center text-slate-400 text-sm">No shop data</div>
-                    ) : (
-                        <div className="h-56">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={shopData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={55}
-                                        outerRadius={85}
-                                        paddingAngle={3}
-                                        dataKey="revenue"
-                                        nameKey="name"
-                                    >
-                                        {shopData.map((_, i) => (
-                                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        formatter={(v: unknown) => [fmt(Number(v ?? 0)), 'Revenue']}
-                                        contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: 12 }}
-                                    />
-                                    <Legend
-                                        iconType="circle"
-                                        iconSize={8}
-                                        formatter={(value) => <span style={{ fontSize: 11, color: '#64748b' }}>{value}</span>}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Shop Performance Table */}
-            {!loading && shopData.length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                    <div className="px-6 pt-6 pb-4 border-b border-slate-50">
-                        <SectionHeader
-                            title="Shop Performance"
-                            subtitle="Revenue, orders and profit by location"
-                        />
+                <ChartCard
+                    title="Revenue by Shop"
+                    subtitle="Distribution across locations"
+                    loading={loading}
+                    empty={!loading && shopData.length === 0}
+                    className="xl:col-span-2"
+                >
+                    <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={shopData}
+                                    cx="50%" cy="50%"
+                                    innerRadius={52} outerRadius={82}
+                                    paddingAngle={3}
+                                    dataKey="revenue"
+                                    nameKey="name"
+                                >
+                                    {shopData.map((_, i) => (
+                                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    formatter={(v: unknown) => [fmt(Number(v ?? 0)), 'Revenue']}
+                                    contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', fontSize: 12 }}
+                                />
+                                <Legend
+                                    iconType="circle"
+                                    iconSize={8}
+                                    formatter={value => (
+                                        <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{value}</span>
+                                    )}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
                     </div>
+                </ChartCard>
+            </div>
+
+            {/* ── Shop performance table ──────────────────────────────────── */}
+            {!loading && shopData.length > 0 && (
+                <Card className="gap-0 overflow-hidden">
+                    <CardHeader className="border-border border-b px-6 py-4">
+                        <CardTitle className="text-sm font-semibold">Shop Performance</CardTitle>
+                        <CardDescription className="text-xs">Revenue, orders and profit by location</CardDescription>
+                    </CardHeader>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="bg-slate-50/80">
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                        <div className="flex items-center gap-1.5"><Store className="size-3.5" /> Shop</div>
-                                    </th>
-                                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Revenue</th>
-                                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Orders</th>
-                                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Profit</th>
-                                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Margin</th>
-                                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider"></th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>
+                                        <div className="flex items-center gap-1.5">
+                                            <Store className="size-3.5" /> Shop
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="text-right">Revenue</TableHead>
+                                    <TableHead className="text-right">Orders</TableHead>
+                                    <TableHead className="text-right">Profit</TableHead>
+                                    <TableHead className="text-right">Margin</TableHead>
+                                    <TableHead />
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                                 {shopData.map((shop, i) => {
                                     const margin = shop.revenue > 0 ? (shop.profit / shop.revenue) * 100 : 0;
-                                    const revenueShare = (finance?.summary.total_revenue ?? 0) > 0
+                                    const share  = (finance?.summary.total_revenue ?? 0) > 0
                                         ? (shop.revenue / (finance?.summary.total_revenue ?? 1)) * 100
                                         : 0;
                                     return (
-                                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-6 py-4">
+                                        <TableRow key={i}>
+                                            <TableCell>
                                                 <div className="flex items-center gap-3">
-                                                    <div
-                                                        className="size-2.5 rounded-full"
+                                                    <span
+                                                        className="size-2.5 rounded-full shrink-0"
                                                         style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
                                                     />
-                                                    <span className="font-semibold text-slate-800">{shop.name}</span>
+                                                    <span className="text-foreground font-semibold">{shop.name}</span>
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div>
-                                                    <p className="font-semibold text-emerald-700">{fmt(shop.revenue)}</p>
-                                                    <p className="text-[10px] text-slate-400 mt-0.5">{revenueShare.toFixed(1)}% of total</p>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right text-slate-700 font-medium">{shop.orders.toLocaleString()}</td>
-                                            <td className="px-6 py-4 text-right font-semibold text-blue-700">{fmt(shop.profit)}</td>
-                                            <td className="px-6 py-4 text-right">
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <p className="text-success num-tabular font-semibold">{fmt(shop.revenue)}</p>
+                                                <p className="text-muted-foreground text-[10px]">{share.toFixed(1)}% of total</p>
+                                            </TableCell>
+                                            <TableCell className="text-right num-tabular font-medium">
+                                                {shop.orders.toLocaleString()}
+                                            </TableCell>
+                                            <TableCell className="text-right num-tabular font-semibold text-info">
+                                                {fmt(shop.profit)}
+                                            </TableCell>
+                                            <TableCell className="text-right">
                                                 <Badge
                                                     variant="outline"
                                                     className={cn(
-                                                        'text-xs font-semibold rounded-full',
-                                                        margin >= 30 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                            : margin >= 15 ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                        'rounded-full text-xs font-semibold',
+                                                        margin >= 30 ? 'border-success/30 bg-success-muted text-success'
+                                                            : margin >= 15 ? 'border-info/30 bg-info/10 text-info'
+                                                                : 'border-warning/30 bg-warning/10 text-warning',
                                                     )}
                                                 >
                                                     {margin.toFixed(1)}%
                                                 </Badge>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <a href="/finance" className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Link
+                                                    href="/finance"
+                                                    className="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-xs font-medium"
+                                                >
                                                     Details <ArrowUpRight className="size-3" />
-                                                </a>
-                                            </td>
-                                        </tr>
+                                                </Link>
+                                            </TableCell>
+                                        </TableRow>
                                     );
                                 })}
-                            </tbody>
-                            {/* Totals row */}
+                            </TableBody>
                             {s && (
-                                <tfoot>
-                                    <tr className="bg-slate-50 border-t-2 border-slate-200">
-                                        <td className="px-6 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider">Total</td>
-                                        <td className="px-6 py-3 text-right font-bold text-emerald-700">{fmt(s.total_revenue)}</td>
-                                        <td className="px-6 py-3 text-right font-bold text-slate-700">{s.total_orders.toLocaleString()}</td>
-                                        <td className="px-6 py-3 text-right font-bold text-blue-700">{fmt(s.gross_profit)}</td>
-                                        <td className="px-6 py-3 text-right">
-                                            <Badge variant="outline" className="text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border-indigo-200">
+                                <TableFooter>
+                                    <TableRow>
+                                        <TableCell className="font-bold">Total</TableCell>
+                                        <TableCell className="text-right num-tabular font-bold text-success">
+                                            {fmt(s.total_revenue)}
+                                        </TableCell>
+                                        <TableCell className="text-right num-tabular font-bold">
+                                            {s.total_orders.toLocaleString()}
+                                        </TableCell>
+                                        <TableCell className="text-right num-tabular font-bold text-info">
+                                            {fmt(s.gross_profit)}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Badge variant="outline" className="rounded-full text-xs font-semibold border-primary/30 bg-primary/10 text-primary">
                                                 {profitMargin.toFixed(1)}%
                                             </Badge>
-                                        </td>
-                                        <td />
-                                    </tr>
-                                </tfoot>
+                                        </TableCell>
+                                        <TableCell />
+                                    </TableRow>
+                                </TableFooter>
                             )}
-                        </table>
+                        </Table>
                     </div>
-                </div>
+                </Card>
             )}
 
-            {/* Empty state when no data at all */}
+            {/* ── Empty state ─────────────────────────────────────────────── */}
             {!loading && !finance && (
-                <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center shadow-sm">
-                    <Activity className="size-10 text-slate-200 mx-auto mb-3" />
-                    <p className="text-slate-500 text-sm font-medium">No financial data available yet</p>
-                    <p className="text-slate-400 text-xs mt-1">Data will appear once orders are processed</p>
-                </div>
+                <Card className="py-16">
+                    <CardContent className="flex flex-col items-center gap-3 text-center">
+                        <div className="bg-muted flex size-14 items-center justify-center rounded-full">
+                            <Activity className="text-muted-foreground size-7" />
+                        </div>
+                        <div>
+                            <p className="text-foreground font-medium">No financial data yet</p>
+                            <p className="text-muted-foreground text-sm mt-1">Data will appear once orders are processed</p>
+                        </div>
+                    </CardContent>
+                </Card>
             )}
         </div>
     );

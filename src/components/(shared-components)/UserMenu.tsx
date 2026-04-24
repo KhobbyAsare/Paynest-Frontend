@@ -55,11 +55,11 @@ export function UserMenu({
     const handleLogout = async () => {
         try {
             if (accessToken) await LogoutHandler({ token: accessToken });
-            toast.success("Logged out successfully");
-        } catch (err) {
-            console.error("Logout failed:", err);
+        } catch {
+            // 401 is expected when the token is already expired — local auth is still cleared
         } finally {
             clearAuth();
+            toast.success("Logged out successfully");
             router.push("/login");
         }
     };

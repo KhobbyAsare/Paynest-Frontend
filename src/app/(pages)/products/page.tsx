@@ -1,556 +1,425 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from 'react';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import {
-    Plus,
-    MoreHorizontal,
-    Pencil,
-    Trash2,
-    Search,
-    RefreshCcw,
-    Barcode,
-    Package,
-    Tag,
-    Layers,
-    FilterX,
-    DollarSign,
-    Percent,
-    CheckCircle,
-    XCircle,
-    TrendingUp,
-    TrendingDown,
-    Eye,
-    Calendar,
-    Clock,
-    Building2,
-    X
-} from "lucide-react";
+    Plus, MoreHorizontal, Pencil, Trash2, Search, RefreshCcw,
+    Barcode, Package, Tag, Layers, FilterX, DollarSign,
+    Percent, CheckCircle, XCircle, TrendingUp, TrendingDown,
+    Eye, Calendar, Clock, Building2, AlertTriangle,
+} from 'lucide-react';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+    GetProducts, CreateProduct, UpdateProdctDetails, DeleteProduct,
+} from '@/(api-handlers)/productsHandler';
+import { GetProductCategories } from '@/(api-handlers)/productCategoriesHandler';
+import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
+import { useAuthStore } from '@/(zustand-store)/authStore';
+import { ProductResponse, ProductRequest } from '@/interfaces/products';
+import { ProductCategoriesResponse } from '@/interfaces/productCategories';
+import { OrganizationShopResponse } from '@/interfaces/organizationShops';
+import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import { toast } from 'sonner';
+import PageHeader from '@/components/(shared-components)/PageHeader';
+import { StatusPill } from '@/components/(shared-components)/StatusPill';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import {
-    Modal,
-    Form,
-    Input as AntInput,
-    InputNumber,
-    Switch,
-    Popconfirm,
-    Row,
-    Col,
-    Divider,
-    Space,
-    Typography,
-    theme,
-    Tooltip
-} from "antd";
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
-    GetProducts,
-    CreateProduct,
-    UpdateProdctDetails,
-    DeleteProduct
-} from "@/(api-handlers)/productsHandler";
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
 import {
-    GetProductCategories
-} from "@/(api-handlers)/productCategoriesHandler";
-import {
-    ProductResponse,
-    ProductRequest
-} from "@/interfaces/products";
-import {
-    ProductCategoriesResponse
-} from "@/interfaces/productCategories";
-import { getOrganizationShops } from "@/(api-handlers)/organizationShopsHandler";
-import { useAuthStore } from "@/(zustand-store)/authStore";
-import { OrganizationShopResponse } from "@/interfaces/organizationShops";
-import { toast } from "sonner";
-import PageHeader from "@/components/(shared-components)/PageHeader";
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
-const { Text } = Typography;
+interface ProductFormValues {
+    name: string;
+    description: string;
+    category_id: string;
+    brand: string;
+    sku: string;
+    barcode: string;
+    cost_price: string;
+    selling_price: string;
+    tax_rate: string;
+    is_taxable: boolean;
+    is_active: boolean;
+}
+
+function marginColor(pct: number) {
+    if (pct >= 30) return 'text-success';
+    if (pct >= 15) return 'text-warning-foreground';
+    return 'text-destructive';
+}
+
+function marginBarClass(pct: number) {
+    if (pct >= 30) return 'bg-success';
+    if (pct >= 15) return 'bg-warning';
+    return 'bg-destructive';
+}
+
+function calcMarkup(cost: number, selling: number) {
+    if (cost > 0 && selling > 0) return ((selling - cost) / cost * 100);
+    return 0;
+}
 
 export default function ProductsPage() {
     const [products, setProducts] = useState<ProductResponse[]>([]);
     const [categories, setCategories] = useState<ProductCategoriesResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState<string>("all");
-    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<ProductResponse | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [form] = Form.useForm();
-    const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
     const [viewingProduct, setViewingProduct] = useState<ProductResponse | null>(null);
-    const { token } = theme.useToken();
+    const [deleteTarget, setDeleteTarget] = useState<ProductResponse | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
-    // Shop filtering
     const { user } = useAuthStore();
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
-    const [selectedShopId, setSelectedShopId] = useState<string>("all");
-    const role = (user?.role || "attendant").toLowerCase();
-    const isAdmin = role === 'admin' || role === 'superadmin';
+    const [selectedShopId, setSelectedShopId] = useState('all');
+    const isAdmin = ['admin', 'superadmin'].includes((user?.role ?? '').toLowerCase());
 
-    const fetchShops = useCallback(async () => {
-        if (!isAdmin) return;
-        try {
-            const data = await getOrganizationShops();
-            setShops(data);
-        } catch (error) {
-            console.error("Failed to fetch shops:", error);
-        }
-    }, [isAdmin]);
+    const { register, handleSubmit, control, reset, watch, setValue, formState: { errors } } = useForm<ProductFormValues>({
+        defaultValues: { is_active: true, is_taxable: true, tax_rate: '0' },
+    });
+    const costPrice = watch('cost_price');
+    const sellingPrice = watch('selling_price');
+    const markup = calcMarkup(Number(costPrice || 0), Number(sellingPrice || 0));
 
     useEffect(() => {
-        fetchShops();
-    }, [fetchShops]);
+        if (!isAdmin) return;
+        getOrganizationShops().then(setShops).catch(console.error);
+    }, [isAdmin]);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
-            const [productsData, categoriesData] = await Promise.all([
-                GetProducts(shopIdParams),
-                GetProductCategories()
-            ]);
-            setProducts(productsData);
-            setCategories(categoriesData);
+            const shopId = selectedShopId === 'all' ? undefined : Number(selectedShopId);
+            const [prods, cats] = await Promise.all([GetProducts(shopId), GetProductCategories()]);
+            setProducts(prods);
+            setCategories(cats);
         } catch (error) {
-            console.error("Failed to fetch data:", error);
-            toast.error("Failed to load products or categories");
+            handleErrorMessage(error, 'Failed to load products');
         } finally {
             setLoading(false);
         }
     }, [selectedShopId]);
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData, selectedShopId]);
+    useEffect(() => { fetchData(); }, [fetchData]);
 
-    const showModal = (product: ProductResponse | null = null) => {
+    const openModal = (product: ProductResponse | null = null) => {
         setEditingProduct(product);
         if (product) {
-            form.setFieldsValue({
-                ...product,
+            reset({
+                name: product.name,
+                description: product.description ?? '',
+                category_id: product.category_id.toString(),
+                brand: product.brand ?? '',
+                sku: product.sku ?? '',
+                barcode: product.barcode ?? '',
+                cost_price: product.cost_price.toString(),
+                selling_price: product.selling_price.toString(),
+                tax_rate: product.tax_rate?.toString() ?? '0',
+                is_taxable: product.is_taxable,
+                is_active: product.is_active,
             });
         } else {
-            form.resetFields();
-            form.setFieldsValue({
-                is_active: true,
-                is_taxable: true,
-                tax_rate: 0,
-                markup_percentage: 0
-            });
+            reset({ is_active: true, is_taxable: true, tax_rate: '0' });
         }
-        setIsModalVisible(true);
+        setIsModalOpen(true);
     };
 
-    const handleCancel = () => {
-        setIsModalVisible(false);
+    const closeModal = () => {
+        setIsModalOpen(false);
         setEditingProduct(null);
-        form.resetFields();
+        reset();
     };
 
-    const showDetailsModal = (product: ProductResponse) => {
-        setViewingProduct(product);
-        setIsDetailsModalVisible(true);
-    };
-
-    const handleDetailsCancel = () => {
-        setIsDetailsModalVisible(false);
-        setViewingProduct(null);
-    };
-
-    const onFinish = async (values: any) => {
+    const onSubmit = async (values: ProductFormValues) => {
         setSubmitting(true);
         try {
             const productData: ProductRequest = {
-                ...values,
+                name: values.name,
+                description: values.description,
+                category_id: Number(values.category_id),
+                brand: values.brand,
+                sku: values.sku,
+                barcode: values.barcode,
                 cost_price: Number(values.cost_price),
                 selling_price: Number(values.selling_price),
-                markup_percentage: Number(values.markup_percentage || 0),
+                markup_percentage: parseFloat(markup.toFixed(2)),
                 tax_rate: Number(values.tax_rate || 0),
-                category_id: Number(values.category_id),
+                is_taxable: values.is_taxable,
+                is_active: values.is_active,
             };
-
             if (editingProduct) {
                 await UpdateProdctDetails(editingProduct.id, productData);
-                toast.success("Product updated successfully");
+                toast.success('Product updated');
             } else {
                 await CreateProduct(productData);
-                toast.success("Product created successfully");
+                toast.success('Product created');
             }
-            handleCancel();
+            closeModal();
             fetchData();
         } catch (error) {
-            console.error("Operation failed:", error);
-            toast.error(editingProduct ? "Failed to update product" : "Failed to create product");
+            handleErrorMessage(error, editingProduct ? 'Failed to update product' : 'Failed to create product');
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await DeleteProduct(id);
-            toast.success("Product deleted successfully");
+            await DeleteProduct(deleteTarget.id);
+            toast.success('Product deleted');
+            setDeleteTarget(null);
             fetchData();
         } catch (error) {
-            console.error("Delete failed:", error);
-            toast.error("Failed to delete product");
+            handleErrorMessage(error, 'Failed to delete product');
+        } finally {
+            setDeleting(false);
         }
     };
 
-    const calculateMarkup = (cost: number, selling: number) => {
-        if (cost > 0 && selling > 0) {
-            return ((selling - cost) / cost * 100).toFixed(2);
-        }
-        return "0.00";
-    };
+    const getCategoryName = (id: number) => categories.find(c => c.id === id)?.name ?? 'Uncategorised';
 
-    const getMarginColor = (percentage: number) => {
-        if (percentage >= 30) return 'text-emerald-600';
-        if (percentage >= 15) return 'text-amber-600';
-        return 'text-rose-600';
-    };
-
-    const filteredProducts = products.filter((prod) => {
-        const matchesSearch =
-            prod.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            prod.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            prod.barcode.toLowerCase().includes(searchTerm.toLowerCase());
-
-        const matchesCategory = selectedCategory === "all" || prod.category_id.toString() === selectedCategory;
-
-        return matchesSearch && matchesCategory;
+    const filtered = products.filter(p => {
+        const ms = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.barcode?.toLowerCase().includes(searchTerm.toLowerCase());
+        const mc = selectedCategory === 'all' || p.category_id.toString() === selectedCategory;
+        return ms && mc;
     });
 
-    const getCategoryName = (id: number) => {
-        return categories.find(c => c.id === id)?.name || "Uncategorized";
-    };
-
-    // Modal Styles
-    const modalStyles = {
-        header: {
-            borderRadius: token.borderRadiusLG,
-            padding: token.paddingLG,
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-        },
-        body: {
-            padding: token.paddingLG,
-            maxHeight: '70vh',
-            overflowY: 'auto' as const,
-        },
-        footer: {
-            borderTop: `1px solid ${token.colorBorderSecondary}`,
-            padding: token.paddingLG,
-        },
-        content: {
-            borderRadius: token.borderRadiusLG,
-        },
-    };
-
     return (
-        <div className="p-6 space-y-8 bg-slate-50/50 min-h-screen">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <PageHeader title="Products Inventory" description=" Manage your catalog, prices, and stock levels efficiently." />
-
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={fetchData}
-                        disabled={loading}
-                        className="shadow-sm hover:bg-slate-100 transition-all border-slate-200"
-                    >
-                        <RefreshCcw className={`h-5 w-5 mr-2 ${loading ? "animate-spin" : ""}`} />
-                        Refresh
-                    </Button>
-                    <Button
-                        onClick={() => showModal()}
-                        size="lg"
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all p-3"
-                    >
-                        <Plus className="mr-2 h-5 w-5" /> Add New Product
-                    </Button>
-                </div>
-            </div>
-
-            {/* Filters Section */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <div className="relative flex-1 w-full flex items-center gap-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                        <Input
-                            placeholder="Search by name, SKU, or barcode..."
-                            className="pl-11 h-12 bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 text-lg rounded-md"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+        <div className="flex flex-col gap-6">
+            <PageHeader
+                title="Products"
+                description="Manage your catalogue, prices, and stock visibility."
+                actions={
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
+                            <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
+                        </Button>
+                        <Button onClick={() => openModal()}>
+                            <Plus data-icon="inline-start" /> Add Product
+                        </Button>
                     </div>
+                }
+            />
+
+            {/* Filters */}
+            <div className="border-border bg-card flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:px-6">
+                <div className="relative flex-1">
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                    <Input
+                        placeholder="Search by name, SKU, barcode…"
+                        className="h-9 pl-9"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
                 </div>
-
-                {isAdmin && (
-                    <div className="w-full sm:w-[240px]">
-                        <Select value={selectedShopId} onValueChange={setSelectedShopId}>
-                            <SelectTrigger className="h-12 bg-slate-50 border-none rounded-md focus:ring-2 focus:ring-primary/20 text-slate-600">
-                                <Building2 className="mr-2 h-4 w-4 text-slate-400" />
-                                <SelectValue placeholder="All Shops" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-md border-slate-100">
-                                <SelectItem value="all">All Shops</SelectItem>
-                                {shops.map((shop) => (
-                                    <SelectItem key={shop.id} value={shop.id.toString()}>
-                                        {shop.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
-
-                <div className="w-full sm:w-[240px]">
+                <div className="flex flex-wrap items-center gap-2">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                        <SelectTrigger className="h-12 bg-slate-50 border-none rounded-md focus:ring-2 focus:ring-primary/20 text-slate-600">
-                            <Layers className="mr-2 h-4 w-4 text-slate-400" />
-                            <SelectValue placeholder="All Categories" />
+                        <SelectTrigger className="h-9 w-[180px]">
+                            <div className="flex items-center gap-2">
+                                <Layers className="text-muted-foreground size-3.5" />
+                                <SelectValue placeholder="All categories" />
+                            </div>
                         </SelectTrigger>
-                        <SelectContent className="rounded-md border-slate-100">
-                            <SelectItem value="all">All Categories</SelectItem>
-                            {categories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+                        <SelectContent>
+                            <SelectItem value="all">All categories</SelectItem>
+                            {categories.map(c => (
+                                <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
+                    {isAdmin && (
+                        <Select value={selectedShopId} onValueChange={setSelectedShopId}>
+                            <SelectTrigger className="h-9 w-[160px]">
+                                <div className="flex items-center gap-2">
+                                    <Building2 className="text-muted-foreground size-3.5" />
+                                    <SelectValue placeholder="All shops" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All shops</SelectItem>
+                                {shops.map(s => (
+                                    <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                    {(searchTerm !== '' || selectedCategory !== 'all') && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 text-muted-foreground"
+                            onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
+                        >
+                            <FilterX className="mr-1.5 size-3.5" /> Reset
+                        </Button>
+                    )}
                 </div>
-                {(searchTerm !== "" || selectedCategory !== "all") && (
-                    <Button
-                        variant="ghost"
-                        onClick={() => { setSearchTerm(""); setSelectedCategory("all"); }}
-                        className="h-12 text-slate-500 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl px-4"
-                    >
-                        <FilterX className="mr-2 h-4 w-4" />
-                        Reset Filters
-                    </Button>
-                )}
             </div>
 
-            {/* Products Grid - Compact Cards */}
+            {/* Product grid */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 animate-pulse">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="h-10 w-10 bg-slate-200 rounded-lg" />
-                                <div className="flex-1">
-                                    <div className="h-5 w-3/4 bg-slate-200 rounded" />
-                                    <div className="h-4 w-1/2 bg-slate-200 rounded mt-2" />
-                                </div>
-                            </div>
+                        <div key={i} className="bg-card rounded-xl border p-4 space-y-3">
+                            <Skeleton className="h-8 w-8 rounded-lg" />
+                            <Skeleton className="h-5 w-3/4 rounded" />
+                            <Skeleton className="h-4 w-1/2 rounded" />
+                            <Skeleton className="h-8 w-full rounded" />
                         </div>
                     ))}
                 </div>
-            ) : filteredProducts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                    <div className="bg-slate-50 p-6 rounded-full mb-6">
-                        <Package className="h-16 w-16 text-slate-300" />
+            ) : filtered.length === 0 ? (
+                <div className="bg-card flex flex-col items-center justify-center rounded-xl border py-24">
+                    <div className="bg-muted mb-6 flex size-16 items-center justify-center rounded-full">
+                        <Package className="text-muted-foreground size-8" />
                     </div>
-                    <h3 className="text-2xl font-semibold text-slate-800">No products found</h3>
-                    <p className="text-slate-500 mt-2 max-w-sm text-center">
-                        Your search didn&apos;t match any products. Try adjusting your filters or adding a new product.
-                    </p>
-                    <Button
-                        variant="outline"
-                        onClick={() => showModal()}
-                        className="mt-8 border-primary text-primary hover:bg-primary/5 rounded-xl px-8"
-                    >
-                        <Plus className="mr-2 h-4 w-4" /> Add First Product
+                    <p className="text-foreground text-lg font-semibold">No products found</p>
+                    <p className="text-muted-foreground mt-1 text-sm">Try adjusting your filters or add a new product.</p>
+                    <Button className="mt-6" onClick={() => openModal()}>
+                        <Plus className="mr-2 size-4" /> Add first product
                     </Button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filteredProducts.map((product) => {
-                        const marginColor = getMarginColor(product.markup_percentage);
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {filtered.map(product => {
+                        const mp = product.markup_percentage ?? 0;
                         const profit = product.selling_price - product.cost_price;
-
                         return (
                             <div
                                 key={product.id}
-                                className="group bg-white rounded-xl border border-slate-100 hover:border-primary/20 hover:shadow-md transition-all duration-200"
+                                className="bg-card group rounded-xl border transition-shadow hover:shadow-md"
                             >
-                                {/* Compact Card Content */}
                                 <div className="p-4">
-                                    {/* Header with Icon and Actions */}
-                                    <div className="flex items-start justify-between mb-3">
+                                    {/* Header */}
+                                    <div className="mb-3 flex items-start justify-between">
                                         <div className="flex items-center gap-2">
-                                            <div className={`
-                                                h-8 w-8 rounded-lg flex items-center justify-center
-                                                ${product.is_active
-                                                    ? 'bg-primary/10 text-primary'
-                                                    : 'bg-slate-100 text-slate-400'
-                                                }
-                                            `}>
-                                                <Package className="h-4 w-4" />
+                                            <div className={cn(
+                                                'flex size-8 items-center justify-center rounded-lg',
+                                                product.is_active ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+                                            )}>
+                                                <Package className="size-4" />
                                             </div>
                                             <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="font-semibold text-slate-900 text-sm leading-tight">
-                                                        {product.name}
-                                                    </h3>
-                                                    <Badge
-                                                        variant={product.is_active ? "default" : "secondary"}
-                                                        className={`
-                                                            rounded-full px-2 py-0 text-[10px] font-medium
-                                                            ${product.is_active
-                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                                : 'bg-slate-100 text-slate-600 border-slate-200'
-                                                            }
-                                                        `}
-                                                    >
-                                                        {product.is_active ? 'Active' : 'Archived'}
-                                                    </Badge>
-                                                </div>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[10px] text-slate-500 flex items-center gap-0.5">
-                                                        <Tag className="h-3 w-3" />
-                                                        {getCategoryName(product.category_id)}
-                                                    </span>
-                                                </div>
+                                                <p className="text-foreground text-sm font-semibold leading-tight line-clamp-1">{product.name}</p>
+                                                <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[10px]">
+                                                    <Tag className="size-3" /> {getCategoryName(product.category_id)}
+                                                </p>
                                             </div>
                                         </div>
-
-                                        {/* Actions Dropdown */}
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-6 w-6 rounded-lg hover:bg-slate-100"
-                                                >
-                                                    <MoreHorizontal className="h-3.5 w-3.5 text-slate-500" />
+                                                <Button variant="ghost" size="icon" className="size-6 rounded-lg">
+                                                    <MoreHorizontal className="size-3.5" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-[140px] rounded-xl">
-                                                <DropdownMenuItem onClick={() => showModal(product)} className="py-1.5 text-xs">
-                                                    <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                                            <DropdownMenuContent align="end" className="w-36">
+                                                <DropdownMenuItem className="text-xs" onClick={() => openModal(product)}>
+                                                    <Pencil className="size-3.5" /> Edit
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                <Popconfirm
-                                                    title="Delete Product"
-                                                    description="Are you sure?"
-                                                    onConfirm={() => handleDelete(product.id)}
-                                                    okText="Delete"
-                                                    cancelText="Cancel"
-                                                    okButtonProps={{ danger: true, size: 'small' }}
+                                                <DropdownMenuItem
+                                                    className="text-xs text-destructive focus:text-destructive"
+                                                    onClick={() => setDeleteTarget(product)}
                                                 >
-                                                    <DropdownMenuItem
-                                                        className="text-red-600 focus:text-red-600 py-1.5 text-xs"
-                                                        onSelect={(e) => e.preventDefault()}
-                                                    >
-                                                        <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
-                                                    </DropdownMenuItem>
-                                                </Popconfirm>
+                                                    <Trash2 className="size-3.5" /> Delete
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
 
-                                    {/* SKU and Barcode Row */}
-                                    <div className="flex items-center justify-between mb-3 text-[10px]">
-                                        <Tooltip title={`SKU: ${product.sku}`}>
-                                            <span className="font-mono text-slate-400 truncate max-w-[80px]">
-                                                {product.sku}
-                                            </span>
-                                        </Tooltip>
-                                        <Tooltip title={product.barcode || 'No barcode'}>
-                                            <span className="flex items-center gap-1 text-slate-400">
-                                                <Barcode className="h-3 w-3" />
-                                                <span className="truncate max-w-[60px]">
-                                                    {product.barcode || 'No barcode'}
-                                                </span>
-                                            </span>
-                                        </Tooltip>
+                                    {/* Active badge */}
+                                    <Badge
+                                        variant="outline"
+                                        className={cn(
+                                            'mb-3 rounded-full text-[10px] font-medium',
+                                            product.is_active
+                                                ? 'border-success/30 bg-success/10 text-success'
+                                                : 'border-border bg-muted text-muted-foreground',
+                                        )}
+                                    >
+                                        {product.is_active ? 'Active' : 'Archived'}
+                                    </Badge>
+
+                                    {/* SKU / Barcode */}
+                                    <div className="mb-3 flex items-center justify-between text-[10px]">
+                                        <span className="text-muted-foreground font-mono truncate max-w-[80px]" title={product.sku}>{product.sku || '—'}</span>
+                                        <span className="text-muted-foreground flex items-center gap-1">
+                                            <Barcode className="size-3" />
+                                            <span className="truncate max-w-[60px]">{product.barcode || 'No barcode'}</span>
+                                        </span>
                                     </div>
 
-                                    {/* Price Row */}
-                                    <div className="flex items-center justify-between mb-2">
+                                    {/* Prices */}
+                                    <div className="mb-2 flex items-end justify-between">
                                         <div>
-                                            <span className="text-[10px] text-slate-500 block">Selling</span>
-                                            <span className="text-base font-bold text-slate-900">
-                                                ₵{product.selling_price.toLocaleString()}
-                                            </span>
+                                            <p className="text-muted-foreground text-[10px]">Selling</p>
+                                            <p className="text-foreground num-tabular text-base font-bold">
+                                                GHS {product.selling_price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                            </p>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-[10px] text-slate-500 block">Cost</span>
-                                            <span className="text-sm text-slate-600">
-                                                ₵{product.cost_price.toLocaleString()}
-                                            </span>
+                                            <p className="text-muted-foreground text-[10px]">Cost</p>
+                                            <p className="text-muted-foreground num-tabular text-sm font-medium">
+                                                GHS {product.cost_price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                            </p>
                                         </div>
                                     </div>
 
-                                    {/* Margin and Profit Row */}
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-1">
-                                            <span className={`text-xs font-medium ${marginColor}`}>
-                                                {product.markup_percentage}%
-                                            </span>
-                                            <span className="text-[10px] text-slate-400">margin</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            {profit >= 0 ? (
-                                                <TrendingUp className="h-3 w-3 text-emerald-500" />
-                                            ) : (
-                                                <TrendingDown className="h-3 w-3 text-rose-500" />
-                                            )}
-                                            <span className={`text-xs font-medium ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                ₵{Math.abs(profit).toLocaleString()}
-                                                {profit < 0 ? ' loss' : ''}
-                                            </span>
-                                        </div>
+                                    {/* Margin + profit */}
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <span className={cn('text-xs font-medium', marginColor(mp))}>
+                                            {mp.toFixed(1)}% margin
+                                        </span>
+                                        <span className={cn('flex items-center gap-1 text-xs font-medium', profit >= 0 ? 'text-success' : 'text-destructive')}>
+                                            {profit >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+                                            GHS {Math.abs(profit).toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                        </span>
                                     </div>
 
-                                    {/* Mini Progress Bar */}
-                                    <div className="h-1 bg-slate-100 rounded-full overflow-hidden mb-3">
+                                    <div className="bg-muted mb-3 h-1.5 overflow-hidden rounded-full">
                                         <div
-                                            className={`h-full rounded-full ${product.markup_percentage >= 30
-                                                ? 'bg-emerald-500'
-                                                : product.markup_percentage >= 15
-                                                    ? 'bg-amber-500'
-                                                    : 'bg-rose-500'
-                                                }`}
-                                            style={{ width: `${Math.min(product.markup_percentage, 100)}%` }}
+                                            className={cn('h-full transition-all duration-500', marginBarClass(mp))}
+                                            style={{ width: `${Math.min(mp, 100)}%` }}
                                         />
                                     </div>
 
-                                    {/* Tax Indicator (if applicable) */}
                                     {product.is_taxable && (
-                                        <div className="flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 px-2 py-1 rounded-lg mb-2">
-                                            <Percent className="h-3 w-3" />
-                                            <span>Tax {product.tax_rate}%</span>
+                                        <div className="bg-warning/10 text-warning-foreground mb-3 flex items-center gap-1 rounded-lg px-2 py-1 text-[10px]">
+                                            <Percent className="size-3" /> Tax {product.tax_rate}%
                                         </div>
                                     )}
 
-                                    {/* Edit Button */}
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="w-full h-8 border-slate-200 hover:border-primary hover:text-primary hover:bg-primary/5 rounded-lg text-xs font-medium mt-1 transition-all flex items-center justify-center gap-1.5"
-                                        onClick={() => showDetailsModal(product)}
+                                        className="h-8 w-full text-xs"
+                                        onClick={() => setViewingProduct(product)}
                                     >
-                                        <Eye className="h-3.5 w-3.5" />
-                                        View Details
+                                        <Eye className="mr-1.5 size-3.5" /> View Details
                                     </Button>
                                 </div>
                             </div>
@@ -559,592 +428,353 @@ export default function ProductsPage() {
                 </div>
             )}
 
-            {/* Product Modal */}
-            <Modal
-                open={isModalVisible}
-                onCancel={handleCancel}
-                footer={null}
-                width={720}
-                centered
-                closable={false}
-                styles={modalStyles}
-                modalRender={(modal) => (
-                    <div className="ant-modal-custom">
-                        {modal}
-                    </div>
-                )}
-            >
-                {/* Custom Header */}
-                <div style={modalStyles.header} className="flex items-center justify-between">
-                    <Space size="middle" align="center">
-                        <div className="p-2.5 bg-primary/10 rounded-xl">
-                            {editingProduct ? (
-                                <Pencil className="h-5 w-5 text-primary" />
-                            ) : (
-                                <Plus className="h-5 w-5 text-primary" />
-                            )}
+            {/* Create / Edit modal */}
+            <Dialog open={isModalOpen} onOpenChange={open => !open && closeModal()}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <div className="bg-primary/10 mb-1 inline-flex size-10 items-center justify-center rounded-xl">
+                            {editingProduct ? <Pencil className="text-primary size-5" /> : <Plus className="text-primary size-5" />}
                         </div>
-                        <div>
-                            <Text strong style={{ fontSize: token.fontSizeLG, color: token.colorText }}>
-                                {editingProduct ? "Edit Product" : "Create New Product"}
-                            </Text>
-                            <Text type="secondary" style={{ fontSize: token.fontSizeSM, display: 'block' }}>
-                                {editingProduct ? "Update product information" : "Add a new product to your inventory"}
-                            </Text>
-                        </div>
-                    </Space>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleCancel}
-                        className="rounded-full h-8 w-8 hover:bg-slate-100"
-                    >
-                        <XCircle className="h-4 w-4" />
-                    </Button>
-                </div>
+                        <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+                    </DialogHeader>
 
-                {/* Form Content */}
-                <div style={modalStyles.body}>
-                    <Form
-                        form={form}
-                        layout="vertical"
-                        onFinish={onFinish}
-                        requiredMark={false}
-                        size="middle"
-                    >
-                        {/* Basic Information Section */}
-                        <div className="mb-6">
-                            <Text strong className="text-sm text-slate-700 flex items-center gap-2 mb-4">
-                                <Package className="h-4 w-4" />
-                                Basic Information
-                            </Text>
-
-                            <Row gutter={16}>
-                                <Col span={16}>
-                                    <Form.Item
-                                        name="name"
-                                        label={<Text type="secondary">Product Name</Text>}
-                                        rules={[{ required: true, message: 'Product name is required' }]}
-                                    >
-                                        <AntInput
-                                            placeholder="e.g., Wireless Headphones"
-                                            className="rounded-lg"
-                                            size="large"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={8}>
-                                    <Form.Item
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-2">
+                        {/* Basic info */}
+                        <div className="space-y-4">
+                            <p className="text-muted-foreground flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
+                                <Package className="size-3.5" /> Basic information
+                            </p>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-2 space-y-1.5">
+                                    <Label>Product name <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        className={cn('h-9', errors.name && 'border-destructive')}
+                                        placeholder="e.g., Wireless Headphones"
+                                        {...register('name', { required: true })}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Category <span className="text-destructive">*</span></Label>
+                                    <Controller
+                                        control={control}
                                         name="category_id"
-                                        label={<Text type="secondary">Category</Text>}
-                                        rules={[{ required: true, message: 'Category is required' }]}
-                                    >
-                                        <Select
-                                            value={form.getFieldValue("category_id")?.toString()}
-                                            onValueChange={(value) => form.setFieldsValue({ category_id: Number(value) })}
-                                        >
-                                            <SelectTrigger className="h-10 rounded-lg border-slate-200">
-                                                <SelectValue placeholder="Select" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {categories.map(c => (
-                                                    <SelectItem key={c.id} value={c.id.toString()}>
-                                                        {c.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-
-                            <Form.Item
-                                name="description"
-                                label={<Text type="secondary">Description</Text>}
-                            >
-                                <AntInput.TextArea
-                                    rows={3}
-                                    placeholder="Enter product description..."
-                                    className="rounded-lg"
-                                />
-                            </Form.Item>
-                        </div>
-
-                        <Divider className="my-6" />
-
-                        {/* Identification Section */}
-                        <div className="mb-6">
-                            <Text strong className="text-sm text-slate-700 flex items-center gap-2 mb-4">
-                                <Barcode className="h-4 w-4" />
-                                Identification
-                            </Text>
-
-                            <Row gutter={16}>
-                                <Col span={8}>
-                                    <Form.Item
-                                        name="brand"
-                                        label={<Text type="secondary">Brand</Text>}
-                                    >
-                                        <AntInput
-                                            placeholder="e.g., Sony"
-                                            size="large"
-                                            className="rounded-lg"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={8}>
-                                    <Form.Item
-                                        name="sku"
-                                        label={<Text type="secondary">SKU</Text>}
-                                    >
-                                        <AntInput
-                                            placeholder="SKU-12345"
-                                            size="large"
-                                            className="rounded-lg font-mono"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={8}>
-                                    <Form.Item
-                                        name="barcode"
-                                        label={<Text type="secondary">Barcode</Text>}
-                                    >
-                                        <AntInput
-                                            placeholder="EAN / UPC"
-                                            size="large"
-                                            className="rounded-lg font-mono"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </div>
-
-                        <Divider className="my-6" />
-
-                        {/* Pricing Section */}
-                        <div className="mb-6">
-                            <Text strong className="text-sm text-slate-700 flex items-center gap-2 mb-4">
-                                <DollarSign className="h-4 w-4" />
-                                Pricing & Tax
-                            </Text>
-
-                            <Row gutter={16}>
-                                <Col span={8}>
-                                    <Form.Item
-                                        name="cost_price"
-                                        label={<Text type="secondary">Cost Price (GHS)</Text>}
-                                        rules={[{ required: true, message: 'Required' }]}
-                                    >
-                                        <InputNumber
-                                            min={0}
-                                            className="w-full rounded-lg"
-                                            size="large"
-                                            formatter={(value) => `₵ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                            parser={(value) => value?.replace(/\₵\s?|(,*)/g, '') as any}
-                                            onChange={(value) => {
-                                                const cost = Number(value || 0);
-                                                const selling = form.getFieldValue("selling_price") || 0;
-                                                if (cost > 0 && selling > 0) {
-                                                    form.setFieldsValue({
-                                                        markup_percentage: calculateMarkup(cost, selling)
-                                                    });
-                                                }
-                                            }}
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={8}>
-                                    <Form.Item
-                                        name="selling_price"
-                                        label={<Text type="secondary">Selling Price (GHS)</Text>}
-                                        rules={[{ required: true, message: 'Required' }]}
-                                    >
-                                        <InputNumber
-                                            min={0}
-                                            className="w-full rounded-lg"
-                                            size="large"
-                                            formatter={(value) => `₵ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                            parser={(value) => value?.replace(/\₵\s?|(,*)/g, '') as any}
-                                            onChange={(value) => {
-                                                const selling = Number(value || 0);
-                                                const cost = form.getFieldValue("cost_price") || 0;
-                                                if (cost > 0 && selling > 0) {
-                                                    form.setFieldsValue({
-                                                        markup_percentage: calculateMarkup(cost, selling)
-                                                    });
-                                                }
-                                            }}
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={4}>
-                                    <Form.Item
-                                        name="markup_percentage"
-                                        label={<Text type="secondary">Markup %</Text>}
-                                    >
-                                        <InputNumber
-                                            disabled
-                                            className="w-full rounded-lg bg-slate-50"
-                                            size="large"
-                                            formatter={(value) => `${value}%`}
-                                            parser={(value) => value?.replace('%', '') as any}
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={4}>
-                                    <Form.Item
-                                        name="tax_rate"
-                                        label={<Text type="secondary">Tax Rate %</Text>}
-                                    >
-                                        <InputNumber
-                                            min={0}
-                                            max={100}
-                                            className="w-full rounded-lg"
-                                            size="large"
-                                            formatter={(value) => `${value}%`}
-                                            parser={(value) => value?.replace('%', '') as any}
-                                        />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </div>
-
-                        <Divider className="my-6" />
-
-                        {/* Status Toggles */}
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <Text strong className="text-sm text-slate-700">Taxable</Text>
-                                            <Text type="secondary" style={{ fontSize: '12px', display: 'block' }}>
-                                                Apply tax rate to this product
-                                            </Text>
-                                        </div>
-                                        <Form.Item name="is_taxable" valuePropName="checked" noStyle>
-                                            <Switch
-                                                checkedChildren={<CheckCircle className="h-3 w-3" />}
-                                                unCheckedChildren={<XCircle className="h-3 w-3" />}
-                                            />
-                                        </Form.Item>
-                                    </div>
-                                </div>
-                            </Col>
-                            <Col span={12}>
-                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <Text strong className="text-sm text-slate-700">Active Status</Text>
-                                            <Text type="secondary" style={{ fontSize: '12px', display: 'block' }}>
-                                                Visible in POS shopfront
-                                            </Text>
-                                        </div>
-                                        <Form.Item name="is_active" valuePropName="checked" noStyle>
-                                            <Switch
-                                                checkedChildren={<CheckCircle className="h-3 w-3" />}
-                                                unCheckedChildren={<XCircle className="h-3 w-3" />}
-                                            />
-                                        </Form.Item>
-                                    </div>
-                                </div>
-                            </Col>
-                        </Row>
-                    </Form>
-                </div>
-
-                {/* Footer Actions */}
-                <div style={modalStyles.footer} className="flex justify-end gap-3">
-                    <Button
-                        variant="outline"
-                        onClick={handleCancel}
-                        className="rounded-lg h-10 px-6"
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        onClick={() => form.submit()}
-                        disabled={submitting}
-                        className="rounded-lg h-10 px-8 bg-primary hover:bg-primary/90"
-                    >
-                        {submitting ? (
-                            <>
-                                <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-                                Processing...
-                            </>
-                        ) : (
-                            editingProduct ? "Update Product" : "Create Product"
-                        )}
-                    </Button>
-                </div>
-            </Modal>
-
-            {/* Product Details Modal */}
-            <Modal
-                open={isDetailsModalVisible}
-                onCancel={handleDetailsCancel}
-                footer={null}
-                width={700}
-                centered
-                closable={false}
-                styles={{
-                    ...modalStyles,
-                    body: { padding: 0 }
-                }}
-                modalRender={(modal) => (
-                    <div className="ant-modal-details-custom">
-                        {modal}
-                    </div>
-                )}
-            >
-                {viewingProduct && (
-                    <div className="flex flex-col bg-white">
-                        {/* Header */}
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                                    <Package className="h-5 w-5 text-primary" />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h2 className="text-lg font-semibold text-slate-900">{viewingProduct.name}</h2>
-                                        <span className={`
-                                text-xs px-2 py-0.5 rounded-full font-medium
-                                ${viewingProduct.is_active
-                                                ? 'bg-emerald-50 text-emerald-700'
-                                                : 'bg-rose-50 text-rose-700'
-                                            }
-                            `}>
-                                            {viewingProduct.is_active ? 'Active' : 'Archived'}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
-                                        <span className="flex items-center gap-1">
-                                            <Tag className="h-3.5 w-3.5" />
-                                            {getCategoryName(viewingProduct.category_id)}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            <Building2 className="h-3.5 w-3.5" />
-                                            {viewingProduct.brand || 'No Brand'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleDetailsCancel}
-                                className="h-8 w-8 rounded-lg hover:bg-slate-100"
-                            >
-                                <X className="h-4 w-4 text-slate-400" />
-                            </Button>
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                            {/* Quick Stats */}
-                            <div className="grid grid-cols-3 gap-3">
-                                <div className="bg-slate-50 rounded-lg p-3">
-                                    <p className="text-xs text-slate-500 mb-1">Selling Price</p>
-                                    <p className="text-lg font-bold text-slate-900">₵{viewingProduct.selling_price.toLocaleString()}</p>
-                                </div>
-                                <div className="bg-slate-50 rounded-lg p-3">
-                                    <p className="text-xs text-slate-500 mb-1">Cost Price</p>
-                                    <p className="text-lg font-bold text-slate-900">₵{viewingProduct.cost_price.toLocaleString()}</p>
-                                </div>
-                                <div className="bg-slate-50 rounded-lg p-3">
-                                    <p className="text-xs text-slate-500 mb-1">Profit</p>
-                                    <p className={`text-lg font-bold ${(viewingProduct.selling_price - viewingProduct.cost_price) >= 0
-                                        ? 'text-emerald-600'
-                                        : 'text-rose-600'
-                                        }`}>
-                                        ₵{(viewingProduct.selling_price - viewingProduct.cost_price).toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Margin Bar */}
-                            <div className="space-y-1.5">
-                                <div className="flex justify-between items-center text-xs">
-                                    <span className="text-slate-500">Gross Margin</span>
-                                    <span className={`font-medium ${viewingProduct.markup_percentage >= 30
-                                        ? 'text-emerald-600'
-                                        : viewingProduct.markup_percentage >= 15
-                                            ? 'text-amber-600'
-                                            : 'text-rose-600'
-                                        }`}>
-                                        {viewingProduct.markup_percentage}%
-                                    </span>
-                                </div>
-                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full ${viewingProduct.markup_percentage >= 30
-                                            ? 'bg-emerald-500'
-                                            : viewingProduct.markup_percentage >= 15
-                                                ? 'bg-amber-500'
-                                                : 'bg-rose-500'
-                                            }`}
-                                        style={{ width: `${Math.min(viewingProduct.markup_percentage, 100)}%` }}
+                                        rules={{ required: true }}
+                                        render={({ field }) => (
+                                            <Select value={field.value} onValueChange={field.onChange}>
+                                                <SelectTrigger className={cn('h-9', errors.category_id && 'border-destructive')}>
+                                                    <SelectValue placeholder="Select" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {categories.map(c => (
+                                                        <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
                                     />
                                 </div>
                             </div>
+                            <div className="space-y-1.5">
+                                <Label>Description</Label>
+                                <Textarea className="resize-none" rows={3} placeholder="Product description…" {...register('description')} />
+                            </div>
+                        </div>
 
-                            {/* Details Grid */}
-                            <div className="grid grid-cols-2 gap-4">
-                                {/* Left Column */}
-                                <div className="space-y-4">
-                                    <div className="border border-slate-100 rounded-lg p-3">
-                                        <p className="text-xs text-slate-400 mb-1">SKU</p>
-                                        <p className="text-sm font-mono text-slate-700">{viewingProduct.sku || 'N/A'}</p>
-                                    </div>
-                                    <div className="border border-slate-100 rounded-lg p-3">
-                                        <p className="text-xs text-slate-400 mb-1">Barcode</p>
-                                        <p className="text-sm font-mono text-slate-700">{viewingProduct.barcode || 'N/A'}</p>
-                                    </div>
-                                    <div className="border border-slate-100 rounded-lg p-3">
-                                        <p className="text-xs text-slate-400 mb-1">Tax Rate</p>
-                                        <p className="text-sm text-slate-700">{viewingProduct.tax_rate}%</p>
-                                    </div>
+                        {/* Identification */}
+                        <div className="space-y-4">
+                            <p className="text-muted-foreground flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
+                                <Barcode className="size-3.5" /> Identification
+                            </p>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label>Brand</Label>
+                                    <Input className="h-9" placeholder="e.g., Sony" {...register('brand')} />
                                 </div>
+                                <div className="space-y-1.5">
+                                    <Label>SKU</Label>
+                                    <Input className="h-9 font-mono" placeholder="SKU-12345" {...register('sku')} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Barcode</Label>
+                                    <Input className="h-9 font-mono" placeholder="EAN / UPC" {...register('barcode')} />
+                                </div>
+                            </div>
+                        </div>
 
-                                {/* Right Column */}
-                                <div className="space-y-4">
-                                    <div className="border border-slate-100 rounded-lg p-3">
-                                        <p className="text-xs text-slate-400 mb-1">Tax Status</p>
-                                        <div className="flex items-center gap-1.5">
-                                            {viewingProduct.is_taxable ? (
-                                                <>
-                                                    <CheckCircle className="h-4 w-4 text-emerald-500" />
-                                                    <span className="text-sm text-slate-700">Taxable</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <XCircle className="h-4 w-4 text-slate-400" />
-                                                    <span className="text-sm text-slate-700">Non-taxable</span>
-                                                </>
-                                            )}
-                                        </div>
+                        {/* Pricing */}
+                        <div className="space-y-4">
+                            <p className="text-muted-foreground flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
+                                <DollarSign className="size-3.5" /> Pricing & tax
+                            </p>
+                            <div className="grid grid-cols-4 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label>Cost price (GHS) <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        className={cn('h-9', errors.cost_price && 'border-destructive')}
+                                        placeholder="0.00"
+                                        {...register('cost_price', { required: true })}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Selling price (GHS) <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        className={cn('h-9', errors.selling_price && 'border-destructive')}
+                                        placeholder="0.00"
+                                        {...register('selling_price', { required: true })}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Markup % (auto)</Label>
+                                    <Input
+                                        className="h-9 bg-muted"
+                                        readOnly
+                                        value={`${markup.toFixed(2)}%`}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Tax rate %</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        max="100"
+                                        className="h-9"
+                                        placeholder="0"
+                                        {...register('tax_rate')}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Toggles */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-muted/40 flex items-center justify-between rounded-xl border p-4">
+                                <div>
+                                    <p className="text-foreground text-sm font-semibold">Taxable</p>
+                                    <p className="text-muted-foreground text-xs">Apply tax rate at sale</p>
+                                </div>
+                                <Controller
+                                    control={control}
+                                    name="is_taxable"
+                                    render={({ field }) => (
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                    )}
+                                />
+                            </div>
+                            <div className="bg-muted/40 flex items-center justify-between rounded-xl border p-4">
+                                <div>
+                                    <p className="text-foreground text-sm font-semibold">Active</p>
+                                    <p className="text-muted-foreground text-xs">Visible in POS</p>
+                                </div>
+                                <Controller
+                                    control={control}
+                                    name="is_active"
+                                    render={({ field }) => (
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                    )}
+                                />
+                            </div>
+                        </div>
+
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={closeModal}>Cancel</Button>
+                            <Button type="submit" disabled={submitting}>
+                                {submitting ? (editingProduct ? 'Updating…' : 'Creating…') : (editingProduct ? 'Update Product' : 'Create Product')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Product details modal */}
+            <Dialog open={!!viewingProduct} onOpenChange={open => !open && setViewingProduct(null)}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    {viewingProduct && (
+                        <>
+                            <DialogHeader>
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-primary/10 flex size-10 items-center justify-center rounded-lg">
+                                        <Package className="text-primary size-5" />
                                     </div>
-                                    <div className="border border-slate-100 rounded-lg p-3">
-                                        <p className="text-xs text-slate-400 mb-1">Visibility</p>
-                                        <div className="flex items-center gap-1.5">
-                                            <Eye className={`h-4 w-4 ${viewingProduct.is_active ? 'text-blue-500' : 'text-slate-400'}`} />
-                                            <span className="text-sm text-slate-700">
-                                                {viewingProduct.is_active ? 'Visible in POS' : 'Hidden'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="border border-slate-100 rounded-lg p-3">
-                                        <p className="text-xs text-slate-400 mb-1">Description</p>
-                                        <p className="text-sm text-slate-600 line-clamp-2">
-                                            {viewingProduct.description || 'No description'}
+                                    <div>
+                                        <DialogTitle className="flex items-center gap-2">
+                                            {viewingProduct.name}
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    'rounded-full text-[10px]',
+                                                    viewingProduct.is_active
+                                                        ? 'border-success/30 bg-success/10 text-success'
+                                                        : 'border-border bg-muted text-muted-foreground',
+                                                )}
+                                            >
+                                                {viewingProduct.is_active ? 'Active' : 'Archived'}
+                                            </Badge>
+                                        </DialogTitle>
+                                        <p className="text-muted-foreground flex items-center gap-3 text-xs mt-0.5">
+                                            <span className="flex items-center gap-1"><Tag className="size-3" />{getCategoryName(viewingProduct.category_id)}</span>
+                                            <span className="flex items-center gap-1"><Building2 className="size-3" />{viewingProduct.brand || 'No brand'}</span>
                                         </p>
                                     </div>
                                 </div>
-                            </div>
+                            </DialogHeader>
 
-                            {/* Timestamps */}
-                            <div className="bg-slate-50 rounded-lg p-3 flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-2">
-                                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                                    <span className="text-slate-500">Created:</span>
-                                    <span className="text-slate-700">
-                                        {new Date(viewingProduct.created_at).toLocaleDateString()}
-                                    </span>
+                            <div className="space-y-5 pt-2">
+                                {/* Price stats */}
+                                <div className="grid grid-cols-3 gap-3">
+                                    {[
+                                        { label: 'Selling price', value: `GHS ${viewingProduct.selling_price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`, cls: '' },
+                                        { label: 'Cost price', value: `GHS ${viewingProduct.cost_price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`, cls: '' },
+                                        {
+                                            label: 'Profit',
+                                            value: `GHS ${(viewingProduct.selling_price - viewingProduct.cost_price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}`,
+                                            cls: (viewingProduct.selling_price - viewingProduct.cost_price) >= 0 ? 'text-success' : 'text-destructive',
+                                        },
+                                    ].map(s => (
+                                        <div key={s.label} className="bg-muted/50 rounded-lg p-3">
+                                            <p className="text-muted-foreground text-xs">{s.label}</p>
+                                            <p className={cn('num-tabular text-base font-bold mt-1', s.cls)}>{s.value}</p>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Clock className="h-3.5 w-3.5 text-slate-400" />
-                                    <span className="text-slate-500">Updated:</span>
-                                    <span className="text-slate-700">
-                                        {new Date(viewingProduct.updated_at).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            </div>
 
-                            {/* Inventory Information Section */}
-                            {viewingProduct.inventory && (
-                                <div className="pt-4 border-t border-slate-100">
-                                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-4">
-                                        <Package className="h-4 w-4 text-primary" />
-                                        Inventory & Stock Levels
-                                    </h4>
-                                    
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                                        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
-                                            <p className="text-[10px] text-emerald-600 font-medium uppercase tracking-wider mb-1">Current Stock</p>
-                                            <p className="text-xl font-bold text-emerald-700">{viewingProduct.inventory.current_stock} <span className="text-xs font-normal text-emerald-500">{viewingProduct.inventory.unit_of_measurement || 'units'}</span></p>
-                                        </div>
-                                        <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
-                                            <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wider mb-1">Min Level</p>
-                                            <p className="text-xl font-bold text-amber-700">{viewingProduct.inventory.minimum_stock}</p>
-                                        </div>
-                                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-                                            <p className="text-[10px] text-blue-600 font-medium uppercase tracking-wider mb-1">Reorder Point</p>
-                                            <p className="text-xl font-bold text-blue-700">{viewingProduct.inventory.reorder_point}</p>
-                                        </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-                                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">Max Capacity</p>
-                                            <p className="text-xl font-bold text-slate-700">{viewingProduct.inventory.maximum_stock || '—'}</p>
-                                        </div>
+                                {/* Margin bar */}
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-muted-foreground">Gross margin</span>
+                                        <span className={cn('font-medium', marginColor(viewingProduct.markup_percentage ?? 0))}>
+                                            {(viewingProduct.markup_percentage ?? 0).toFixed(1)}%
+                                        </span>
                                     </div>
+                                    <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                                        <div
+                                            className={cn('h-full transition-all', marginBarClass(viewingProduct.markup_percentage ?? 0))}
+                                            style={{ width: `${Math.min(viewingProduct.markup_percentage ?? 0, 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
 
-                                    <div className="grid grid-cols-2 gap-4 bg-slate-50/50 rounded-xl p-4 border border-slate-100">
-                                        <div className="space-y-3">
-                                            <div>
-                                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Storage Location</p>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-xs font-medium text-slate-600">Aisle {viewingProduct.inventory.aisle || 'N/A'}</span>
-                                                    <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-xs font-medium text-slate-600">Shelf {viewingProduct.inventory.shelf || 'N/A'}</span>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-slate-700 font-medium mt-2">{viewingProduct.inventory.bin_location || 'No specific bin location assigned'}</p>
-                                            </div>
+                                {/* Details grid */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { label: 'SKU', value: viewingProduct.sku || '—', mono: true },
+                                        { label: 'Barcode', value: viewingProduct.barcode || '—', mono: true },
+                                        { label: 'Tax rate', value: `${viewingProduct.tax_rate ?? 0}%` },
+                                        { label: 'Tax status', value: viewingProduct.is_taxable ? 'Taxable' : 'Non-taxable' },
+                                    ].map(d => (
+                                        <div key={d.label} className="border-border rounded-lg border p-3">
+                                            <p className="text-muted-foreground text-xs">{d.label}</p>
+                                            <p className={cn('text-foreground mt-0.5 text-sm font-medium', d.mono && 'font-mono')}>{d.value}</p>
                                         </div>
-                                        <div className="space-y-3 text-right">
+                                    ))}
+                                </div>
+
+                                {/* Description */}
+                                {viewingProduct.description && (
+                                    <div className="border-border rounded-lg border p-3">
+                                        <p className="text-muted-foreground text-xs">Description</p>
+                                        <p className="text-foreground mt-0.5 text-sm">{viewingProduct.description}</p>
+                                    </div>
+                                )}
+
+                                {/* Timestamps */}
+                                <div className="bg-muted/40 flex items-center justify-between rounded-lg px-4 py-2 text-xs">
+                                    <span className="text-muted-foreground flex items-center gap-1.5">
+                                        <Calendar className="size-3.5" /> Created {new Date(viewingProduct.created_at).toLocaleDateString()}
+                                    </span>
+                                    <span className="text-muted-foreground flex items-center gap-1.5">
+                                        <Clock className="size-3.5" /> Updated {new Date(viewingProduct.updated_at).toLocaleDateString()}
+                                    </span>
+                                </div>
+
+                                {/* Inventory section */}
+                                {viewingProduct.inventory && (
+                                    <div className="border-border space-y-4 border-t pt-4">
+                                        <p className="text-foreground flex items-center gap-2 text-sm font-semibold">
+                                            <Package className="text-primary size-4" /> Inventory & stock levels
+                                        </p>
+                                        <div className="grid grid-cols-4 gap-3">
+                                            {[
+                                                { label: 'Current stock', value: `${viewingProduct.inventory.current_stock}`, unit: viewingProduct.inventory.unit_of_measurement || 'units', cls: 'border-success/20 bg-success/10 text-success' },
+                                                { label: 'Min level', value: `${viewingProduct.inventory.minimum_stock}`, cls: 'border-warning/20 bg-warning/10 text-warning-foreground' },
+                                                { label: 'Reorder point', value: `${viewingProduct.inventory.reorder_point}`, cls: 'border-info/20 bg-info/10 text-info' },
+                                                { label: 'Max capacity', value: `${viewingProduct.inventory.maximum_stock || '—'}`, cls: 'border-border bg-muted text-muted-foreground' },
+                                            ].map(s => (
+                                                <div key={s.label} className={cn('rounded-xl border p-3', s.cls)}>
+                                                    <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">{s.label}</p>
+                                                    <p className="mt-1 text-xl font-bold">{s.value}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="bg-muted/40 grid grid-cols-2 gap-4 rounded-xl border p-4">
                                             <div>
-                                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Unit of Measure</p>
-                                                <p className="text-sm font-semibold text-slate-700 mt-0.5">{viewingProduct.inventory.unit_of_measurement || 'Units'}</p>
+                                                <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">Storage location</p>
+                                                <div className="mt-1.5 flex gap-2">
+                                                    <span className="bg-card text-foreground rounded border px-2 py-0.5 text-xs font-medium">
+                                                        Aisle {viewingProduct.inventory.aisle || 'N/A'}
+                                                    </span>
+                                                    <span className="bg-card text-foreground rounded border px-2 py-0.5 text-xs font-medium">
+                                                        Shelf {viewingProduct.inventory.shelf || 'N/A'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-muted-foreground mt-2 text-xs">{viewingProduct.inventory.bin_location || 'No bin location'}</p>
                                             </div>
-                                            <div>
-                                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Last Restocked</p>
-                                                <p className="text-sm font-semibold text-slate-700 mt-0.5">
-                                                    {viewingProduct.inventory.last_restocked 
+                                            <div className="text-right">
+                                                <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">Unit of measure</p>
+                                                <p className="text-foreground mt-1.5 text-sm font-semibold">{viewingProduct.inventory.unit_of_measurement || 'Units'}</p>
+                                                <p className="text-muted-foreground mt-2 text-[10px] font-semibold uppercase tracking-wider">Last restocked</p>
+                                                <p className="text-foreground mt-1 text-sm font-semibold">
+                                                    {viewingProduct.inventory.last_restocked
                                                         ? new Date(viewingProduct.inventory.last_restocked).toLocaleDateString()
                                                         : 'Never'}
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
 
-                        {/* Footer */}
-                        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleDetailsCancel}
-                                className="h-9 px-4 rounded-lg text-sm"
-                            >
-                                Close
-                            </Button>
-                            <Button
-                                size="sm"
-                                onClick={() => {
-                                    handleDetailsCancel();
-                                    showModal(viewingProduct);
-                                }}
-                                className="h-9 px-4 rounded-lg bg-primary hover:bg-primary/90 text-sm gap-1.5"
-                            >
-                                <Pencil className="h-3.5 w-3.5" />
-                                Edit
-                            </Button>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setViewingProduct(null)}>Close</Button>
+                                <Button onClick={() => { setViewingProduct(null); openModal(viewingProduct); }}>
+                                    <Pencil className="mr-1.5 size-4" /> Edit
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete confirmation */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <div className="bg-destructive/10 mx-auto mb-2 flex size-12 items-center justify-center rounded-full">
+                            <AlertTriangle className="text-destructive size-6" />
                         </div>
-                    </div>
-                )}
-            </Modal>
+                        <AlertDialogTitle>Delete product?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            <strong>{deleteTarget?.name}</strong> will be permanently removed. This cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={handleDelete}
+                            disabled={deleting}
+                        >
+                            {deleting ? 'Deleting…' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

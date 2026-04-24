@@ -1,638 +1,549 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import {
-    Plus,
-    MoreHorizontal,
-    Pencil,
-    Trash2,
-    Search,
-    RefreshCcw,
-    ShoppingCart,
-    FilterX,
-    Package,
-    ShoppingBag
-} from "lucide-react";
+    Plus, MoreHorizontal, Pencil, Trash2, Search,
+    RefreshCcw, ShoppingCart, FilterX, Package, ShoppingBag, AlertTriangle,
+} from 'lucide-react';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+    GetOrderItems, GetAllOrderItems, CreateOrderItems,
+    UpdateOrderItems, DeleteOrderItems,
+} from '@/(api-handlers)/orderItemsHandler';
+import { GetProducts } from '@/(api-handlers)/productsHandler';
+import { GetWalkinOrdersList } from '@/(api-handlers)/orders_walkinsHandler';
+import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
+import { useAuthStore } from '@/(zustand-store)/authStore';
+import { OrderItemResponse, OrderItemRequest, UpdateOrderItemRequest } from '@/interfaces/orderItems';
+import { ProductResponse } from '@/interfaces/products';
+import { OrderWalkInsResponse } from '@/interfaces/orders_walkins';
+import { OrganizationShopResponse } from '@/interfaces/organizationShops';
+import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import { toast } from 'sonner';
+import PageHeader from '@/components/(shared-components)/PageHeader';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import {
-    Modal,
-    Form,
-    Input as AntInput,
-    InputNumber,
-    Popconfirm,
-    Row,
-    Col,
-    Space,
-    Typography,
-    theme,
-    Table,
-} from "antd";
-import type { ColumnsType } from 'antd/es/table';
+    Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from '@/components/ui/table';
 import {
-    GetOrderItems,
-    GetAllOrderItems,
-    CreateOrderItems,
-    UpdateOrderItems,
-    DeleteOrderItems
-} from "@/(api-handlers)/orderItemsHandler";
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
-    GetProducts
-} from "@/(api-handlers)/productsHandler";
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
 import {
-    OrderItemResponse,
-    OrderItemRequest,
-    UpdateOrderItemRequest
-} from "@/interfaces/orderItems";
-import {
-    ProductResponse
-} from "@/interfaces/products";
-import {
-    GetWalkinOrdersList
-} from "@/(api-handlers)/orders_walkinsHandler";
-import { OrderWalkInsResponse } from "@/interfaces/orders_walkins";
-import { getOrganizationShops } from "@/(api-handlers)/organizationShopsHandler";
-import { useAuthStore } from "@/(zustand-store)/authStore";
-import { OrganizationShopResponse } from "@/interfaces/organizationShops";
-import { toast } from "sonner";
-import PageHeader from "@/components/(shared-components)/PageHeader";
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
-const { Text } = Typography;
+interface ItemFormValues {
+    target_order_id: string;
+    product_id: string;
+    quantity: string;
+    quantity_cancelled: string;
+    unit_price: string;
+    tax_rate: string;
+    discount_percentage: string;
+    inventory_id: string;
+    item_status: string;
+    notes: string;
+}
+
+function statusBadgeClass(status: string) {
+    switch (status?.toLowerCase()) {
+        case 'completed':
+        case 'delivered':  return 'border-success/30 bg-success/10 text-success';
+        case 'cancelled':  return 'border-destructive/30 bg-destructive/10 text-destructive';
+        case 'processing': return 'border-info/30 bg-info/10 text-info';
+        default:           return 'border-warning/30 bg-warning/10 text-warning-foreground';
+    }
+}
 
 export default function OrderItemsPage() {
-    const [orderItems, setOrderItems] = useState<OrderItemResponse[]>([]);
-    const [products, setProducts] = useState<ProductResponse[]>([]);
-    const [orders, setOrders] = useState<OrderWalkInsResponse[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedStatus, setSelectedStatus] = useState<string>("all");
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    const [editingItem, setEditingItem] = useState<OrderItemResponse | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [form] = Form.useForm();
-    const { token } = theme.useToken();
+    const [orderItems, setOrderItems]         = useState<OrderItemResponse[]>([]);
+    const [products, setProducts]             = useState<ProductResponse[]>([]);
+    const [orders, setOrders]                 = useState<OrderWalkInsResponse[]>([]);
+    const [loading, setLoading]               = useState(true);
+    const [searchTerm, setSearchTerm]         = useState('');
+    const [selectedStatus, setSelectedStatus] = useState('all');
+    const [searchOrderId, setSearchOrderId]   = useState('');
+    const [isModalOpen, setIsModalOpen]       = useState(false);
+    const [editingItem, setEditingItem]       = useState<OrderItemResponse | null>(null);
+    const [submitting, setSubmitting]         = useState(false);
+    const [deleteTarget, setDeleteTarget]     = useState<OrderItemResponse | null>(null);
+    const [deleting, setDeleting]             = useState(false);
 
-    const [searchOrderId, setSearchOrderId] = useState<string>("");
-
-    // Shop filtering
     const { user } = useAuthStore();
-    const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
-    const [selectedShopId, setSelectedShopId] = useState<string>("all");
-    const role = (user?.role || "attendant").toLowerCase();
-    const isAdmin = role === 'admin' || role === 'superadmin';
+    const [shops, setShops]                   = useState<OrganizationShopResponse[]>([]);
+    const [selectedShopId, setSelectedShopId] = useState('all');
+    const isAdmin = ['admin', 'superadmin'].includes((user?.role ?? '').toLowerCase());
 
-    const fetchShops = useCallback(async () => {
-        if (!isAdmin) return;
-        try {
-            const data = await getOrganizationShops();
-            setShops(data);
-        } catch (error) {
-            console.error("Failed to fetch shops:", error);
-        }
-    }, [isAdmin]);
+    const { register, handleSubmit, control, reset, formState: { errors } } = useForm<ItemFormValues>({
+        defaultValues: { quantity: '1', quantity_cancelled: '0', tax_rate: '0', discount_percentage: '0', item_status: 'pending' },
+    });
 
     useEffect(() => {
-        fetchShops();
-    }, [fetchShops]);
+        if (!isAdmin) return;
+        getOrganizationShops().then(setShops).catch(console.error);
+    }, [isAdmin]);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
-            const [productsData, ordersData]: [any, any] = await Promise.all([
-                GetProducts(shopIdParams),
-                GetWalkinOrdersList(shopIdParams)
+            const shopId = selectedShopId === 'all' ? undefined : Number(selectedShopId);
+            const [prodsData, ordersData]: [any, any] = await Promise.all([
+                GetProducts(shopId),
+                GetWalkinOrdersList(shopId),
             ]);
-            setProducts(productsData);
-            setOrders(ordersData.items || []);
+            setProducts(prodsData);
+            setOrders(ordersData.items ?? []);
 
             if (searchOrderId && !isNaN(Number(searchOrderId))) {
-                const itemsData = await GetOrderItems(Number(searchOrderId));
-                setOrderItems(itemsData);
+                const items = await GetOrderItems(Number(searchOrderId));
+                setOrderItems(items);
             } else {
-                const itemsData = await GetAllOrderItems(shopIdParams);
-                setOrderItems(itemsData);
+                const items = await GetAllOrderItems(shopId);
+                setOrderItems(items);
             }
         } catch (error) {
-            console.error("Failed to fetch data:", error);
-            toast.error("Failed to load order items or products");
+            handleErrorMessage(error, 'Failed to load order items');
         } finally {
             setLoading(false);
         }
     }, [searchOrderId, selectedShopId]);
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData, searchOrderId, selectedShopId]);
+    useEffect(() => { fetchData(); }, [fetchData]);
 
-    const showModal = (item: OrderItemResponse | null = null) => {
+    const openModal = (item: OrderItemResponse | null = null) => {
         setEditingItem(item);
         if (item) {
-            form.setFieldsValue({
-                ...item,
+            reset({
+                quantity:            item.quantity?.toString() ?? '1',
+                quantity_cancelled:  item.quantity_cancelled?.toString() ?? '0',
+                unit_price:          item.unit_price?.toString() ?? '',
+                tax_rate:            item.tax_rate?.toString() ?? '0',
+                discount_percentage: item.discount_percentage?.toString() ?? '0',
+                inventory_id:        item.inventory_id?.toString() ?? '',
+                item_status:         item.item_status ?? 'pending',
+                notes:               item.notes ?? '',
             });
         } else {
-            form.resetFields();
-            form.setFieldsValue({
-                quantity: 1,
-                quantity_cancelled: 0,
-                tax_rate: 0,
-                discount_percentage: 0,
-                item_status: 'pending'
-            });
+            reset({ quantity: '1', quantity_cancelled: '0', tax_rate: '0', discount_percentage: '0', item_status: 'pending' });
         }
-        setIsModalVisible(true);
+        setIsModalOpen(true);
     };
 
-    const handleCancel = () => {
-        setIsModalVisible(false);
+    const closeModal = () => {
+        setIsModalOpen(false);
         setEditingItem(null);
-        form.resetFields();
+        reset();
     };
 
-    const onFinish = async (values: any) => {
+    const onSubmit = async (values: ItemFormValues) => {
         setSubmitting(true);
         try {
             if (editingItem) {
-                const updateData: UpdateOrderItemRequest = {
-                    quantity: Number(values.quantity),
-                    quantity_cancelled: Number(values.quantity_cancelled || 0),
-                    inventory_id: values.inventory_id ? Number(values.inventory_id) : undefined,
-                    unit_price: values.unit_price ? Number(values.unit_price) : undefined,
-                    tax_rate: values.tax_rate === undefined ? undefined : Number(values.tax_rate),
-                    discount_percentage: values.discount_percentage === undefined ? undefined : Number(values.discount_percentage),
-                    notes: values.notes || "",
-                    item_status: values.item_status || "pending",
+                const data: UpdateOrderItemRequest = {
+                    quantity:            Number(values.quantity),
+                    quantity_cancelled:  Number(values.quantity_cancelled || 0),
+                    inventory_id:        values.inventory_id ? Number(values.inventory_id) : undefined,
+                    unit_price:          values.unit_price ? Number(values.unit_price) : undefined,
+                    tax_rate:            values.tax_rate !== '' ? Number(values.tax_rate) : undefined,
+                    discount_percentage: values.discount_percentage !== '' ? Number(values.discount_percentage) : undefined,
+                    notes:               values.notes || '',
+                    item_status:         values.item_status || 'pending',
                 };
-
-                await UpdateOrderItems(editingItem.id, updateData);
-                toast.success("Order item updated successfully");
+                await UpdateOrderItems(editingItem.id, data);
+                toast.success('Order item updated');
             } else {
-                const createData: OrderItemRequest = {
-                    product_id: Number(values.product_id),
-                    quantity: Number(values.quantity),
-                    inventory_id: values.inventory_id ? Number(values.inventory_id) : undefined,
-                    unit_price: values.unit_price ? Number(values.unit_price) : undefined,
-                    tax_rate: values.tax_rate === undefined ? undefined : Number(values.tax_rate),
-                    discount_percentage: values.discount_percentage === undefined ? undefined : Number(values.discount_percentage),
-                    notes: values.notes || "",
+                const data: OrderItemRequest = {
+                    product_id:          Number(values.product_id),
+                    quantity:            Number(values.quantity),
+                    inventory_id:        values.inventory_id ? Number(values.inventory_id) : undefined,
+                    unit_price:          values.unit_price ? Number(values.unit_price) : undefined,
+                    tax_rate:            values.tax_rate !== '' ? Number(values.tax_rate) : undefined,
+                    discount_percentage: values.discount_percentage !== '' ? Number(values.discount_percentage) : undefined,
+                    notes:               values.notes || '',
                 };
-
-                await CreateOrderItems(createData, Number(values.target_order_id));
-                toast.success("Order item created successfully");
+                await CreateOrderItems(data, Number(values.target_order_id));
+                toast.success('Order item created');
             }
-            handleCancel();
+            closeModal();
             fetchData();
         } catch (error) {
-            console.error("Operation failed:", error);
-            toast.error(editingItem ? "Failed to update order item" : "Failed to create order item");
+            handleErrorMessage(error, editingItem ? 'Failed to update item' : 'Failed to create item');
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await DeleteOrderItems(id);
-            toast.success("Order item deleted successfully");
+            await DeleteOrderItems(deleteTarget.id);
+            toast.success('Order item deleted');
+            setDeleteTarget(null);
             fetchData();
         } catch (error) {
-            console.error("Delete failed:", error);
-            toast.error("Failed to delete order item");
+            handleErrorMessage(error, 'Failed to delete item');
+        } finally {
+            setDeleting(false);
         }
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'completed':
-            case 'delivered':
-                return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-            case 'cancelled':
-                return 'bg-rose-50 text-rose-700 border-rose-200';
-            case 'processing':
-                return 'bg-blue-50 text-blue-700 border-blue-200';
-            case 'pending':
-            default:
-                return 'bg-amber-50 text-amber-700 border-amber-200';
-        }
-    };
+    const hasFilters = searchTerm !== '' || selectedStatus !== 'all' || searchOrderId !== '' || selectedShopId !== 'all';
 
-    const filteredItems = orderItems.filter((item) => {
-        const matchesSearch =
-            item.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const filtered = orderItems.filter(item => {
+        const ms = item.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.product_sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.order_id?.toString().includes(searchTerm);
-
-        const matchesStatus = selectedStatus === "all" || item.item_status?.toLowerCase() === selectedStatus.toLowerCase();
-
-        return matchesSearch && matchesStatus;
+        const mf = selectedStatus === 'all' || item.item_status?.toLowerCase() === selectedStatus;
+        return ms && mf;
     });
 
-    const columns: ColumnsType<OrderItemResponse> = [
-        {
-            title: 'Order',
-            key: 'order',
-            render: (_, record) => (
-                <div>
-                    <div className="font-semibold text-slate-700">#{record.order_number || record.order_id}</div>
-                    <div className="text-[10px] text-slate-400 font-mono">ID: {record.order_id}</div>
-                </div>
-            ),
-        },
-        {
-            title: 'Product',
-            key: 'product',
-            render: (_, record) => (
-                <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                        <Package className="h-4 w-4" />
-                    </div>
-                    <div>
-                        <div className="font-medium text-slate-900">{record.product_name}</div>
-                        <div className="text-xs text-slate-500 font-mono">SKU: {record.product_sku}</div>
-                    </div>
-                </div>
-            ),
-        },
-        {
-            title: 'Inventory ID',
-            dataIndex: 'inventory_id',
-            key: 'inventory_id',
-            render: (id) => <span className="text-slate-500 font-mono text-xs">{id || 'N/A'}</span>,
-        },
-        {
-            title: 'Quantity',
-            key: 'quantity',
-            render: (_, record) => (
-                <div>
-                    <div>{record.quantity}</div>
-                    {record.quantity_cancelled > 0 && (
-                        <div className="text-xs text-rose-500">(-{record.quantity_cancelled} cancelled)</div>
-                    )}
-                </div>
-            ),
-        },
-        {
-            title: 'Unit Price',
-            dataIndex: 'unit_price',
-            key: 'unit_price',
-            render: (value) => `₵${Number(value).toLocaleString()}`,
-        },
-        {
-            title: 'Total',
-            dataIndex: 'total_amount',
-            key: 'total_amount',
-            render: (value) => <span className="font-semibold text-slate-900">₵${Number(value).toLocaleString()}</span>,
-        },
-        {
-            title: 'Status',
-            dataIndex: 'item_status',
-            key: 'item_status',
-            render: (status) => (
-                <Badge
-                    variant="outline"
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(status)}`}
-                >
-                    {status || 'Pending'}
-                </Badge>
-            ),
-        },
-        {
-            title: 'Date',
-            dataIndex: 'created_at',
-            key: 'created_at',
-            render: (date) => <span className="text-slate-500">{new Date(date).toLocaleDateString()}</span>,
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            align: 'right',
-            render: (_, record) => (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg hover:bg-slate-100"
-                        >
-                            <MoreHorizontal className="h-4 w-4 text-slate-500" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[160px] rounded-xl">
-                        <DropdownMenuItem onClick={() => showModal(record)} className="py-2 text-sm">
-                            <Pencil className="mr-2 h-4 w-4" /> Edit Details
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <Popconfirm
-                            title="Delete Order Item"
-                            description="Are you sure you want to delete this item?"
-                            onConfirm={() => handleDelete(record.id)}
-                            okText="Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{ danger: true, size: 'small' }}
-                        >
-                            <DropdownMenuItem
-                                className="text-red-600 focus:text-red-600 py-2 text-sm"
-                                onSelect={(e) => e.preventDefault()}
-                            >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete Item
-                            </DropdownMenuItem>
-                        </Popconfirm>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            ),
-        },
-    ];
-
-
-
     return (
-        <div className="p-6 space-y-8 bg-slate-50/50 min-h-screen">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <PageHeader title="Order Items" description="Manage individual items across all orders." />
+        <div className="flex flex-col gap-6">
+            <PageHeader
+                title="Order Items"
+                description="Manage individual items across all orders."
+                actions={
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
+                            <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
+                        </Button>
+                        <Button onClick={() => openModal()}>
+                            <Plus data-icon="inline-start" /> Add Item
+                        </Button>
+                    </div>
+                }
+            />
 
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={fetchData}
-                        disabled={loading}
-                        className="shadow-sm hover:bg-slate-100 transition-all border-slate-200"
-                    >
-                        <RefreshCcw className={`h-5 w-5 mr-2 ${loading ? "animate-spin" : ""}`} />
-                        Refresh
-                    </Button>
-                    <Button
-                        onClick={() => showModal()}
-                        size="lg"
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all p-3"
-                    >
-                        <Plus className="mr-2 h-5 w-5" /> Add Order Item
-                    </Button>
-                </div>
-            </div>
+            <Card className="gap-0 overflow-hidden p-0">
+                {/* Toolbar */}
+                <div className="border-border bg-muted/30 flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:px-6">
+                    {/* Order ID filter */}
+                    <div className="relative w-[160px]">
+                        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
+                        <Input
+                            type="number"
+                            placeholder="Order ID…"
+                            className="h-9 pl-8"
+                            value={searchOrderId}
+                            onChange={e => setSearchOrderId(e.target.value)}
+                        />
+                    </div>
 
-            {/* Filters Section */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <div className="relative w-full sm:w-[240px]">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <Input
-                        placeholder="Load Order ID..."
-                        className="pl-11 h-12 bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 text-lg rounded-md"
-                        value={searchOrderId}
-                        onChange={(e) => setSearchOrderId(e.target.value)}
-                        type="number"
-                    />
-                </div>
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <Input
-                        placeholder="Search loaded items by product name, SKU..."
-                        className="pl-11 h-12 bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 text-lg rounded-md"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
+                    {/* Product search */}
+                    <div className="relative flex-1 min-w-[200px]">
+                        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                        <Input
+                            placeholder="Search product, SKU…"
+                            className="h-9 pl-9"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
 
-                {isAdmin && (
-                    <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-                        <ShoppingBag className="h-5 w-5 text-slate-400" />
-                        <Select
-                            value={selectedShopId}
-                            onValueChange={(value) => setSelectedShopId(value)}
-                        >
-                            <SelectTrigger className="w-[200px] h-12 bg-slate-50 border-none rounded-md">
-                                <SelectValue placeholder="Select Shop" />
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                            <SelectTrigger className="h-9 w-[140px]">
+                                <SelectValue placeholder="All statuses" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Shops</SelectItem>
-                                {Array.isArray(shops) && shops.map((shop) => (
-                                    <SelectItem key={shop.id} value={shop.id.toString()}>
-                                        {shop.name}
-                                    </SelectItem>
-                                ))}
+                                <SelectItem value="all">All statuses</SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="processing">Processing</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                                <SelectItem value="delivered">Delivered</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
                             </SelectContent>
                         </Select>
+
+                        {isAdmin && (
+                            <Select value={selectedShopId} onValueChange={setSelectedShopId}>
+                                <SelectTrigger className="h-9 w-[160px]">
+                                    <div className="flex items-center gap-2">
+                                        <ShoppingBag className="text-muted-foreground size-3.5" />
+                                        <SelectValue placeholder="All shops" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All shops</SelectItem>
+                                    {shops.map(s => (
+                                        <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+
+                        {hasFilters && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 text-muted-foreground"
+                                onClick={() => { setSearchTerm(''); setSelectedStatus('all'); setSearchOrderId(''); setSelectedShopId('all'); }}
+                            >
+                                <FilterX className="mr-1.5 size-3.5" /> Reset
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="pl-6">Order</TableHead>
+                                <TableHead>Product</TableHead>
+                                <TableHead>Inv. ID</TableHead>
+                                <TableHead>Qty</TableHead>
+                                <TableHead className="text-right">Unit price</TableHead>
+                                <TableHead className="text-right">Total</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead className="pr-6 text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                Array.from({ length: 6 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        {Array.from({ length: 9 }).map((_, j) => (
+                                            <TableCell key={j}><Skeleton className="h-5 w-full rounded" /></TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : filtered.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={9} className="py-20 text-center">
+                                        <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
+                                            <ShoppingCart className="text-muted-foreground size-7" />
+                                        </div>
+                                        <p className="text-muted-foreground text-sm">No order items found.</p>
+                                    </TableCell>
+                                </TableRow>
+                            ) : filtered.map(item => (
+                                <TableRow key={item.id}>
+                                    <TableCell className="pl-6">
+                                        <p className="text-foreground font-bold">#{item.order_number || item.order_id}</p>
+                                        <p className="text-muted-foreground font-mono text-[10px]">ID {item.order_id}</p>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <div className="flex items-center gap-2">
+                                            <div className="bg-primary/10 text-primary flex size-7 items-center justify-center rounded-lg">
+                                                <Package className="size-3.5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-foreground text-sm font-medium">{item.product_name}</p>
+                                                <p className="text-muted-foreground font-mono text-[10px]">{item.product_sku}</p>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <span className="text-muted-foreground font-mono text-xs">{item.inventory_id || '—'}</span>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <p className="text-foreground num-tabular font-semibold">{item.quantity}</p>
+                                        {item.quantity_cancelled > 0 && (
+                                            <p className="text-destructive text-xs">−{item.quantity_cancelled} cancelled</p>
+                                        )}
+                                    </TableCell>
+
+                                    <TableCell className="text-right">
+                                        <span className="text-foreground num-tabular text-sm">
+                                            GHS {Number(item.unit_price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </TableCell>
+
+                                    <TableCell className="text-right">
+                                        <span className="text-foreground num-tabular font-semibold">
+                                            GHS {Number(item.total_amount).toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <Badge
+                                            variant="outline"
+                                            className={cn('rounded-full text-xs font-medium capitalize', statusBadgeClass(item.item_status))}
+                                        >
+                                            {item.item_status || 'pending'}
+                                        </Badge>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <span className="text-muted-foreground text-xs">
+                                            {new Date(item.created_at).toLocaleDateString()}
+                                        </span>
+                                    </TableCell>
+
+                                    <TableCell className="pr-6 text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="size-8">
+                                                    <MoreHorizontal className="size-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-40">
+                                                <DropdownMenuItem onClick={() => openModal(item)}>
+                                                    <Pencil className="size-4" /> Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onClick={() => setDeleteTarget(item)}
+                                                >
+                                                    <Trash2 className="size-4" /> Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {!loading && filtered.length > 0 && (
+                    <div className="border-border bg-muted/30 border-t px-6 py-3 text-xs">
+                        <span className="text-muted-foreground">{filtered.length} item{filtered.length !== 1 ? 's' : ''}</span>
                     </div>
                 )}
+            </Card>
 
-                {(searchTerm !== "" || selectedStatus !== "all" || searchOrderId !== "" || selectedShopId !== "all") && (
-                    <Button
-                        variant="ghost"
-                        onClick={() => { setSearchTerm(""); setSelectedStatus("all"); setSearchOrderId(""); setSelectedShopId("all"); }}
-                        className="h-12 text-slate-500 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl px-4"
-                    >
-                        <FilterX className="mr-2 h-4 w-4" />
-                        Reset
-                    </Button>
-                )}
-            </div>
-
-            {/* Content Table */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <Table
-                    columns={columns}
-                    dataSource={filteredItems}
-                    rowKey="id"
-                    loading={loading}
-                    pagination={{
-                        defaultPageSize: 10,
-                        showSizeChanger: true,
-                        pageSizeOptions: ['10', '20', '50', '100'],
-                    }}
-                    className="ant-table-custom"
-                />
-            </div>
-
-            {/* Create/Edit Modal */}
-            <Modal
-                title={
-                    <Space size="middle" align="center" className="mb-4">
-                        <div className="p-2.5 bg-primary/10 rounded-xl">
-                            {editingItem ? <Pencil className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
+            {/* Create / Edit dialog */}
+            <Dialog open={isModalOpen} onOpenChange={open => !open && closeModal()}>
+                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <div className="bg-primary/10 mb-1 inline-flex size-10 items-center justify-center rounded-xl">
+                            {editingItem ? <Pencil className="text-primary size-5" /> : <Plus className="text-primary size-5" />}
                         </div>
-                        <div>
-                            <Text strong style={{ fontSize: '18px' }} className="block">
-                                {editingItem ? "Edit Order Item" : "Create New Order Item"}
-                            </Text>
-                            <Text type="secondary" style={{ fontSize: '14px' }}>
-                                {editingItem ? "Update existing item details" : "Add a new item to an order"}
-                            </Text>
-                        </div>
-                    </Space>
-                }
-                open={isModalVisible}
-                onCancel={handleCancel}
-                footer={[
-                    <Button key="back" variant="outline" onClick={handleCancel} className="mr-3">
-                        Cancel
-                    </Button>,
-                    <Button
-                        key="submit"
-                        onClick={() => form.submit()}
-                        disabled={submitting}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                    >
-                        {submitting ? "Saving..." : "Save Changes"}
-                    </Button>
-                ]}
-                width={600}
-                centered
-            >
-                {/* Form Content */}
-                <div className="max-h-[70vh] overflow-y-auto pt-2 pb-2 px-1">
-                    <Form
-                        form={form}
-                        layout="vertical"
-                        onFinish={onFinish}
-                        requiredMark={false}
-                    >
-                        <div className="mb-6">
-                            <Text strong className="text-sm text-slate-700 flex items-center gap-2 mb-4">
-                                <ShoppingCart className="h-4 w-4" />
-                                Item Details
-                            </Text>
+                        <DialogTitle>{editingItem ? 'Edit Order Item' : 'Add Order Item'}</DialogTitle>
+                    </DialogHeader>
 
-                            {!editingItem && (
-                                <Row gutter={12}>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            name="target_order_id"
-                                            label={<Text type="secondary">Select Order</Text>}
-                                            rules={[{ required: true, message: 'Please select an order' }]}
-                                        >
-                                            <Select
-                                                value={form.getFieldValue("target_order_id")?.toString()}
-                                                onValueChange={(val) => form.setFieldsValue({ target_order_id: Number(val) })}
-                                            >
-                                                <SelectTrigger className="w-full rounded-lg border-slate-200">
-                                                    <SelectValue placeholder="Search and select order..." />
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
+                        <p className="text-muted-foreground flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
+                            <ShoppingCart className="size-3.5" /> Item details
+                        </p>
+
+                        {/* Order + Product selects (create only) */}
+                        {!editingItem && (
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label>Order <span className="text-destructive">*</span></Label>
+                                    <Controller
+                                        control={control}
+                                        name="target_order_id"
+                                        rules={{ required: true }}
+                                        render={({ field }) => (
+                                            <Select value={field.value} onValueChange={field.onChange}>
+                                                <SelectTrigger className={cn('h-9', errors.target_order_id && 'border-destructive')}>
+                                                    <SelectValue placeholder="Select order…" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {Array.isArray(orders) && orders.map(o => (
+                                                    {orders.map(o => (
                                                         <SelectItem key={o.id} value={o.id.toString()}>
-                                                            {`Order #${o.order_number || o.id} - ${o.order_status} (₵${o.total_amount})`}
+                                                            #{o.order_number || o.id} — {o.order_status}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            name="product_id"
-                                            label={<Text type="secondary">Select Product</Text>}
-                                            rules={[{ required: true, message: 'Please select a product' }]}
-                                        >
-                                            <Select
-                                                value={form.getFieldValue("product_id")?.toString()}
-                                                onValueChange={(val) => form.setFieldsValue({ product_id: Number(val) })}
-                                            >
-                                                <SelectTrigger className="w-full rounded-lg border-slate-200">
-                                                    <SelectValue placeholder="Search and select product..." />
+                                        )}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Product <span className="text-destructive">*</span></Label>
+                                    <Controller
+                                        control={control}
+                                        name="product_id"
+                                        rules={{ required: true }}
+                                        render={({ field }) => (
+                                            <Select value={field.value} onValueChange={field.onChange}>
+                                                <SelectTrigger className={cn('h-9', errors.product_id && 'border-destructive')}>
+                                                    <SelectValue placeholder="Select product…" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {products.map(p => (
                                                         <SelectItem key={p.id} value={p.id.toString()}>
-                                                            {`${p.name} (SKU: ${p.sku}) - ₵${p.selling_price}`}
+                                                            {p.name} — GHS {p.selling_price}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                            )}
+                                        )}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
-                            <Row gutter={12}>
-                                <Col span={12}>
-                                    <Form.Item
-                                        name="quantity"
-                                        label={<Text type="secondary">Quantity</Text>}
-                                        rules={[{ required: true, message: 'Quantity is required' }]}
-                                    >
-                                        <InputNumber min={1} className="w-full rounded-lg" />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={12}>
-                                    <Form.Item
-                                        name="unit_price"
-                                        label={<Text type="secondary">Unit Price (Optional)</Text>}
-                                    >
-                                        <InputNumber min={0} className="w-full rounded-lg" placeholder="Override price..." />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
+                        {/* Qty + unit price */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label>Quantity <span className="text-destructive">*</span></Label>
+                                <Input
+                                    type="number"
+                                    min="1"
+                                    className="h-9"
+                                    {...register('quantity', { required: true, min: 1 })}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Unit price (override)</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    className="h-9"
+                                    placeholder="Use product price…"
+                                    {...register('unit_price')}
+                                />
+                            </div>
+                        </div>
 
-                            <Row gutter={12}>
-                                <Col span={12}>
-                                    <Form.Item
-                                        name="tax_rate"
-                                        label={<Text type="secondary">Tax Rate (%)</Text>}
-                                    >
-                                        <InputNumber
-                                            min={0}
-                                            max={100}
-                                            className="w-full rounded-lg"
-                                            formatter={(value) => `${value}%`}
-                                            parser={(value) => value!.replace('%', '') as any}
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={12}>
-                                    <Form.Item
-                                        name="discount_percentage"
-                                        label={<Text type="secondary">Discount (%)</Text>}
-                                    >
-                                        <InputNumber
-                                            min={0}
-                                            max={100}
-                                            className="w-full rounded-lg"
-                                            formatter={(value) => `${value}%`}
-                                            parser={(value) => value!.replace('%', '') as any}
-                                        />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
+                        {/* Tax + discount */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label>Tax rate %</Label>
+                                <Input type="number" step="0.01" min="0" max="100" className="h-9" {...register('tax_rate')} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Discount %</Label>
+                                <Input type="number" step="0.01" min="0" max="100" className="h-9" {...register('discount_percentage')} />
+                            </div>
+                        </div>
 
-                            <Row gutter={12}>
-                                <Col span={12}>
-                                    <Form.Item
-                                        name="inventory_id"
-                                        label={<Text type="secondary">Inventory ID (Optional)</Text>}
-                                    >
-                                        <InputNumber min={1} className="w-full rounded-lg" placeholder="Stock ID..." />
-                                    </Form.Item>
-                                </Col>
-                                {editingItem && (
-                                    <Col span={12}>
-                                        <Form.Item
-                                            name="item_status"
-                                            label={<Text type="secondary">Status</Text>}
-                                        >
-                                            <Select
-                                                value={form.getFieldValue("item_status")}
-                                                onValueChange={(val) => form.setFieldsValue({ item_status: val })}
-                                            >
-                                                <SelectTrigger className="rounded-lg border-slate-200">
-                                                    <SelectValue placeholder="Select Status" />
+                        {/* Inventory ID + status (edit) */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label>Inventory ID</Label>
+                                <Input type="number" min="1" className="h-9" placeholder="Optional…" {...register('inventory_id')} />
+                            </div>
+                            {editingItem && (
+                                <div className="space-y-1.5">
+                                    <Label>Status</Label>
+                                    <Controller
+                                        control={control}
+                                        name="item_status"
+                                        render={({ field }) => (
+                                            <Select value={field.value} onValueChange={field.onChange}>
+                                                <SelectTrigger className="h-9">
+                                                    <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="pending">Pending</SelectItem>
@@ -642,38 +553,65 @@ export default function OrderItemsPage() {
                                                     <SelectItem value="cancelled">Cancelled</SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                        </Form.Item>
-                                    </Col>
-                                )}
-                            </Row>
-
-                            {editingItem && (
-                                <Row gutter={12}>
-                                    <Col span={12}>
-                                        <Form.Item
-                                            name="quantity_cancelled"
-                                            label={<Text type="secondary">Quantity Cancelled</Text>}
-                                        >
-                                            <InputNumber min={0} className="w-full rounded-lg" />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
+                                        )}
+                                    />
+                                </div>
                             )}
-
-                            <Form.Item
-                                name="notes"
-                                label={<Text type="secondary">Notes</Text>}
-                            >
-                                <AntInput.TextArea
-                                    rows={3}
-                                    placeholder="Add any special instructions or notes..."
-                                    className="rounded-lg"
-                                />
-                            </Form.Item>
                         </div>
-                    </Form>
-                </div>
-            </Modal>
+
+                        {/* Qty cancelled (edit only) */}
+                        {editingItem && (
+                            <div className="space-y-1.5">
+                                <Label>Quantity cancelled</Label>
+                                <Input type="number" min="0" className="h-9" {...register('quantity_cancelled')} />
+                            </div>
+                        )}
+
+                        {/* Notes */}
+                        <div className="space-y-1.5">
+                            <Label>Notes</Label>
+                            <Textarea
+                                className="resize-none"
+                                rows={3}
+                                placeholder="Special instructions…"
+                                {...register('notes')}
+                            />
+                        </div>
+
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={closeModal}>Cancel</Button>
+                            <Button type="submit" disabled={submitting}>
+                                {submitting ? 'Saving…' : (editingItem ? 'Update Item' : 'Add Item')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete confirmation */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <div className="bg-destructive/10 mx-auto mb-2 flex size-12 items-center justify-center rounded-full">
+                            <AlertTriangle className="text-destructive size-6" />
+                        </div>
+                        <AlertDialogTitle>Delete order item?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This item from order <strong>#{deleteTarget?.order_id}</strong> will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={handleDelete}
+                            disabled={deleting}
+                        >
+                            {deleting ? 'Deleting…' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

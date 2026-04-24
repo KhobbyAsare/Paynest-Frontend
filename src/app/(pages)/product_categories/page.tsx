@@ -1,312 +1,311 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
-    Plus,
-    MoreHorizontal,
-    Pencil,
-    Trash2,
-    Search,
-    RefreshCcw
+    Plus, MoreHorizontal, Pencil, Trash2, Search, RefreshCcw, Tag,
 } from "lucide-react";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import {
-    Modal,
-    Form,
-    Input as AntInput,
-    Switch,
-    message,
-    Popconfirm
-} from "antd";
-import {
-    GetProductCategories,
-    CreateProductCategory,
-    UpdateProductCategory,
-    DeleteProductCategory
+    GetProductCategories, CreateProductCategory,
+    UpdateProductCategory, DeleteProductCategory,
 } from "@/(api-handlers)/productCategoriesHandler";
-import {
-    ProductCategoriesResponse,
-    ProductCategoriesRequest
-} from "@/interfaces/productCategories";
+import { ProductCategoriesResponse } from "@/interfaces/productCategories";
 import { toast } from "sonner";
 import PageHeader from "@/components/(shared-components)/PageHeader";
+import { cn } from "@/lib/utils";
+
+const schema = z.object({
+    name:        z.string().min(1, "Category name is required"),
+    description: z.string().optional(),
+    is_active:   z.boolean().default(true),
+});
+type FormValues = z.infer<typeof schema>;
 
 export default function ProductCategoryPage() {
-    const [categories, setCategories] = useState<ProductCategoriesResponse[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    const [editingCategory, setEditingCategory] = useState<ProductCategoriesResponse | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [form] = Form.useForm();
+    const [categories, setCategories]       = useState<ProductCategoriesResponse[]>([]);
+    const [loading, setLoading]             = useState(true);
+    const [searchTerm, setSearchTerm]       = useState("");
+    const [isDialogOpen, setIsDialogOpen]   = useState(false);
+    const [deleteTarget, setDeleteTarget]   = useState<ProductCategoriesResponse | null>(null);
+    const [editing, setEditing]             = useState<ProductCategoriesResponse | null>(null);
+    const [submitting, setSubmitting]       = useState(false);
+
+    const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormValues>({
+        resolver: zodResolver(schema),
+        defaultValues: { name: '', description: '', is_active: true },
+    });
 
     const fetchCategories = async () => {
         setLoading(true);
         try {
-            const data = await GetProductCategories();
-            setCategories(data);
-        } catch (error) {
-            console.error("Failed to fetch categories:", error);
+            setCategories(await GetProductCategories());
+        } catch {
             toast.error("Failed to load product categories");
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchCategories();
-    }, []);
+    useEffect(() => { fetchCategories(); }, []);
 
-    const showModal = (category: ProductCategoriesResponse | null = null) => {
-        setEditingCategory(category);
-        if (category) {
-            form.setFieldsValue({
-                name: category.name,
-                description: category.description,
-                is_active: category.is_active,
-            });
-        } else {
-            form.resetFields();
-            form.setFieldsValue({ is_active: true });
-        }
-        setIsModalVisible(true);
+    const openDialog = (category: ProductCategoriesResponse | null = null) => {
+        setEditing(category);
+        reset(category
+            ? { name: category.name, description: category.description ?? '', is_active: category.is_active }
+            : { name: '', description: '', is_active: true }
+        );
+        setIsDialogOpen(true);
     };
 
-    const handleCancel = () => {
-        setIsModalVisible(false);
-        setEditingCategory(null);
-        form.resetFields();
+    const closeDialog = () => {
+        setIsDialogOpen(false);
+        setEditing(null);
+        reset();
     };
 
-    const onFinish = async (values: any) => {
+    const onSubmit = async (values: FormValues) => {
         setSubmitting(true);
         try {
-            const categoryData: ProductCategoriesRequest = {
-                name: values.name,
-                description: values.description || "",
-                is_active: values.is_active ?? true,
-            };
-
-            if (editingCategory) {
-                await UpdateProductCategory(editingCategory.id, categoryData);
-                toast.success("Category updated successfully");
+            const payload = { name: values.name, description: values.description ?? '', is_active: values.is_active };
+            if (editing) {
+                await UpdateProductCategory(editing.id, payload);
+                toast.success("Category updated");
             } else {
-                await CreateProductCategory(categoryData);
-                toast.success("Category created successfully");
+                await CreateProductCategory(payload);
+                toast.success("Category created");
             }
-            handleCancel();
+            closeDialog();
             fetchCategories();
-        } catch (error) {
-            console.error("Operation failed:", error);
-            toast.error(editingCategory ? "Failed to update category" : "Failed to create category");
+        } catch {
+            toast.error(editing ? "Failed to update category" : "Failed to create category");
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
         try {
-            await DeleteProductCategory(id);
-            toast.success("Category deleted successfully");
+            await DeleteProductCategory(deleteTarget.id);
+            toast.success("Category deleted");
             fetchCategories();
-        } catch (error) {
-            console.error("Delete failed:", error);
+        } catch {
             toast.error("Failed to delete category");
+        } finally {
+            setDeleteTarget(null);
         }
     };
 
-    const filteredCategories = categories.filter(
-        (cat) =>
-            cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            cat.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const filtered = categories.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.description ?? '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <PageHeader title="Product Categories" description="Manage your product categories and their visibility." />
+        <div className="flex flex-col gap-6">
+            <PageHeader
+                title="Product Categories"
+                description="Manage your product categories and their visibility."
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="size-9" onClick={fetchCategories} disabled={loading}>
+                            <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
+                        </Button>
+                        <Button onClick={() => openDialog()}>
+                            <Plus className="mr-2 size-4" /> Add Category
+                        </Button>
+                    </div>
+                }
+            />
 
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={fetchCategories} disabled={loading}>
-                        <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                    </Button>
-                    <Button onClick={() => showModal()} className="bg-primary text-primary-foreground">
-                        <Plus className="mr-2 h-4 w-4" /> Add Category
-                    </Button>
-                </div>
+            {/* Search */}
+            <div className="relative max-w-sm">
+                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <Input
+                    placeholder="Search categories…"
+                    className="h-9 pl-9"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                />
             </div>
 
-            <div className="flex items-center space-x-2">
-                <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search categories..."
-                        className="pl-8"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </div>
-
-            <div className="rounded-md border bg-card">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[200px]">Name</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead className="w-[120px]">Status</TableHead>
-                            <TableHead className="w-[150px]">Created At</TableHead>
-                            <TableHead className="text-right w-[80px]">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            Array.from({ length: 5 }).map((_, i) => (
-                                <TableRow key={i}>
-                                    <TableCell><div className="h-4 w-24 animate-pulse bg-muted rounded" /></TableCell>
-                                    <TableCell><div className="h-4 w-48 animate-pulse bg-muted rounded" /></TableCell>
-                                    <TableCell><div className="h-4 w-16 animate-pulse bg-muted rounded" /></TableCell>
-                                    <TableCell><div className="h-4 w-24 animate-pulse bg-muted rounded" /></TableCell>
-                                    <TableCell className="text-right"><div className="h-4 w-8 animate-pulse bg-muted rounded ml-auto" /></TableCell>
-                                </TableRow>
-                            ))
-                        ) : filteredCategories.length === 0 ? (
+            <Card className="gap-0 overflow-hidden p-0">
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    No categories found.
-                                </TableCell>
+                                <TableHead className="pl-6">Name</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead className="w-[120px]">Status</TableHead>
+                                <TableHead className="w-[150px]">Created</TableHead>
+                                <TableHead className="pr-6 w-[60px] text-right">Actions</TableHead>
                             </TableRow>
-                        ) : (
-                            filteredCategories.map((category) => (
-                                <TableRow key={category.id} className="group hover:bg-muted/50 transition-colors">
-                                    <TableCell className="font-medium">{category.name}</TableCell>
-                                    <TableCell className="text-muted-foreground line-clamp-1">
-                                        {category.description || "-"}
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                Array.from({ length: 6 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        {Array.from({ length: 5 }).map((_, j) => (
+                                            <TableCell key={j}><Skeleton className="h-5 w-full rounded" /></TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : filtered.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="py-20 text-center">
+                                        <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
+                                            <Tag className="text-muted-foreground size-7" />
+                                        </div>
+                                        <p className="text-foreground font-semibold">No categories found</p>
+                                        <p className="text-muted-foreground mt-1 text-sm">Create your first category to get started.</p>
+                                    </TableCell>
+                                </TableRow>
+                            ) : filtered.map(cat => (
+                                <TableRow key={cat.id}>
+                                    <TableCell className="pl-6 font-semibold">{cat.name}</TableCell>
+                                    <TableCell className="text-muted-foreground line-clamp-1 max-w-xs">
+                                        {cat.description || "—"}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={category.is_active ? "default" : "secondary"}>
-                                            {category.is_active ? "Active" : "Inactive"}
+                                        <Badge
+                                            variant="outline"
+                                            className={cn(
+                                                "rounded-full text-xs",
+                                                cat.is_active
+                                                    ? "border-success/30 bg-success/10 text-success"
+                                                    : "border-border bg-muted text-muted-foreground",
+                                            )}
+                                        >
+                                            {cat.is_active ? "Active" : "Inactive"}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground text-sm">
-                                        {new Date(category.created_at).toLocaleDateString()}
+                                        {new Date(cat.created_at).toLocaleDateString()}
                                     </TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="pr-6 text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
+                                                <Button variant="ghost" size="icon" className="size-8">
+                                                    <MoreHorizontal className="size-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-[160px]">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onClick={() => showModal(category)}>
-                                                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => openDialog(cat)}>
+                                                    <Pencil className="mr-2 size-4" /> Edit
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                <Popconfirm
-                                                    title="Delete Category"
-                                                    description="Are you sure you want to delete this category?"
-                                                    onConfirm={() => handleDelete(category.id)}
-                                                    okText="Yes"
-                                                    cancelText="No"
-                                                    okButtonProps={{ danger: true }}
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onClick={() => setDeleteTarget(cat)}
                                                 >
-                                                    <DropdownMenuItem
-                                                        className="text-destructive focus:text-destructive"
-                                                        onSelect={(e) => e.preventDefault()}
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                    </DropdownMenuItem>
-                                                </Popconfirm>
+                                                    <Trash2 className="mr-2 size-4" /> Delete
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
 
-            <Modal
-                title={editingCategory ? "Edit Category" : "Add New Category"}
-                open={isModalVisible}
-                onCancel={handleCancel}
-                footer={null}
-                destroyOnClose
-                centered
-            >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={onFinish}
-                    initialValues={{ is_active: true }}
-                    className="mt-4"
-                >
-                    <Form.Item
-                        name="name"
-                        label="Category Name"
-                        rules={[{ required: true, message: "Please enter category name" }]}
-                    >
-                        <AntInput placeholder="e.g. Electronics, Beverages" size="large" />
-                    </Form.Item>
-
-                    <Form.Item
-                        name="description"
-                        label="Description"
-                    >
-                        <AntInput.TextArea
-                            placeholder="Brief description of this category"
-                            rows={4}
-                            size="large"
-                        />
-                    </Form.Item>
-
-                    <Form.Item
-                        name="is_active"
-                        label="Status"
-                        valuePropName="checked"
-                    >
-                        <div className="flex items-center gap-2">
-                            <Switch />
-                            <span className="text-sm text-muted-foreground">
-                                {form.getFieldValue("is_active") ? "Active" : "Inactive"}
-                            </span>
-                        </div>
-                    </Form.Item>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <Button variant="outline" type="button" onClick={handleCancel}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={submitting}>
-                            {submitting ? "Saving..." : editingCategory ? "Update Category" : "Create Category"}
-                        </Button>
+                {!loading && filtered.length > 0 && (
+                    <div className="border-border bg-muted/30 border-t px-6 py-3 text-xs">
+                        <span className="text-muted-foreground">{filtered.length} categor{filtered.length !== 1 ? 'ies' : 'y'}</span>
                     </div>
-                </Form>
-            </Modal>
+                )}
+            </Card>
+
+            {/* Create / Edit dialog */}
+            <Dialog open={isDialogOpen} onOpenChange={open => !open && closeDialog()}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{editing ? "Edit Category" : "Add Category"}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
+                        <div className="space-y-1.5">
+                            <Label>Category Name <span className="text-destructive">*</span></Label>
+                            <Input {...register("name")} placeholder="e.g. Electronics, Beverages" />
+                            {errors.name && <p className="text-destructive text-xs">{errors.name.message}</p>}
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label>Description</Label>
+                            <Textarea
+                                {...register("description")}
+                                placeholder="Brief description of this category"
+                                className="min-h-[90px] resize-none"
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-lg border p-3">
+                            <div>
+                                <p className="text-foreground text-sm font-medium">Active</p>
+                                <p className="text-muted-foreground text-xs">Visible on product forms</p>
+                            </div>
+                            <Controller
+                                control={control}
+                                name="is_active"
+                                render={({ field }) => (
+                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                )}
+                            />
+                        </div>
+
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={closeDialog}>Cancel</Button>
+                            <Button type="submit" disabled={submitting}>
+                                {submitting ? "Saving…" : editing ? "Update" : "Create"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete confirmation */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={handleDelete}
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

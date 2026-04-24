@@ -306,3 +306,58 @@ export default function ResourcePage() {
   - `src/lib/utils.test.ts` — cn() utility
   - `src/components/(shared-components)/Pagination.test.tsx` — Pagination component
 - [x] Report detail views: `/report/[id]` page fetches `/reports/{id}/preview` for completed `employee_performance` and `monthly_financial` reports and renders an inline data table + summary stats card
+
+## Phase 4 UI Redesign — shadcn/ui + semantic tokens (complete)
+
+Design rules applied across all redesigned pages:
+- Wrapper: `flex flex-col gap-6` (no `min-h-screen bg-*` or `max-w-7xl mx-auto`)
+- Semantic color tokens: `border-success/30 bg-success/10 text-success`, `border-warning/30 bg-warning/10 text-warning-foreground`, `border-destructive/30 bg-destructive/10 text-destructive`, `border-primary/20 bg-primary/10 text-primary`, `border-info/30 bg-info/10 text-info`
+- No hardcoded colors (`text-emerald-600`, `bg-blue-50`, `text-slate-500`, etc.)
+- All legacy Ant Design UI removed: `Modal`→`Dialog`, `Table`→shadcn Table, `Form`→RHF+Zod, `Tag`→`Badge`, `Popconfirm`→`AlertDialog`
+- **Date/time pickers use Ant Design `DatePicker`** (not shadcn, not native `<input type="date">`). Import from `'antd'`, value as `dayjs()`, format `'DD MMM YYYY'`.
+- Loading: Skeleton rows; empty: `BarChart3`/icon in `bg-muted` circle
+
+### Completed pages
+- [x] Dashboard — AdminView, ManagerView, AttendantView (`src/app/(pages)/dashboard/`)
+- [x] AppShell / sidebar navigation (`src/components/(shared-components)/AppShell.tsx`)
+- [x] Sales page + POS components (`src/app/(pages)/sales/`)
+- [x] Orders list (`src/app/(pages)/orders/page.tsx`)
+- [x] Orders detail (`src/app/(pages)/orders/[id]/page.tsx`)
+- [x] Products (`src/app/(pages)/products/page.tsx`)
+- [x] Customers (`src/app/(pages)/customers/page.tsx`)
+- [x] Payments (`src/app/(pages)/payments/page.tsx`)
+- [x] Inventory (`src/app/(pages)/inventory/page.tsx`)
+- [x] Stock movements (`src/app/(pages)/stock-movements/page.tsx`)
+- [x] Audit log (`src/app/(pages)/(superadmin)/audit-log/`)
+- [x] Order items (`src/app/(pages)/order-items/page.tsx`)
+- [x] Sales report (`src/app/(pages)/sales-report/page.tsx`)
+- [x] Daily closure main (`src/app/(pages)/daily-closure/page.tsx`)
+- [x] Report detail (`src/app/(pages)/(administrator)/report/[id]/page.tsx`)
+- [x] Product categories (`src/app/(pages)/product_categories/page.tsx`)
+- [x] Finance (`src/app/(pages)/finance/page.tsx`)
+- [x] My reports / Manager report view (`src/app/(pages)/(administrator)/report/my_report/page.tsx`)
+- [x] Daily closure AdminView (`src/app/(pages)/daily-closure/views/AdminView.tsx`)
+- [x] Daily closure detail (`src/app/(pages)/daily-closure/[id]/page.tsx`)
+- [x] Users SuperAdmin view (`src/app/(pages)/(superadmin)/users/(views)/superAdminView.tsx`)
+- [x] Users Admin view (`src/app/(pages)/(superadmin)/users/(views)/AdministratorView.tsx`)
+- [x] Organizations list (`src/app/(pages)/organizations/page.tsx`)
+- [x] Organizations create (`src/app/(pages)/organizations/create/page.tsx`)
+- [x] Organization profile (`src/app/(pages)/(administrator)/organization_profile/page.tsx`)
+- [x] Organization shops (`src/app/(pages)/(administrator)/organization_shops/page.tsx`)
+- [x] Edit employee profile (`src/app/(pages)/(superadmin)/users/edit-employee-profile/[id]/page.tsx`)
+- [x] Setup employee profile (`src/app/(pages)/(superadmin)/users/setup-employee-profile/page.tsx`)
+- [x] Settings — notifications, profile, security, system (`src/app/(pages)/settings/`)
+- [x] Report list + pending (`src/app/(pages)/(administrator)/report/`)
+- [x] Customers create + edit (`src/app/(pages)/customers/create/`, `edit/[id]/`)
+- [x] User detail (`src/app/(pages)/(superadmin)/users/[id]/page.tsx`)
+- [x] Roles & permissions matrix (`src/app/(pages)/(superadmin)/users/roles/page.tsx`)
+- [x] Daily closure AttendantView (`src/app/(pages)/daily-closure/views/AttendantView.tsx`)
+- [x] Inventory create (`src/app/(pages)/inventory/create/page.tsx`)
+- [x] Not-found page (`src/app/not-found.tsx`)
+
+### AppShell bug fixes (alongside Phase 4)
+- Fixed `React.Children.only` crash on org/user-management pages: removed `tooltip` prop from `SidebarMenuButton` inside `CollapsibleTrigger asChild` — tooltip wraps the button in `<Tooltip>` which breaks Radix Slot composition
+- Fixed sidebar not scrolling: removed `overflow-hidden` from `<SidebarContent>` — the shadcn component handles overflow internally
+
+### Remaining
+- None — Phase 4 redesign complete. All pages use shadcn/ui + semantic tokens + antd DatePicker for date inputs.

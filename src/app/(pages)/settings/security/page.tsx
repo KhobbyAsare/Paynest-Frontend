@@ -8,8 +8,10 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { RefreshCcw, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function SecuritySettingsPage() {
     const [saving, setSaving] = useState(false);
@@ -48,122 +50,111 @@ export default function SecuritySettingsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
-            <div className="mt-8 max-w-2xl mx-auto">
-                <PageHeader
-                    title="Security Settings"
-                    description="Manage your password and account security."
-                />
+        <div className="flex flex-col gap-6">
+            <PageHeader
+                title="Security Settings"
+                description="Manage your password and account security."
+            />
 
-                <Card className="p-6 rounded-2xl border-slate-100 shadow-sm">
-                    <div className="flex items-center gap-3 mb-6 pb-5 border-b border-slate-100">
-                        <div className="size-10 rounded-full bg-green-100 flex items-center justify-center">
-                            <ShieldCheck className="size-5 text-green-600" />
-                        </div>
-                        <div>
-                            <p className="font-semibold text-slate-900">Change Password</p>
-                            <p className="text-sm text-slate-500">Use a strong password with at least 8 characters.</p>
+            <Card className="p-6 rounded-2xl">
+                <div className="flex items-center gap-3 mb-6 pb-5 border-b">
+                    <div className="size-10 rounded-full bg-success/10 flex items-center justify-center">
+                        <ShieldCheck className="size-5 text-success" />
+                    </div>
+                    <div>
+                        <p className="font-semibold text-foreground">Change Password</p>
+                        <p className="text-sm text-muted-foreground">Use a strong password with at least 8 characters.</p>
+                    </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="space-y-1.5">
+                        <Label className="flex items-center gap-2 text-foreground">
+                            <Lock className="size-3.5 text-muted-foreground" />
+                            Current Password
+                        </Label>
+                        <div className="relative">
+                            <Input
+                                type={showCurrent ? 'text' : 'password'}
+                                value={form.current_password}
+                                onChange={(e) => setForm(f => ({ ...f, current_password: e.target.value }))}
+                                placeholder="Enter current password"
+                                className="pr-10"
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowCurrent(s => !s)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                {showCurrent ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                <Lock className="size-3.5 text-slate-400" />
-                                Current Password
-                            </label>
-                            <div className="relative">
-                                <Input
-                                    type={showCurrent ? 'text' : 'password'}
-                                    value={form.current_password}
-                                    onChange={(e) => setForm(f => ({ ...f, current_password: e.target.value }))}
-                                    placeholder="Enter current password"
-                                    className="rounded-lg pr-10"
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCurrent(s => !s)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                >
-                                    {showCurrent ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                <Lock className="size-3.5 text-slate-400" />
-                                New Password
-                            </label>
-                            <div className="relative">
-                                <Input
-                                    type={showNew ? 'text' : 'password'}
-                                    value={form.new_password}
-                                    onChange={(e) => setForm(f => ({ ...f, new_password: e.target.value }))}
-                                    placeholder="Enter new password"
-                                    className="rounded-lg pr-10"
-                                    required
-                                    minLength={8}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowNew(s => !s)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                >
-                                    {showNew ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                <Lock className="size-3.5 text-slate-400" />
-                                Confirm New Password
-                            </label>
-                            <div className="relative">
-                                <Input
-                                    type={showConfirm ? 'text' : 'password'}
-                                    value={form.confirm_password}
-                                    onChange={(e) => setForm(f => ({ ...f, confirm_password: e.target.value }))}
-                                    placeholder="Confirm new password"
-                                    className={`rounded-lg pr-10 ${
-                                        form.confirm_password && form.confirm_password !== form.new_password
-                                            ? 'border-rose-300 focus:ring-rose-200'
-                                            : ''
-                                    }`}
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirm(s => !s)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                >
-                                    {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                                </button>
-                            </div>
-                            {form.confirm_password && form.confirm_password !== form.new_password && (
-                                <p className="text-xs text-rose-500">Passwords do not match</p>
-                            )}
-                        </div>
-
-                        <div className="flex justify-end pt-2">
-                            <Button
-                                type="submit"
-                                disabled={saving || (!!form.confirm_password && form.confirm_password !== form.new_password)}
-                                className="min-w-[160px]"
+                    <div className="space-y-1.5">
+                        <Label className="flex items-center gap-2 text-foreground">
+                            <Lock className="size-3.5 text-muted-foreground" />
+                            New Password
+                        </Label>
+                        <div className="relative">
+                            <Input
+                                type={showNew ? 'text' : 'password'}
+                                value={form.new_password}
+                                onChange={(e) => setForm(f => ({ ...f, new_password: e.target.value }))}
+                                placeholder="Enter new password"
+                                className="pr-10"
+                                required
+                                minLength={8}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowNew(s => !s)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                             >
-                                {saving ? (
-                                    <span className="flex items-center gap-2">
-                                        <RefreshCcw className="size-4 animate-spin" />
-                                        Changing…
-                                    </span>
-                                ) : 'Change Password'}
-                            </Button>
+                                {showNew ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
                         </div>
-                    </form>
-                </Card>
-            </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label className="flex items-center gap-2 text-foreground">
+                            <Lock className="size-3.5 text-muted-foreground" />
+                            Confirm New Password
+                        </Label>
+                        <div className="relative">
+                            <Input
+                                type={showConfirm ? 'text' : 'password'}
+                                value={form.confirm_password}
+                                onChange={(e) => setForm(f => ({ ...f, confirm_password: e.target.value }))}
+                                placeholder="Confirm new password"
+                                className={cn('pr-10', form.confirm_password && form.confirm_password !== form.new_password && 'border-destructive')}
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirm(s => !s)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
+                        </div>
+                        {form.confirm_password && form.confirm_password !== form.new_password && (
+                            <p className="text-xs text-destructive">Passwords do not match</p>
+                        )}
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                        <Button
+                            type="submit"
+                            disabled={saving || (!!form.confirm_password && form.confirm_password !== form.new_password)}
+                            className="min-w-[160px]"
+                        >
+                            {saving ? 'Changing…' : 'Change Password'}
+                        </Button>
+                    </div>
+                </form>
+            </Card>
         </div>
     );
 }

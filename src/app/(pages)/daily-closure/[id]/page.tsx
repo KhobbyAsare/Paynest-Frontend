@@ -3,46 +3,52 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-    ChevronLeft,
-    FileText,
-    Package,
-    Calculator,
-    AlertCircle,
-    CheckCircle2,
-    Banknote,
-    Receipt,
-    ClipboardCheck,
-    Plus,
-    Minus,
-    Equal,
-    XCircle,
-    CheckCircle
+    ChevronLeft, FileText, Package, Calculator,
+    AlertCircle, CheckCircle2, Banknote, Receipt,
+    ClipboardCheck, Plus, Minus, Equal, XCircle, CheckCircle,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, Typography, Divider, Skeleton, Modal, message, Input } from "antd";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { GetClosureDetails, VerifyDailyClosure } from "@/(api-handlers)/dailyClosureHandler";
 import { DailyClosureDetailResponse } from "@/interfaces/dailyClosure";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-const { Title, Text } = Typography;
+function StatusBadge({ status }: { status: string }) {
+    const configs: Record<string, { label: string; cls: string }> = {
+        verified:  { label: 'Verified',   cls: 'border-success/30 bg-success/10 text-success' },
+        submitted: { label: 'Submitted',  cls: 'border-warning/30 bg-warning/10 text-warning-foreground' },
+        rejected:  { label: 'Rejected',   cls: 'border-destructive/30 bg-destructive/10 text-destructive' },
+        discrepancy: { label: 'Discrepancy', cls: 'border-warning/30 bg-warning/10 text-warning-foreground' },
+    };
+    const { label, cls } = configs[status] ?? { label: status.toUpperCase(), cls: 'border-border bg-muted text-muted-foreground' };
+    return <Badge variant="outline" className={cn("rounded-full text-xs font-bold uppercase", cls)}>{label}</Badge>;
+}
 
 export default function ClosureDetailPage() {
     const params = useParams();
     const router = useRouter();
     const [closure, setClosure] = useState<DailyClosureDetailResponse | null>(null);
     const [loading, setLoading] = useState(true);
-
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [discrepancyReason, setDiscrepancyReason] = useState("");
+    const [pendingAction, setPendingAction] = useState<'verified' | 'rejected' | null>(null);
 
     useEffect(() => {
-        if (params.id) {
-            fetchDetails();
-        }
+        if (params.id) fetchDetails();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [params.id]);
 
@@ -54,6 +60,7 @@ export default function ClosureDetailPage() {
             if (data.discrepancy_reason) setDiscrepancyReason(data.discrepancy_reason);
         } catch (error) {
             console.error("Failed to fetch closure details", error);
+            toast.error("Failed to load closure details");
         } finally {
             setLoading(false);
         }
@@ -61,382 +68,355 @@ export default function ClosureDetailPage() {
 
     const handleVerifySubmit = async (status: 'verified' | 'rejected') => {
         if (!closure) return;
-
         setIsActionLoading(true);
         try {
-            await VerifyDailyClosure(closure.id, {
-                status: status,
-                discrepancy_reason: discrepancyReason
-            });
-            message.success(`Closure ${status} successfully`);
+            await VerifyDailyClosure(closure.id, { status, discrepancy_reason: discrepancyReason });
+            toast.success(`Closure ${status} successfully`);
             fetchDetails();
         } catch (error) {
-            message.error(`Failed to ${status} closure`);
             console.error(error);
+            toast.error(`Failed to ${status} closure`);
         } finally {
             setIsActionLoading(false);
+            setPendingAction(null);
         }
     };
 
     if (loading) {
         return (
-            <div className="p-6 space-y-6">
-                <Skeleton active paragraph={{ rows: 10 }} />
+            <div className="flex flex-col gap-6">
+                <Skeleton className="h-12 w-64 rounded" />
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-px">
+                    {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded" />)}
+                </div>
+                <Skeleton className="h-64 rounded" />
             </div>
         );
     }
 
     if (!closure) {
         return (
-            <div className="p-6 text-center">
-                <Title level={4}>Closure not found</Title>
-                <Button onClick={() => router.back()}>Go Back</Button>
+            <div className="flex flex-col gap-6">
+                <div className="text-center py-20">
+                    <p className="text-foreground font-semibold text-lg">Closure not found</p>
+                    <Button className="mt-4" onClick={() => router.back()}>Go Back</Button>
+                </div>
             </div>
         );
     }
 
-    const productColumns = [
-        {
-            title: 'Product Name',
-            dataIndex: 'product_name',
-            key: 'product_name',
-            render: (text: string) => <Text className="font-medium text-slate-700">{text}</Text>
-        },
-        {
-            title: 'Unit Price',
-            dataIndex: 'unit_price',
-            key: 'unit_price',
-            render: (val: number) => `₵${val.toFixed(2)}`
-        },
-        {
-            title: 'Quantity Sold',
-            dataIndex: 'quantity',
-            key: 'quantity',
-            render: (val: number) => <Text strong>{val}</Text>
-        },
-        {
-            title: 'Total Sales',
-            dataIndex: 'total_sales',
-            key: 'total_sales',
-            render: (val: number) => (
-                <Text strong className="text-primary-color text-base">
-                    ₵{val.toFixed(2)}
-                </Text>
-            )
-        }
-    ];
+    const canVerify = closure.status === 'submitted' || closure.status === 'discrepancy';
 
     return (
-        <div className="p-6 space-y-8 bg-slate-50/30 min-h-screen">
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-4"
-            >
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => router.back()}
-                    className="rounded-full bg-white shadow-sm h-10 w-10 border border-slate-200"
-                >
-                    <ChevronLeft className="h-5 w-5" />
+        <div className="flex flex-col gap-6">
+            {/* Back + header */}
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" className="size-10 rounded-full shrink-0" onClick={() => router.back()}>
+                    <ChevronLeft className="size-5" />
                 </Button>
                 <PageHeader
-                    title={`Closure Details: ${closure.closure_number}`}
-                    description={`Detailed sales and reconciliation report for ${format(new Date(closure.closure_date), 'PPP')}`}
+                    title={`Closure: ${closure.closure_number}`}
+                    description={`Detailed reconciliation for ${format(new Date(closure.closure_date), 'PPP')}`}
                 />
-            </motion.div>
+            </div>
 
-            {/* Status Banner */}
-            <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(
-                    "p-3 rounded-md border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm bg-white",
-                    closure.status === 'verified' ? "border-emerald-100 bg-emerald-50/20" :
-                        closure.status === 'rejected' ? "border-rose-100 bg-rose-50/20" : "border-amber-100 bg-amber-50/20"
-                )}
-            >
+            {/* Status banner */}
+            <div className={cn(
+                "rounded-lg border p-4 flex flex-col md:flex-row md:items-center justify-between gap-4",
+                closure.status === 'verified'
+                    ? "border-success/30 bg-success/5"
+                    : closure.status === 'rejected'
+                        ? "border-destructive/30 bg-destructive/5"
+                        : "border-warning/30 bg-warning/5"
+            )}>
                 <div className="flex items-center gap-4">
                     <div className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center shadow-sm",
-                        closure.status === 'verified' ? "bg-emerald-500 text-white" :
-                            closure.status === 'rejected' ? "bg-rose-500 text-white" : "bg-amber-500 text-white"
+                        "flex size-12 items-center justify-center rounded-xl text-white",
+                        closure.status === 'verified' ? "bg-success" :
+                            closure.status === 'rejected' ? "bg-destructive" : "bg-warning"
                     )}>
-                        {closure.status === 'verified' ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+                        {closure.status === 'verified' ? <CheckCircle2 className="size-6" /> : <AlertCircle className="size-6" />}
                     </div>
                     <div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Current Status</span>
-                            <span className={cn(
-                                "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
-                                closure.status === 'verified' ? "bg-emerald-100 text-emerald-700" :
-                                    closure.status === 'rejected' ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
-                            )}>
-                                {closure.status}
-                            </span>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Status</span>
+                            <StatusBadge status={closure.status} />
                         </div>
-                        <h2 className="text-xl font-semibold text-slate-900 leading-tight">
-                            {closure.status === 'verified' ? "Reconciliation Complete" :
-                                closure.status === 'rejected' ? "Submission Rejected" : "Pending Administrator Review"}
+                        <h2 className="text-foreground text-lg font-semibold leading-tight">
+                            {closure.status === 'verified' ? 'Reconciliation Complete' :
+                                closure.status === 'rejected' ? 'Submission Rejected' : 'Pending Administrator Review'}
                         </h2>
-                        <p className="text-xs text-slate-500">
-                            {closure.status === 'verified' ?
-                                `Verified & Approved by ID#${closure.verified_by}` :
-                                closure.closed_at ? `Submitted by Attendant on ${format(new Date(closure.closed_at), 'PPP p')}` :
-                                    "Awaiting end-of-day submission"}
+                        <p className="text-muted-foreground text-xs">
+                            {closure.status === 'verified'
+                                ? `Verified by ID#${closure.verified_by}`
+                                : closure.closed_at
+                                    ? `Submitted on ${format(new Date(closure.closed_at), 'PPP p')}`
+                                    : 'Awaiting end-of-day submission'}
                         </p>
                     </div>
                 </div>
 
                 <div className="flex flex-col md:items-end gap-3">
-                    <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Total Difference</span>
-                        <div className={cn(
-                            "text-2xl font-semibold tabular-nums",
-                            closure.cash_difference < -0.01 ? "text-rose-600" : closure.cash_difference > 0.01 ? "text-emerald-600" : "text-slate-900"
+                    <div>
+                        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-1">Total Difference</p>
+                        <p className={cn(
+                            "text-2xl font-bold tabular-nums",
+                            closure.cash_difference < -0.01 ? "text-destructive" :
+                                closure.cash_difference > 0.01 ? "text-success" : "text-foreground"
                         )}>
-                            {closure.cash_difference > 0 ? "+" : ""}₵{closure.cash_difference.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </div>
+                            {closure.cash_difference > 0 ? '+' : ''}GHS {closure.cash_difference.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
                     </div>
 
-                    {(closure.status === 'submitted' || closure.status === 'discrepancy') && (
+                    {canVerify && (
                         <div className="flex gap-2">
                             <Button
                                 size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                loading={isActionLoading}
-                                onClick={() => {
-                                    Modal.confirm({
-                                        title: 'Approve Reconciliation?',
-                                        content: 'Are you sure you want to verify and approve these figures?',
-                                        onOk: () => handleVerifySubmit('verified'),
-                                        centered: true
-                                    });
-                                }}
+                                className="bg-success text-success-foreground hover:bg-success/90"
+                                disabled={isActionLoading}
+                                onClick={() => setPendingAction('verified')}
                             >
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Approve
+                                <CheckCircle className="mr-1 size-4" /> Approve
                             </Button>
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-rose-200 text-rose-600 hover:bg-rose-50"
-                                loading={isActionLoading}
-                                onClick={() => {
-                                    Modal.confirm({
-                                        title: 'Reject Submission?',
-                                        content: (
-                                            <div className="space-y-3 pt-4">
-                                                <p>Provide a reason for rejection:</p>
-                                                <Input.TextArea
-                                                    value={discrepancyReason}
-                                                    onChange={e => setDiscrepancyReason(e.target.value)}
-                                                    placeholder="e.g. Cash count doesn't match..."
-                                                />
-                                            </div>
-                                        ),
-                                        onOk: () => handleVerifySubmit('rejected'),
-                                        okText: 'Reject',
-                                        okButtonProps: { danger: true },
-                                        centered: true
-                                    });
-                                }}
+                                className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                                disabled={isActionLoading}
+                                onClick={() => setPendingAction('rejected')}
                             >
-                                <XCircle className="w-4 h-4 mr-1" />
-                                Reject
+                                <XCircle className="mr-1 size-4" /> Reject
                             </Button>
                         </div>
                     )}
                 </div>
-            </motion.div>
+            </div>
 
-            <dl className="mx-auto grid grid-cols-1 gap-px bg-slate-200 overflow-hidden rounded-2xl border border-slate-200 sm:grid-cols-2 lg:grid-cols-4 shadow-sm w-full">
+            {/* Stats */}
+            <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border overflow-hidden rounded-2xl border">
                 {[
-                    { label: 'Net Sales', value: `₵${closure.net_sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, subValue: `₵${closure.total_tax.toFixed(2)} Tax`, icon: Banknote, textColor: 'text-emerald-500' },
-                    { label: 'Actual Cash', value: `₵${closure.actual_cash?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}`, subValue: 'Counter submission', icon: Receipt, textColor: 'text-amber-500' },
-                    { label: 'Total Items', value: closure.total_items.toString(), subValue: `${closure.total_orders} Orders`, icon: Package, textColor: 'text-indigo-500' },
-                    { label: 'Avg Order', value: `₵${(closure.net_sales / (closure.total_orders || 1)).toFixed(2)}`, subValue: 'Per customer', icon: Calculator, textColor: 'text-sky-500' },
-                ].map((stat) => (
-                    <div
-                        key={stat.label}
-                        className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 bg-white px-4 py-8 sm:px-6 xl:px-8"
-                    >
-                        <dt className="text-sm font-medium text-slate-500 flex items-center gap-2">
-                            <stat.icon className={cn("size-5", stat.textColor)} />
+                    { label: 'Net Sales',    value: `GHS ${closure.net_sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, sub: `GHS ${closure.total_tax.toFixed(2)} Tax`,    icon: Banknote,    color: 'text-success' },
+                    { label: 'Actual Cash',  value: `GHS ${(closure.actual_cash ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, sub: 'Counter submission', icon: Receipt,    color: 'text-warning-foreground' },
+                    { label: 'Total Items',  value: String(closure.total_items), sub: `${closure.total_orders} Orders`,                          icon: Package,    color: 'text-info' },
+                    { label: 'Avg Order',    value: `GHS ${(closure.net_sales / (closure.total_orders || 1)).toFixed(2)}`, sub: 'Per customer',    icon: Calculator, color: 'text-primary' },
+                ].map(stat => (
+                    <div key={stat.label} className="bg-card flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-8 sm:px-6">
+                        <dt className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
+                            <stat.icon className={cn("size-5", stat.color)} />
                             {stat.label}
                         </dt>
-                        <dd className="w-full flex-none text-3xl font-bold tracking-tight text-slate-900 mt-2">
-                            {stat.value}
-                        </dd>
-                        <dd className="text-xs font-medium text-slate-400 mt-1">
-                            {stat.subValue}
-                        </dd>
+                        <dd className="text-foreground mt-2 w-full flex-none text-3xl font-bold tracking-tight">{stat.value}</dd>
+                        <dd className="text-muted-foreground mt-1 text-xs font-medium">{stat.sub}</dd>
                     </div>
                 ))}
             </dl>
 
             {/* Financial Reconciliation Breakdown */}
-            <Card className="border-0 shadow-xl overflow-hidden rounded-2xl bg-white">
-                <div className="p-6 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white flex flex-col gap-1">
-                    <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-base">
-                        <ClipboardCheck className="w-5 h-5 text-primary-color" />
+            <Card className="overflow-hidden">
+                <div className="border-b px-6 py-4">
+                    <h3 className="text-foreground flex items-center gap-2 font-semibold">
+                        <ClipboardCheck className="text-primary size-5" />
                         Financial Reconciliation Breakdown
                     </h3>
-                    <p className="text-xs text-slate-400">How the system calculated your final cash difference</p>
+                    <p className="text-muted-foreground text-xs mt-1">How the system calculated your final cash difference</p>
                 </div>
                 <CardContent className="p-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                        {/* Left Side: Expected Cash Logic */}
-                        <div className="p-6 md:p-8 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
+                        <div className="p-6 md:p-8 space-y-4">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">1. Expected Cash Result</h3>
-                                <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded uppercase">Formula: Bal + Sales</span>
+                                <h3 className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">1. Expected Cash Result</h3>
+                                <span className="text-muted-foreground bg-muted rounded px-2 py-0.5 text-[10px] font-bold uppercase">Bal + Sales</span>
                             </div>
-
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                                            <Calculator className="w-4 h-4" />
-                                        </div>
-                                        <span className="text-sm text-slate-600">Opening Balance (Float)</span>
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-muted flex size-8 items-center justify-center rounded-lg">
+                                        <Calculator className="text-muted-foreground size-4" />
                                     </div>
-                                    <span className="text-sm font-bold text-slate-800">₵{closure.opening_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                    <span className="text-muted-foreground text-sm">Opening Balance (Float)</span>
                                 </div>
-
-                                <div className="flex justify-center -my-2 py-1">
-                                    <Plus className="w-3 h-3 text-slate-300" />
-                                </div>
-
-                                <div className="flex justify-between items-center group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
-                                            <Banknote className="w-4 h-4" />
-                                        </div>
-                                        <span className="text-sm text-slate-600">Total Cash Sales</span>
+                                <span className="text-foreground text-sm font-bold">GHS {closure.opening_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="flex justify-center"><Plus className="text-muted-foreground/40 size-3" /></div>
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-success/10 flex size-8 items-center justify-center rounded-lg">
+                                        <Banknote className="text-success size-4" />
                                     </div>
-                                    <span className="text-sm font-bold text-emerald-600">₵{closure.cash_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                    <span className="text-muted-foreground text-sm">Total Cash Sales</span>
                                 </div>
-
-                                <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
-                                        <Equal className="w-4 h-4 text-primary-color" />
-                                        <span className="text-sm font-black text-slate-900 uppercase">Expected Cash</span>
-                                    </div>
-                                    <span className="text-lg font-black text-primary-color">₵{closure.expected_cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span className="text-success text-sm font-bold">GHS {closure.cash_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="border-border flex justify-between items-center border-t pt-4">
+                                <div className="flex items-center gap-2">
+                                    <Equal className="text-primary size-4" />
+                                    <span className="text-foreground text-sm font-black uppercase">Expected Cash</span>
                                 </div>
+                                <span className="text-primary text-lg font-black">GHS {closure.expected_cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             </div>
                         </div>
 
-                        {/* Right Side: Final Difference Logic */}
-                        <div className="p-6 md:p-8 space-y-6 bg-slate-50/30">
+                        <div className="bg-muted/30 p-6 md:p-8 space-y-4">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">2. Cash Difference Result</h3>
-                                <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded uppercase">Formula: Actual - Exp</span>
+                                <h3 className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">2. Cash Difference Result</h3>
+                                <span className="text-muted-foreground bg-muted rounded px-2 py-0.5 text-[10px] font-bold uppercase">Actual − Exp</span>
                             </div>
-
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
-                                            <Receipt className="w-4 h-4" />
-                                        </div>
-                                        <span className="text-sm text-slate-600">Actual Cash Submitted</span>
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-muted flex size-8 items-center justify-center rounded-lg">
+                                        <Receipt className="text-muted-foreground size-4" />
                                     </div>
-                                    <span className="text-sm font-bold text-slate-800">₵{closure.actual_cash?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}</span>
+                                    <span className="text-muted-foreground text-sm">Actual Cash Submitted</span>
                                 </div>
-
-                                <div className="flex justify-center -my-2 py-1">
-                                    <Minus className="w-3 h-3 text-slate-300" />
-                                </div>
-
-                                <div className="flex justify-between items-center group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
-                                            <Calculator className="w-4 h-4 opacity-50" />
-                                        </div>
-                                        <span className="text-sm text-slate-500 italic">Total Expected Cash</span>
+                                <span className="text-foreground text-sm font-bold">GHS {(closure.actual_cash ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="flex justify-center"><Minus className="text-muted-foreground/40 size-3" /></div>
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-muted flex size-8 items-center justify-center rounded-lg">
+                                        <Calculator className="text-muted-foreground/50 size-4" />
                                     </div>
-                                    <span className="text-sm font-bold text-slate-400">₵{closure.expected_cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                    <span className="text-muted-foreground text-sm italic">Total Expected Cash</span>
                                 </div>
-
-                                <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
-                                        <Equal className="w-4 h-4 text-slate-900" />
-                                        <span className="text-sm font-black text-slate-900 uppercase">Final Difference</span>
-                                    </div>
-                                    <span className={cn(
-                                        "text-lg font-black",
-                                        closure.cash_difference < -0.01 ? "text-rose-600" : closure.cash_difference > 0.01 ? "text-emerald-600" : "text-slate-900"
-                                    )}>
-                                        {closure.cash_difference > 0 ? "+" : ""}₵{closure.cash_difference.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </span>
+                                <span className="text-muted-foreground text-sm font-bold">GHS {closure.expected_cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="border-border flex justify-between items-center border-t pt-4">
+                                <div className="flex items-center gap-2">
+                                    <Equal className="text-foreground size-4" />
+                                    <span className="text-foreground text-sm font-black uppercase">Final Difference</span>
                                 </div>
+                                <span className={cn(
+                                    "text-lg font-black",
+                                    closure.cash_difference < -0.01 ? "text-destructive" :
+                                        closure.cash_difference > 0.01 ? "text-success" : "text-foreground"
+                                )}>
+                                    {closure.cash_difference > 0 ? '+' : ''}GHS {closure.cash_difference.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </span>
                             </div>
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
-                    <Card className="border-0 shadow-xl overflow-hidden rounded-2xl bg-white">
-                        <div className="p-6 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white">
-                            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-primary-color" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Sold Products */}
+                <div className="lg:col-span-2">
+                    <Card className="gap-0 overflow-hidden p-0">
+                        <div className="border-b px-6 py-4">
+                            <h3 className="text-foreground flex items-center gap-2 font-semibold">
+                                <FileText className="text-primary size-4" />
                                 Sold Products Breakdown
                             </h3>
                         </div>
-                        <CardContent className="p-0">
-                            <Table
-                                columns={productColumns}
-                                dataSource={closure.sold_products}
-                                rowKey="product_name"
-                                pagination={{ pageSize: 10 }}
-                                className="custom-table"
-                            />
-                        </CardContent>
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="pl-6">Product Name</TableHead>
+                                        <TableHead>Unit Price</TableHead>
+                                        <TableHead>Qty Sold</TableHead>
+                                        <TableHead className="pr-6">Total Sales</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {closure.sold_products.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
+                                                No products recorded.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : closure.sold_products.map(p => (
+                                        <TableRow key={p.product_name}>
+                                            <TableCell className="pl-6 font-medium">{p.product_name}</TableCell>
+                                            <TableCell className="text-muted-foreground text-sm">GHS {p.unit_price.toFixed(2)}</TableCell>
+                                            <TableCell className="font-bold">{p.quantity}</TableCell>
+                                            <TableCell className="pr-6 text-primary font-bold">GHS {p.total_sales.toFixed(2)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </Card>
                 </div>
 
-                <div className="space-y-6">
-                    <Card className="rounded-2xl border-slate-100 shadow-sm bg-white overflow-hidden">
-                        <CardHeader className="border-b border-slate-50 bg-slate-50/50 py-4">
-                            <CardTitle className="text-sm font-bold text-slate-800">Metadata & Notes</CardTitle>
+                {/* Metadata & Notes */}
+                <div>
+                    <Card className="overflow-hidden">
+                        <CardHeader className="border-b">
+                            <CardTitle className="text-sm font-bold">Metadata & Notes</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4 pt-6">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-500 font-medium"> Reference No.</span>
-                                <span className="font-bold text-slate-700 font-mono">#{closure.closure_number}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-500 font-medium"> Closure Date</span>
-                                <span className="font-bold text-slate-700">{format(new Date(closure.closure_date), 'PP')}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-500 font-medium"> Opening Time</span>
-                                <span className="font-bold text-slate-700">{format(new Date(closure.opened_at), 'p')}</span>
-                            </div>
-                            <Divider className="my-2" />
-                            <div className="space-y-2">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Attendant Notes</span>
-                                <div className="p-4 bg-slate-50/50 rounded-xl text-sm text-slate-600 italic border border-slate-100 leading-relaxed">
-                                    &quot;{closure.notes || "No notes provided"}&quot;
+                        <CardContent className="space-y-4 pt-4">
+                            {[
+                                { label: 'Reference No.', value: `#${closure.closure_number}`, mono: true },
+                                { label: 'Closure Date',  value: format(new Date(closure.closure_date), 'PP') },
+                                { label: 'Opening Time',  value: format(new Date(closure.opened_at), 'p') },
+                            ].map(row => (
+                                <div key={row.label} className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground font-medium">{row.label}</span>
+                                    <span className={cn("text-foreground font-bold", row.mono && "font-mono")}>{row.value}</span>
+                                </div>
+                            ))}
+
+                            <div className="border-border border-t pt-3 space-y-2">
+                                <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Attendant Notes</p>
+                                <div className="bg-muted/50 rounded-xl border p-4 text-sm italic text-muted-foreground leading-relaxed">
+                                    &quot;{closure.notes || 'No notes provided'}&quot;
                                 </div>
                             </div>
+
                             {closure.discrepancy_reason && (
                                 <div className="space-y-2">
-                                    <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Verification Reason</span>
-                                    <div className="p-4 bg-rose-50/50 rounded-xl text-sm text-rose-600 italic border border-rose-100 leading-relaxed">
+                                    <p className="text-destructive text-[10px] font-black uppercase tracking-widest">Verification Reason</p>
+                                    <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm italic text-destructive leading-relaxed">
                                         &quot;{closure.discrepancy_reason}&quot;
                                     </div>
+                                </div>
+                            )}
+
+                            {canVerify && (
+                                <div className="border-border border-t pt-4 space-y-2">
+                                    <Label className="text-sm font-semibold">Rejection Reason (if rejecting)</Label>
+                                    <Textarea
+                                        placeholder="e.g. Cash count doesn't match..."
+                                        value={discrepancyReason}
+                                        onChange={e => setDiscrepancyReason(e.target.value)}
+                                        className="resize-none"
+                                        rows={3}
+                                    />
                                 </div>
                             )}
                         </CardContent>
                     </Card>
                 </div>
             </div>
+
+            {/* Confirm action dialog */}
+            <AlertDialog open={!!pendingAction} onOpenChange={open => !open && setPendingAction(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {pendingAction === 'verified' ? 'Approve Reconciliation?' : 'Reject Submission?'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {pendingAction === 'verified'
+                                ? 'Are you sure you want to verify and approve these figures?'
+                                : 'This will send the record back for correction. Please ensure you have provided a reason.'}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className={cn(
+                                pendingAction === 'rejected'
+                                    ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                                    : ''
+                            )}
+                            onClick={() => pendingAction && handleVerifySubmit(pendingAction)}
+                        >
+                            {pendingAction === 'verified' ? 'Yes, Approve' : 'Reject'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

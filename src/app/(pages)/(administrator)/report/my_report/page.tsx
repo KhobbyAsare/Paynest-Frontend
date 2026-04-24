@@ -1,16 +1,15 @@
 "use client"
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Plus, FileText, Calendar, Search, Clock,
     CheckCircle, XCircle, Eye, Download, RefreshCcw,
 } from 'lucide-react';
 import { ReportFileFormat, ReportRequest, ReportResponse, ReportStatus, ReportType } from '@/interfaces/report';
-import { createReport, getMyResports, getReportByID, downloadReport } from '@/(api-handlers)/reportHandler';
+import { createReport, getMyResports, downloadReport } from '@/(api-handlers)/reportHandler';
 import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
 import { OrganizationShopResponse } from '@/interfaces/organizationShops';
 import PageHeader from '@/components/(shared-components)/PageHeader';
-import EmptyState from '@/components/(shared-components)/EmptyState';
 import { useAuthStore } from '@/(zustand-store)/authStore';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import Link from 'next/link';
@@ -18,12 +17,20 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
 import {
     Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
@@ -59,22 +66,19 @@ const PAYMENT_METHODS = [
 /* -------------------------------------------------------------------------- */
 /*  Status badge                                                               */
 /* -------------------------------------------------------------------------- */
-type StatusVariant = 'default' | 'secondary' | 'destructive' | 'outline';
-
-const STATUS_META: Record<string, { icon: React.ReactNode; label: string; variant: StatusVariant }> = {
-    pending: { icon: <Clock className="size-3" />, label: 'Pending', variant: 'outline' },
-    approved: { icon: <CheckCircle className="size-3" />, label: 'Approved', variant: 'secondary' },
-    processing: { icon: <Clock className="size-3" />, label: 'Processing', variant: 'secondary' },
-    completed: { icon: <CheckCircle className="size-3" />, label: 'Completed', variant: 'default' },
-    rejected: { icon: <XCircle className="size-3" />, label: 'Rejected', variant: 'destructive' },
-    failed: { icon: <XCircle className="size-3" />, label: 'Failed', variant: 'destructive' },
-};
-
 function StatusBadge({ status }: { status: ReportStatus }) {
-    const meta = STATUS_META[status] ?? STATUS_META.pending;
+    const configs: Record<string, { icon: React.ReactNode; label: string; cls: string }> = {
+        pending:    { icon: <Clock className="size-3" />,       label: 'Pending',    cls: 'border-warning/30 bg-warning/10 text-warning-foreground' },
+        approved:   { icon: <CheckCircle className="size-3" />, label: 'Approved',   cls: 'border-primary/20 bg-primary/10 text-primary' },
+        processing: { icon: <Clock className="size-3" />,       label: 'Processing', cls: 'border-primary/20 bg-primary/10 text-primary' },
+        completed:  { icon: <CheckCircle className="size-3" />, label: 'Completed',  cls: 'border-success/30 bg-success/10 text-success' },
+        rejected:   { icon: <XCircle className="size-3" />,     label: 'Rejected',   cls: 'border-destructive/30 bg-destructive/10 text-destructive' },
+        failed:     { icon: <XCircle className="size-3" />,     label: 'Failed',     cls: 'border-destructive/30 bg-destructive/10 text-destructive' },
+    };
+    const { icon, label, cls } = configs[status] ?? configs.pending;
     return (
-        <Badge variant={meta.variant} className="flex items-center gap-1 w-fit text-[11px] px-2">
-            {meta.icon}{meta.label}
+        <Badge variant="outline" className={cn("flex w-fit items-center gap-1 rounded-full text-[11px] px-2", cls)}>
+            {icon}{label}
         </Badge>
     );
 }
@@ -82,51 +86,9 @@ function StatusBadge({ status }: { status: ReportStatus }) {
 function TypeBadge({ type }: { type: string }) {
     const label = REPORT_TYPES.find(t => t.value === type)?.label ?? type;
     return (
-        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+        <Badge variant="outline" className="rounded-full border-info/30 bg-info/10 text-info text-[11px]">
             {label}
-        </span>
-    );
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Small form helpers                                                         */
-/* -------------------------------------------------------------------------- */
-function FieldLabel({ children, required }: Readonly<{ children: React.ReactNode; required?: boolean }>) {
-    return (
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            {children}{required && <span className="text-rose-500 ml-0.5">*</span>}
-        </label>
-    );
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Dialog                                                                     */
-/* -------------------------------------------------------------------------- */
-interface DialogProps {
-    open: boolean;
-    onClose: () => void;
-    title: React.ReactNode;
-    children: React.ReactNode;
-    width?: string;
-}
-
-function Dialog({ open, onClose, title, children, width = 'max-w-lg' }: DialogProps) {
-    const overlayRef = useRef<HTMLDivElement>(null);
-    if (!open) return null;
-    return (
-        <div
-            ref={overlayRef}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-            onClick={e => { if (e.target === overlayRef.current) onClose(); }}
-        >
-            <div className={cn('bg-white rounded-2xl shadow-2xl w-full overflow-hidden', width)}>
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                    <div className="flex items-center gap-2 font-semibold text-slate-800">{title}</div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors text-lg leading-none">&times;</button>
-                </div>
-                <div className="px-6 py-5 max-h-[80vh] overflow-y-auto">{children}</div>
-            </div>
-        </div>
+        </Badge>
     );
 }
 
@@ -170,36 +132,27 @@ const defaultForm: ReportFormState = {
 export default function ManagerReportView() {
     const { user } = useAuthStore();
 
-    // Data
     const [reports, setReports] = useState<ReportResponse[]>([]);
     const [filteredReports, setFilteredReports] = useState<ReportResponse[]>([]);
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
 
-    // Create report dialog
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [form, setForm] = useState<ReportFormState>(defaultForm);
     const [formErrors, setFormErrors] = useState<ReportFormErrors>({});
 
-    // Preview dialog
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [selectedReport, setSelectedReport] = useState<ReportResponse | null>(null);
-    const [previewLoading, setPreviewLoading] = useState(false);
-
-    /* ---- Fetch ---- */
     const fetchReports = async () => {
         setLoading(true);
         try {
             const data = await getMyResports();
             setReports(data);
             setFilteredReports(data);
-        } catch (error: unknown) {
+        } catch (error) {
             handleErrorMessage(error, 'Failed to fetch reports');
         } finally {
             setLoading(false);
@@ -211,7 +164,6 @@ export default function ManagerReportView() {
         getOrganizationShops().then(setShops).catch(() => null);
     }, []);
 
-    /* ---- Filter ---- */
     useEffect(() => {
         let filtered = reports;
         if (searchTerm) {
@@ -225,7 +177,6 @@ export default function ManagerReportView() {
         setFilteredReports(filtered);
     }, [searchTerm, statusFilter, typeFilter, reports]);
 
-    /* ---- Form helpers ---- */
     function setF<K extends keyof ReportFormState>(key: K, value: ReportFormState[K]) {
         setForm(prev => ({ ...prev, [key]: value }));
         if (formErrors[key as keyof ReportFormErrors]) {
@@ -245,7 +196,6 @@ export default function ManagerReportView() {
         return Object.keys(e).length === 0;
     }
 
-    /* ---- Handlers ---- */
     const handleCreateReport = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateForm()) return;
@@ -270,24 +220,10 @@ export default function ManagerReportView() {
             setIsCreateOpen(false);
             setForm(defaultForm);
             fetchReports();
-        } catch (error: unknown) {
+        } catch (error) {
             handleErrorMessage(error, 'Failed to create report');
         } finally {
             setCreating(false);
-        }
-    };
-
-    const handlePreview = async (reportId: number) => {
-        setPreviewLoading(true);
-        setIsPreviewOpen(true);
-        try {
-            const report = await getReportByID(reportId);
-            setSelectedReport(report);
-        } catch (error: unknown) {
-            handleErrorMessage(error, 'Failed to fetch report details');
-            setIsPreviewOpen(false);
-        } finally {
-            setPreviewLoading(false);
         }
     };
 
@@ -300,32 +236,38 @@ export default function ManagerReportView() {
         try {
             await downloadReport(report.id, fileName);
             toast.success('Download started');
-        } catch (error: unknown) {
+        } catch (error) {
             handleErrorMessage(error, 'Failed to download report');
         }
     };
 
     const closeCreate = () => { setIsCreateOpen(false); setForm(defaultForm); setFormErrors({}); };
 
-    /* ------------------------------------------------------------------ */
-    /*  Render                                                              */
-    /* ------------------------------------------------------------------ */
     return (
         <TooltipProvider>
-            <div className="p-4 space-y-6">
-                <PageHeader title="My Reports" description="Generate and manage your personal reports.">
-                    <Button className="flex items-center gap-2" onClick={() => setIsCreateOpen(true)}>
-                        <Plus className="size-4" /> Generate Report
-                    </Button>
-                </PageHeader>
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="My Reports"
+                    description="Generate and manage your personal reports."
+                    actions={
+                        <Button onClick={() => setIsCreateOpen(true)}>
+                            <Plus className="mr-2 size-4" /> Generate Report
+                        </Button>
+                    }
+                />
 
                 {/* Filters */}
-                <Card className="border-slate-100 shadow-sm rounded-2xl">
+                <Card>
                     <CardContent className="pt-5">
                         <div className="flex flex-col sm:flex-row gap-3">
                             <div className="relative sm:w-64">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
-                                <Input placeholder="Search reports…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
+                                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                                <Input
+                                    placeholder="Search reports…"
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    className="pl-9"
+                                />
                             </div>
                             <Select value={statusFilter} onValueChange={setStatusFilter}>
                                 <SelectTrigger className="sm:w-48"><SelectValue placeholder="Filter by status" /></SelectTrigger>
@@ -346,69 +288,85 @@ export default function ManagerReportView() {
                                     {REPORT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                                 </SelectContent>
                             </Select>
+                            <Button variant="outline" size="icon" className="size-9 shrink-0" onClick={fetchReports} disabled={loading}>
+                                <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* Table */}
-                <Card className="border-slate-100 shadow-sm rounded-2xl overflow-hidden">
+                <Card className="gap-0 overflow-hidden p-0">
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-100">
-                            <thead className="bg-slate-50/70">
-                                <tr>
-                                    {['Report Name', 'Type', 'Period', 'Status', 'Created At', 'Actions'].map(h => (
-                                        <th key={h} className="px-4 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50 bg-white">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="pl-6">Report Name</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Period</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Created</TableHead>
+                                    <TableHead className="pr-6 w-[90px] text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                                 {loading ? (
-                                    <tr><td colSpan={6} className="py-16 text-center">
-                                        <div className="flex flex-col items-center gap-2 text-slate-400">
-                                            <RefreshCcw className="size-5 animate-spin" />
-                                            <span className="text-sm">Fetching reports…</span>
-                                        </div>
-                                    </td></tr>
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            {Array.from({ length: 6 }).map((_, j) => (
+                                                <TableCell key={j}><Skeleton className="h-5 w-full rounded" /></TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))
                                 ) : filteredReports.length === 0 ? (
-                                    <tr><td colSpan={6} className="py-16">
-                                        <EmptyState
-                                            title="No reports found"
-                                            description={searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
-                                                ? 'No reports match your filters.'
-                                                : "You haven't generated any reports yet. Click the button above to create one."}
-                                        />
-                                    </td></tr>
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="py-20 text-center">
+                                            <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
+                                                <FileText className="text-muted-foreground size-7" />
+                                            </div>
+                                            <p className="text-foreground font-semibold">No reports found</p>
+                                            <p className="text-muted-foreground mt-1 text-sm">
+                                                {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
+                                                    ? 'No reports match your filters.'
+                                                    : "You haven't generated any reports yet."}
+                                            </p>
+                                        </TableCell>
+                                    </TableRow>
                                 ) : filteredReports.map(report => (
-                                    <tr key={report.id} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-4 py-4 text-sm font-medium text-slate-800">
+                                    <TableRow key={report.id}>
+                                        <TableCell className="pl-6 font-medium">
                                             <div className="flex items-center gap-2">
-                                                <FileText className="size-4 text-slate-400 shrink-0" />
+                                                <FileText className="text-muted-foreground size-4 shrink-0" />
                                                 <span className="line-clamp-1">{report.report_name}</span>
                                             </div>
-                                        </td>
-                                        <td className="px-4 py-4"><TypeBadge type={report.report_type} /></td>
-                                        <td className="px-4 py-4 text-sm text-slate-500 whitespace-nowrap">
+                                        </TableCell>
+                                        <TableCell><TypeBadge type={report.report_type} /></TableCell>
+                                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                                             <div className="flex items-center gap-1.5">
-                                                <Calendar className="size-3.5 text-slate-400" />
+                                                <Calendar className="text-muted-foreground size-3.5" />
                                                 {new Date(report.period_start).toLocaleDateString()} – {new Date(report.period_end).toLocaleDateString()}
                                             </div>
-                                        </td>
-                                        <td className="px-4 py-4"><StatusBadge status={report.status} /></td>
-                                        <td className="px-4 py-4 text-sm text-slate-500 whitespace-nowrap">{new Date(report.created_at).toLocaleDateString()}</td>
-                                        <td className="px-4 py-4">
-                                            <div className="flex items-center gap-1">
+                                        </TableCell>
+                                        <TableCell><StatusBadge status={report.status} /></TableCell>
+                                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                                            {new Date(report.created_at).toLocaleDateString()}
+                                        </TableCell>
+                                        <TableCell className="pr-6 text-right">
+                                            <div className="flex items-center justify-end gap-1">
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="size-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" asChild>
+                                                        <Button variant="ghost" size="icon" className="size-8" asChild>
                                                             <Link href={`/report/${report.id}`}><Eye className="size-4" /></Link>
                                                         </Button>
                                                     </TooltipTrigger>
-                                                    <TooltipContent>View Intelligence</TooltipContent>
+                                                    <TooltipContent>View Details</TooltipContent>
                                                 </Tooltip>
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <Button
-                                                            variant="ghost" size="icon" className="size-8 hover:bg-slate-100"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="size-8"
                                                             disabled={report.status !== 'completed'}
                                                             onClick={() => handleDownload(report)}
                                                         >
@@ -418,131 +376,122 @@ export default function ManagerReportView() {
                                                     <TooltipContent>Download Report</TooltipContent>
                                                 </Tooltip>
                                             </div>
-                                        </td>
-                                    </tr>
+                                        </TableCell>
+                                    </TableRow>
                                 ))}
-                            </tbody>
-                        </table>
+                            </TableBody>
+                        </Table>
                     </div>
                 </Card>
 
-                {/* ── Create Report Dialog ── */}
-                <Dialog open={isCreateOpen} onClose={closeCreate} title={<><FileText className="size-5 text-primary" /> Generate New Report</>}>
-                    <form onSubmit={handleCreateReport} noValidate className="space-y-4">
-                        <div>
-                            <FieldLabel required>Report Name</FieldLabel>
-                            <Input placeholder="Q1 Sales Report" value={form.report_name} onChange={e => setF('report_name', e.target.value)}
-                                className={cn(formErrors.report_name && 'border-rose-400 focus-visible:ring-rose-400')} />
-                            {formErrors.report_name && <p className="mt-1 text-xs text-rose-500">{formErrors.report_name}</p>}
-                        </div>
-                        <div>
-                            <FieldLabel required>Report Type</FieldLabel>
-                            <Select value={form.report_type} onValueChange={v => setF('report_type', v)}>
-                                <SelectTrigger className={cn('w-full', formErrors.report_type && 'border-rose-400')}>
-                                    <SelectValue placeholder="Select report type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {REPORT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            {formErrors.report_type && <p className="mt-1 text-xs text-rose-500">{formErrors.report_type}</p>}
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <FieldLabel required>Period Start</FieldLabel>
-                                <DatePicker
-                                    className={cn("w-full h-10", formErrors.period_start && 'border-rose-400')}
-                                    value={form.period_start ? dayjs(form.period_start) : null}
-                                    onChange={(date) => setF('period_start', date ? date.format('YYYY-MM-DD') : '')}
-                                    placeholder="Start date"
+                {/* Create Report Dialog */}
+                <Dialog open={isCreateOpen} onOpenChange={open => !open && closeCreate()}>
+                    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <FileText className="text-primary size-5" /> Generate New Report
+                            </DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleCreateReport} noValidate className="space-y-4 pt-1">
+                            <div className="space-y-1.5">
+                                <Label>Report Name <span className="text-destructive">*</span></Label>
+                                <Input
+                                    placeholder="Q1 Sales Report"
+                                    value={form.report_name}
+                                    onChange={e => setF('report_name', e.target.value)}
+                                    className={cn(formErrors.report_name && 'border-destructive')}
                                 />
-                                {formErrors.period_start && <p className="mt-1 text-xs text-rose-500">{formErrors.period_start}</p>}
+                                {formErrors.report_name && <p className="text-destructive text-xs">{formErrors.report_name}</p>}
                             </div>
-                            <div>
-                                <FieldLabel required>Period End</FieldLabel>
-                                <DatePicker
-                                    className={cn("w-full h-10", formErrors.period_end && 'border-rose-400')}
-                                    value={form.period_end ? dayjs(form.period_end) : null}
-                                    onChange={(date) => setF('period_end', date ? date.format('YYYY-MM-DD') : '')}
-                                    placeholder="End date"
-                                />
-                                {formErrors.period_end && <p className="mt-1 text-xs text-rose-500">{formErrors.period_end}</p>}
-                            </div>
-                        </div>
-                        <div>
-                            <FieldLabel required>Shop</FieldLabel>
-                            <Select value={form.shop_id} onValueChange={v => setF('shop_id', v)}>
-                                <SelectTrigger className={cn('w-full', formErrors.shop_id && 'border-rose-400')}>
-                                    <SelectValue placeholder="Select shop" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {shops.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            {formErrors.shop_id && <p className="mt-1 text-xs text-rose-500">{formErrors.shop_id}</p>}
-                        </div>
-                        <div>
-                            <FieldLabel>Payment Method</FieldLabel>
-                            <Select value={form.payment_method} onValueChange={v => setF('payment_method', v)}>
-                                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {PAYMENT_METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <FieldLabel required>File Format</FieldLabel>
-                            <Select value={form.file_format} onValueChange={v => setF('file_format', v)}>
-                                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {FILE_FORMATS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex items-center justify-between py-1.5 border-t border-slate-100">
-                            <label className="text-sm font-medium text-slate-700">Include Tax</label>
-                            <Switch checked={form.include_tax} onCheckedChange={v => setF('include_tax', v)} />
-                        </div>
-                        <div className="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" onClick={closeCreate}>Cancel</Button>
-                            <Button type="submit" disabled={creating} className="min-w-[140px]">
-                                {creating ? (
-                                    <span className="flex items-center gap-2">
-                                        <span className="size-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                                        Generating…
-                                    </span>
-                                ) : (<><Plus className="size-4 mr-1" /> Generate Report</>)}
-                            </Button>
-                        </div>
-                    </form>
-                </Dialog>
 
-                {/* ── Preview Dialog ── */}
-                <Dialog open={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} title={<><Eye className="size-5 text-primary" /> Report Details</>} width="max-w-2xl">
-                    {previewLoading ? (
-                        <div className="flex justify-center py-8 text-slate-400">
-                            <RefreshCcw className="size-5 animate-spin" />
-                        </div>
-                    ) : selectedReport ? (
-                        <div className="space-y-5">
-                            {[
-                                { label: 'Report Name', value: selectedReport.report_name },
-                                { label: 'Report Type', value: <TypeBadge type={selectedReport.report_type} /> },
-                                { label: 'Status', value: <StatusBadge status={selectedReport.status} /> },
-                                { label: 'Period', value: `${new Date(selectedReport.period_start).toLocaleDateString()} – ${new Date(selectedReport.period_end).toLocaleDateString()}` },
-                                { label: 'Created At', value: new Date(selectedReport.created_at).toLocaleString() },
-                                { label: 'Shop ID', value: selectedReport.parameters.shop_id },
-                                { label: 'Include Tax', value: selectedReport.parameters.include_tax ? 'Yes' : 'No' },
-                                { label: 'Payment Method', value: selectedReport.parameters.payment_method },
-                                { label: 'File Format', value: selectedReport.file_format.toUpperCase() },
-                            ].map(row => (
-                                <div key={row.label} className="flex items-center justify-between border-b border-slate-50 pb-3 last:border-0 last:pb-0">
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{row.label}</span>
-                                    <span className="text-sm font-medium text-slate-800">{row.value}</span>
+                            <div className="space-y-1.5">
+                                <Label>Report Type <span className="text-destructive">*</span></Label>
+                                <Select value={form.report_type} onValueChange={v => setF('report_type', v)}>
+                                    <SelectTrigger className={cn(formErrors.report_type && 'border-destructive')}>
+                                        <SelectValue placeholder="Select report type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {REPORT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                {formErrors.report_type && <p className="text-destructive text-xs">{formErrors.report_type}</p>}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label>Period Start <span className="text-destructive">*</span></Label>
+                                    <DatePicker
+                                        value={form.period_start ? dayjs(form.period_start) : null}
+                                        onChange={(date) => setF('period_start', date ? date.format('YYYY-MM-DD') : '')}
+                                        format="DD MMM YYYY"
+                                        className={cn('h-9 w-full', formErrors.period_start && 'border-destructive')}
+                                    />
+                                    {formErrors.period_start && <p className="text-destructive text-xs">{formErrors.period_start}</p>}
                                 </div>
-                            ))}
-                        </div>
-                    ) : null}
+                                <div className="space-y-1.5">
+                                    <Label>Period End <span className="text-destructive">*</span></Label>
+                                    <DatePicker
+                                        value={form.period_end ? dayjs(form.period_end) : null}
+                                        onChange={(date) => setF('period_end', date ? date.format('YYYY-MM-DD') : '')}
+                                        format="DD MMM YYYY"
+                                        className={cn('h-9 w-full', formErrors.period_end && 'border-destructive')}
+                                    />
+                                    {formErrors.period_end && <p className="text-destructive text-xs">{formErrors.period_end}</p>}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label>Shop <span className="text-destructive">*</span></Label>
+                                <Select value={form.shop_id} onValueChange={v => setF('shop_id', v)}>
+                                    <SelectTrigger className={cn(formErrors.shop_id && 'border-destructive')}>
+                                        <SelectValue placeholder="Select shop" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {shops.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                {formErrors.shop_id && <p className="text-destructive text-xs">{formErrors.shop_id}</p>}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label>Payment Method</Label>
+                                <Select value={form.payment_method} onValueChange={v => setF('payment_method', v)}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {PAYMENT_METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label>File Format <span className="text-destructive">*</span></Label>
+                                <Select value={form.file_format} onValueChange={v => setF('file_format', v)}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {FILE_FORMATS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex items-center justify-between rounded-lg border p-3">
+                                <div>
+                                    <p className="text-foreground text-sm font-medium">Include Tax</p>
+                                    <p className="text-muted-foreground text-xs">Add tax details to the report</p>
+                                </div>
+                                <Switch checked={form.include_tax} onCheckedChange={v => setF('include_tax', v)} />
+                            </div>
+
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={closeCreate}>Cancel</Button>
+                                <Button type="submit" disabled={creating}>
+                                    {creating
+                                        ? <><RefreshCcw className="mr-2 size-4 animate-spin" /> Generating…</>
+                                        : <><Plus className="mr-2 size-4" /> Generate Report</>
+                                    }
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
                 </Dialog>
             </div>
         </TooltipProvider>

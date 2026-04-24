@@ -1,51 +1,84 @@
 'use client'
 
 import { useState } from 'react'
-import { Form, Input, Card, Row, Col, Select, InputNumber, message, Space, Divider } from 'antd'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Building2, UserCog, Send, Loader2 } from 'lucide-react'
+import { ArrowLeft, Building2, UserCog, Loader2, Send } from 'lucide-react'
 import PageHeader from '@/components/(shared-components)/PageHeader'
 import { onboardOrganizationAndAdmin } from '@/(api-handlers)/organizationHandler'
-import { OnboardingOrganizationAndAdminRequest } from '@/interfaces/organization'
-import Link from 'next/link'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
-const { Option } = Select
-const { TextArea } = Input
+const schema = z.object({
+    name:              z.string().min(1, 'Organization name is required'),
+    email:             z.string().email('Invalid email'),
+    phone_number:      z.string().min(1, 'Phone number is required'),
+    currency:          z.string().min(1, 'Currency is required'),
+    address:           z.string().min(1, 'Address is required'),
+    description:       z.string().optional(),
+    plan_type:         z.string().min(1, 'Plan type is required'),
+    max_shops:         z.coerce.number().int().min(1, 'Min 1 shop'),
+    max_users:         z.coerce.number().int().min(1, 'Min 1 user'),
+    admin_first_name:  z.string().min(1, 'Required'),
+    admin_last_name:   z.string().min(1, 'Required'),
+    admin_username:    z.string().min(1, 'Required'),
+    admin_email:       z.string().email('Invalid email'),
+    admin_phone_number: z.string().min(1, 'Required'),
+    admin_password:    z.string().min(8, 'Min 8 characters'),
+});
+type FormValues = z.infer<typeof schema>;
 
 export default function CreateOrganization() {
-    const [loading, setLoading] = useState(false)
-    const router = useRouter()
-    const [form] = Form.useForm()
+    const router = useRouter();
+    const [loading, setLoading] = useState(false);
 
-    const onFinish = async (values: any) => {
-        setLoading(true)
+    const {
+        register, handleSubmit, setValue, watch,
+        formState: { errors },
+    } = useForm<FormValues>({
+        resolver: zodResolver(schema),
+        defaultValues: {
+            currency: 'GHS',
+            plan_type: 'starter',
+            max_shops: 1,
+            max_users: 2,
+        },
+    });
+
+    const onSubmit = async (values: FormValues) => {
+        setLoading(true);
         try {
-            const requestData: OnboardingOrganizationAndAdminRequest = {
-                ...values,
-                is_active: true, // Default to active
-            }
-            await onboardOrganizationAndAdmin(requestData)
-            message.success('Organization and Admin onboarded successfully')
-            router.push('/organizations')
-        } catch (error: any) {
-            console.error(error)
-            message.error(error.response?.data?.message || 'Failed to onboard organization')
+            await onboardOrganizationAndAdmin({ ...values, is_active: true });
+            toast.success('Organization and Admin onboarded successfully');
+            router.push('/organizations');
+        } catch (error: unknown) {
+            const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            toast.error(msg || 'Failed to onboard organization');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
+
+    const planType = watch('plan_type');
+    const currency = watch('currency');
 
     return (
-        <div className="max-w-4xl mx-auto pt-2">
-            <div className="mb-3 ">
-                <Link href='/organizations'>
-                    <button
-                        className="flex items-center gap-2 p-0 h-auto text-primary-color! hover:text-primary"
-                    >
-                        <ArrowLeft className='size-4' />
-                        Back to Organizations
-                    </button>
-                </Link>
+        <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-3">
+                <Button variant="ghost" size="sm" onClick={() => router.push('/organizations')} className="gap-1.5">
+                    <ArrowLeft className="size-4" /> Back to Organizations
+                </Button>
             </div>
 
             <PageHeader
@@ -53,206 +86,139 @@ export default function CreateOrganization() {
                 description="Set up a new organization and its primary administrator account."
             />
 
-            <Form
-                form={form}
-                layout="vertical"
-                onFinish={onFinish}
-                initialValues={{
-                    currency: 'GHS',
-                    plan_type: 'starter',
-                    max_shops: 1,
-                    max_users: 2
-                }}
-                className="mt-8"
-            >
-                {/* Organization Details Section */}
-                <Card
-                    title={<div className="flex items-center gap-2"><Building2 className="size-5 text-primary" /> Organization Information</div>}
-                    className="shadow-sm border-gray-200"
-                >
-                    <Row gutter={24}>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="name"
-                                label="Organization Name"
-                                rules={[{ required: true, message: 'Please enter organization name' }]}
-                            >
-                                <Input placeholder="e.g. Acme Corp" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="email"
-                                label="Organization Email"
-                                rules={[
-                                    { required: true, message: 'Please enter organization email' },
-                                    { type: 'email', message: 'Please enter a valid email' }
-                                ]}
-                            >
-                                <Input placeholder="contact@acme.com" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="phone_number"
-                                label="Phone Number"
-                                rules={[{ required: true, message: 'Please enter phone number' }]}
-                            >
-                                <Input placeholder="+233..." />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="currency"
-                                label="Currency"
-                                rules={[{ required: true, message: 'Please select currency' }]}
-                            >
-                                <Select placeholder="Select Currency">
-                                    <Option value="GHS">Ghana Cedi (GHS)</Option>
-                                    <Option value="USD">US Dollar (USD)</Option>
-                                    <Option value="GBP">British Pound (GBP)</Option>
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+                {/* Organization Information */}
+                <Card>
+                    <CardHeader className="border-b">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            <Building2 className="text-primary size-5" /> Organization Information
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="space-y-1.5">
+                                <Label>Organization Name <span className="text-destructive">*</span></Label>
+                                <Input {...register('name')} placeholder="e.g. Acme Corp" className={cn(errors.name && 'border-destructive')} />
+                                {errors.name && <p className="text-destructive text-xs">{errors.name.message}</p>}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Organization Email <span className="text-destructive">*</span></Label>
+                                <Input {...register('email')} placeholder="contact@acme.com" className={cn(errors.email && 'border-destructive')} />
+                                {errors.email && <p className="text-destructive text-xs">{errors.email.message}</p>}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Phone Number <span className="text-destructive">*</span></Label>
+                                <Input {...register('phone_number')} placeholder="+233..." className={cn(errors.phone_number && 'border-destructive')} />
+                                {errors.phone_number && <p className="text-destructive text-xs">{errors.phone_number.message}</p>}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Currency <span className="text-destructive">*</span></Label>
+                                <Select value={currency} onValueChange={v => setValue('currency', v)}>
+                                    <SelectTrigger className={cn(errors.currency && 'border-destructive')}>
+                                        <SelectValue placeholder="Select Currency" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="GHS">Ghana Cedi (GHS)</SelectItem>
+                                        <SelectItem value="USD">US Dollar (USD)</SelectItem>
+                                        <SelectItem value="GBP">British Pound (GBP)</SelectItem>
+                                    </SelectContent>
                                 </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24}>
-                            <Form.Item
-                                name="address"
-                                label="Physical Address"
-                                rules={[{ required: true, message: 'Please enter address' }]}
-                            >
-                                <Input placeholder="Plot 45, Street Name, City" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24}>
-                            <Form.Item
-                                name="description"
-                                label="Description"
-                            >
-                                <TextArea rows={3} placeholder="A brief description of the organization..." />
-                            </Form.Item>
-                        </Col>
-                    </Row>
+                                {errors.currency && <p className="text-destructive text-xs">{errors.currency.message}</p>}
+                            </div>
+                            <div className="md:col-span-2 space-y-1.5">
+                                <Label>Physical Address <span className="text-destructive">*</span></Label>
+                                <Input {...register('address')} placeholder="Plot 45, Street Name, City" className={cn(errors.address && 'border-destructive')} />
+                                {errors.address && <p className="text-destructive text-xs">{errors.address.message}</p>}
+                            </div>
+                            <div className="md:col-span-2 space-y-1.5">
+                                <Label>Description</Label>
+                                <Textarea {...register('description')} placeholder="A brief description of the organization..." className="resize-none" rows={3} />
+                            </div>
+                        </div>
 
-                    <Divider className="text-gray-400 text-xs font-normal uppercase tracking-wider">Subscription Limits</Divider>
+                        <Separator className="my-6" />
+                        <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-5">Subscription Limits</p>
 
-                    <Row gutter={24}>
-                        <Col xs={24} md={8}>
-                            <Form.Item
-                                name="plan_type"
-                                label="Plan Type"
-                                rules={[{ required: true }]}
-                            >
-                                <Select>
-                                    <Option value="starter">Starter</Option>
-                                    <Option value="professional">Professional</Option>
-                                    <Option value="enterprise">Enterprise</Option>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                            <div className="space-y-1.5">
+                                <Label>Plan Type <span className="text-destructive">*</span></Label>
+                                <Select value={planType} onValueChange={v => setValue('plan_type', v)}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="starter">Starter</SelectItem>
+                                        <SelectItem value="professional">Professional</SelectItem>
+                                        <SelectItem value="enterprise">Enterprise</SelectItem>
+                                    </SelectContent>
                                 </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col xs={12} md={8}>
-                            <Form.Item
-                                name="max_shops"
-                                label="Max Shops"
-                                rules={[{ required: true }]}
-                            >
-                                <InputNumber min={1} className="w-full" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={12} md={8}>
-                            <Form.Item
-                                name="max_users"
-                                label="Max Users"
-                                rules={[{ required: true }]}
-                            >
-                                <InputNumber min={1} className="w-full" />
-                            </Form.Item>
-                        </Col>
-                    </Row>
+                                {errors.plan_type && <p className="text-destructive text-xs">{errors.plan_type.message}</p>}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Max Shops <span className="text-destructive">*</span></Label>
+                                <Input type="number" min={1} {...register('max_shops')} className={cn(errors.max_shops && 'border-destructive')} />
+                                {errors.max_shops && <p className="text-destructive text-xs">{errors.max_shops.message}</p>}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Max Users <span className="text-destructive">*</span></Label>
+                                <Input type="number" min={1} {...register('max_users')} className={cn(errors.max_users && 'border-destructive')} />
+                                {errors.max_users && <p className="text-destructive text-xs">{errors.max_users.message}</p>}
+                            </div>
+                        </div>
+                    </CardContent>
                 </Card>
 
-                {/* Admin Account Section */}
-                <Card
-                    title={<div className="flex items-center gap-2 mt-2"><UserCog className="size-5 text-primary" /> Admin Account Information</div>}
-                    className="shadow-sm border-gray-200 "
-                >
-                    <Row gutter={24}>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="admin_first_name"
-                                label="First Name"
-                                rules={[{ required: true, message: 'Required' }]}
-                            >
-                                <Input placeholder="John" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="admin_last_name"
-                                label="Last Name"
-                                rules={[{ required: true, message: 'Required' }]}
-                            >
-                                <Input placeholder="Doe" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="admin_username"
-                                label="Username"
-                                rules={[{ required: true, message: 'Required' }]}
-                            >
-                                <Input placeholder="jdoe_admin" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="admin_email"
-                                label="Admin Email"
-                                rules={[
-                                    { required: true, message: 'Required' },
-                                    { type: 'email', message: 'Invalid email' }
-                                ]}
-                            >
-                                <Input placeholder="j.doe@example.com" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="admin_phone_number"
-                                label="Admin Phone"
-                                rules={[{ required: true, message: 'Required' }]}
-                            >
-                                <Input placeholder="+233..." />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item
-                                name="admin_password"
-                                label="Initial Password"
-                                rules={[
-                                    { required: true, message: 'Required' },
-                                    { min: 8, message: 'Min 8 characters' }
-                                ]}
-                            >
-                                <Input.Password placeholder="••••••••" />
-                            </Form.Item>
-                        </Col>
-                    </Row>
+                {/* Admin Account */}
+                <Card>
+                    <CardHeader className="border-b">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            <UserCog className="text-primary size-5" /> Admin Account Information
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="space-y-1.5">
+                                <Label>First Name <span className="text-destructive">*</span></Label>
+                                <Input {...register('admin_first_name')} placeholder="John" className={cn(errors.admin_first_name && 'border-destructive')} />
+                                {errors.admin_first_name && <p className="text-destructive text-xs">{errors.admin_first_name.message}</p>}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Last Name <span className="text-destructive">*</span></Label>
+                                <Input {...register('admin_last_name')} placeholder="Doe" className={cn(errors.admin_last_name && 'border-destructive')} />
+                                {errors.admin_last_name && <p className="text-destructive text-xs">{errors.admin_last_name.message}</p>}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Username <span className="text-destructive">*</span></Label>
+                                <Input {...register('admin_username')} placeholder="jdoe_admin" className={cn(errors.admin_username && 'border-destructive')} />
+                                {errors.admin_username && <p className="text-destructive text-xs">{errors.admin_username.message}</p>}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Admin Email <span className="text-destructive">*</span></Label>
+                                <Input {...register('admin_email')} placeholder="j.doe@example.com" className={cn(errors.admin_email && 'border-destructive')} />
+                                {errors.admin_email && <p className="text-destructive text-xs">{errors.admin_email.message}</p>}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Admin Phone <span className="text-destructive">*</span></Label>
+                                <Input {...register('admin_phone_number')} placeholder="+233..." className={cn(errors.admin_phone_number && 'border-destructive')} />
+                                {errors.admin_phone_number && <p className="text-destructive text-xs">{errors.admin_phone_number.message}</p>}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Initial Password <span className="text-destructive">*</span></Label>
+                                <Input type="password" {...register('admin_password')} placeholder="••••••••" className={cn(errors.admin_password && 'border-destructive')} />
+                                {errors.admin_password && <p className="text-destructive text-xs">{errors.admin_password.message}</p>}
+                            </div>
+                        </div>
+                    </CardContent>
                 </Card>
 
-                <div className="mt-8 flex justify-end gap-x-4">
-                    <button className='border border-primary px-4 py-2 rounded-md hover:bg-primary/50' onClick={() => router.push('/organizations')}>
+                <div className="flex justify-end gap-3">
+                    <Button type="button" variant="outline" onClick={() => router.push('/organizations')}>
                         Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md"
-                    >
-                        {loading && <Loader2 className="size-4 animate-spin" />}
-                        Onboard Organization
-                    </button>
+                    </Button>
+                    <Button type="submit" disabled={loading}>
+                        {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Send className="mr-2 size-4" />}
+                        {loading ? 'Onboarding…' : 'Onboard Organization'}
+                    </Button>
                 </div>
-            </Form>
+            </form>
         </div>
-    )
+    );
 }

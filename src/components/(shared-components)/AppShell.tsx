@@ -86,7 +86,7 @@ interface NavItem {
 const NAV_GROUPS: NavGroup[] = [
     {
         label: "Overview",
-        roles: ["superadmin", "admin", "manager", "attendant"],
+        roles: ["superadmin", "admin"],
         items: [
             {
                 name: "Dashboard",
@@ -142,8 +142,8 @@ const NAV_GROUPS: NavGroup[] = [
                 icon: UsersRound,
                 roles: ["admin", "manager", "attendant"],
                 subItems: [
-                    { name: "Customer List", href: "/customers", icon: UsersRound, roles: ["superadmin", "admin", "manager", "attendant"] },
-                    { name: "Add Customer", href: "/customers/create", icon: UserPlus, roles: ["superadmin", "admin", "manager"] },
+                    { name: "Customer List", href: "/customers", icon: UsersRound, roles: ["admin", "manager", "attendant"] },
+                    { name: "Add Customer", href: "/customers/create", icon: UserPlus, roles: ["admin", "manager", "attendant"] },
                 ],
             },
         ],
@@ -263,7 +263,6 @@ function NavItemRow({
                 <CollapsibleTrigger asChild>
                     <SidebarMenuButton
                         isActive={isAnySubActive}
-                        tooltip={item.name}
                     >
                         <Icon />
                         <span>{item.name}</span>
@@ -324,7 +323,7 @@ export default function AppShell({
                     </Link>
                 </SidebarHeader>
 
-                <SidebarContent className="overflow-hidden">
+                <SidebarContent>
                     {groups.map((group) => (
                         <SidebarGroup key={group.label}>
                             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>

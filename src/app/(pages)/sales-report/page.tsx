@@ -1,31 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-    Search,
-    Calendar,
-    ShoppingBag,
-    CircleDollarSign,
-    ChevronLeft,
-    ChevronRight,
-    RefreshCcw,
-    Filter,
-    BarChart3,
-    Package,
-    CreditCard,
-    Settings2
+    Search, ShoppingBag, CircleDollarSign,
+    ChevronLeft, ChevronRight, RefreshCcw, Filter,
+    BarChart3, Package, CreditCard, Settings2,
 } from 'lucide-react';
-import { DatePicker, Table, Card, Button, Input, Tag as AntTag } from 'antd';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
 import { GetSoldItemsReport } from '@/(api-handlers)/orders_walkinsHandler';
 import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
 import { useAuthStore } from '@/(zustand-store)/authStore';
@@ -33,50 +14,56 @@ import { SoldItem } from '@/interfaces/orders_walkins';
 import { OrganizationShopResponse } from '@/interfaces/organizationShops';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import PageHeader from '@/components/(shared-components)/PageHeader';
+import Pagination from '@/components/(shared-components)/Pagination';
+import { StatCard } from '@/components/(shared-components)/StatCard';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+    Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
-import { format } from 'date-fns';
+import { format, addDays, subDays, parseISO } from 'date-fns';
+import { DatePicker } from 'antd';
+import dayjs from 'dayjs';
 
+const PAGE_SIZE = 20;
+
+function todayStr() {
+    return new Date().toISOString().split('T')[0];
+}
 
 export default function SalesReportPage() {
-    const [loading, setLoading] = useState(false);
-    const [data, setData] = useState<SoldItem[]>([]);
-    const [totalCount, setTotalCount] = useState(0);
-    const [totalRevenue, setTotalRevenue] = useState(0);
-    const [selectedDate, setSelectedDate] = useState(dayjs());
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState<string>('all');
-    const [sortBy, setSortBy] = useState<string>('date_desc');
-    
-    // Shop filtering
-    const { user } = useAuthStore();
-    const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
-    const [selectedShopId, setSelectedShopId] = useState<string>('all');
-    const role = (user?.role || "attendant").toLowerCase();
-    const isAdmin = role === 'admin' || role === 'superadmin';
+    const [loading, setLoading]               = useState(false);
+    const [data, setData]                     = useState<SoldItem[]>([]);
+    const [totalCount, setTotalCount]         = useState(0);
+    const [totalRevenue, setTotalRevenue]     = useState(0);
+    const [selectedDate, setSelectedDate]     = useState(todayStr());
+    const [page, setPage]                     = useState(1);
+    const [searchTerm, setSearchTerm]         = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('all');
+    const [sortBy, setSortBy]                 = useState('date_desc');
 
-    const fetchShops = useCallback(async () => {
-        if (!isAdmin) return;
-        try {
-            const data = await getOrganizationShops();
-            setShops(data);
-        } catch (error) {
-            console.error('Failed to fetch shops:', error);
-        }
-    }, [isAdmin]);
+    const { user } = useAuthStore();
+    const [shops, setShops]                   = useState<OrganizationShopResponse[]>([]);
+    const [selectedShopId, setSelectedShopId] = useState('all');
+    const isAdmin = ['admin', 'superadmin'].includes((user?.role ?? '').toLowerCase());
 
     useEffect(() => {
-        fetchShops();
-    }, [fetchShops]);
+        if (!isAdmin) return;
+        getOrganizationShops().then(setShops).catch(console.error);
+    }, [isAdmin]);
 
     const fetchReport = useCallback(async () => {
         setLoading(true);
         try {
-            const dateStr = selectedDate.format('YYYY-MM-DD');
-            const shopIdParams = selectedShopId === 'all' ? undefined : Number(selectedShopId);
-            const response = await GetSoldItemsReport(dateStr, currentPage, pageSize, shopIdParams);
+            const shopId = selectedShopId === 'all' ? undefined : Number(selectedShopId);
+            const response = await GetSoldItemsReport(selectedDate, page, PAGE_SIZE, shopId);
             setData(response.items);
             setTotalCount(response.total_count);
             setTotalRevenue(response.total_revenue);
@@ -85,21 +72,19 @@ export default function SalesReportPage() {
         } finally {
             setLoading(false);
         }
-    }, [selectedDate, currentPage, pageSize, selectedShopId]);
+    }, [selectedDate, page, selectedShopId]);
 
-    useEffect(() => {
-        fetchReport();
-    }, [fetchReport]);
+    useEffect(() => { fetchReport(); }, [fetchReport]);
 
-    const handleDateChange = (date: any) => {
-        if (date) {
-            setSelectedDate(date);
-            setCurrentPage(1);
-        }
+    const stepDate = (dir: 1 | -1) => {
+        const next = dir === 1
+            ? addDays(parseISO(selectedDate), 1)
+            : subDays(parseISO(selectedDate), 1);
+        setSelectedDate(next.toISOString().split('T')[0]);
+        setPage(1);
     };
 
-    // Get unique categories for filter
-    const categories = Array.from(new Set(data.map(item => item.category_name).filter((cat): cat is string => Boolean(cat))));
+    const categories = Array.from(new Set(data.map(i => i.category_name).filter(Boolean))) as string[];
 
     const filteredData = data
         .filter(item =>
@@ -112,362 +97,281 @@ export default function SalesReportPage() {
         )
         .sort((a, b) => {
             switch (sortBy) {
-                case 'date_desc':
-                    return new Date(b.sold_at).getTime() - new Date(a.sold_at).getTime();
-                case 'date_asc':
-                    return new Date(a.sold_at).getTime() - new Date(b.sold_at).getTime();
-                case 'amount_desc':
-                    return b.total_amount - a.total_amount;
-                case 'amount_asc':
-                    return a.total_amount - b.total_amount;
-                case 'qty_desc':
-                    return b.quantity - a.quantity;
-                default:
-                    return 0;
+                case 'date_asc':    return new Date(a.sold_at).getTime() - new Date(b.sold_at).getTime();
+                case 'amount_desc': return b.total_amount - a.total_amount;
+                case 'amount_asc':  return a.total_amount - b.total_amount;
+                case 'qty_desc':    return b.quantity - a.quantity;
+                default:            return new Date(b.sold_at).getTime() - new Date(a.sold_at).getTime();
             }
         });
 
-    const columns: ColumnsType<SoldItem> = [
-        {
-            title: 'PRODUCT',
-            key: 'product',
-            width: '25%',
-            render: (_, record) => (
-                <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg flex items-center justify-center shrink-0">
-                        <Package className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="font-semibold text-slate-800">{record.product_name}</span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] text-slate-400 font-mono">SKU: {record.product_sku}</span>
-                            <AntTag className="bg-slate-100 text-slate-600 border-0 text-[10px] px-2 py-0.5 rounded-full">
-                                {record.category_name || 'General'}
-                            </AntTag>
-                        </div>
-                    </div>
-                </div>
-            ),
-        },
-        {
-            title: 'ORDER',
-            key: 'order',
-            width: '15%',
-            render: (_, record) => (
-                <div className="flex flex-col">
-                    <span className="text-sm font-medium text-blue-600">#{record.order_number}</span>
-                    <span className="text-[10px] text-slate-400 mt-0.5">
-                        {format(new Date(record.sold_at), 'hh:mm a')}
-                    </span>
-                </div>
-            ),
-        },
-        {
-            title: 'QUANTITY',
-            dataIndex: 'quantity',
-            key: 'quantity',
-            width: '10%',
-            align: 'center',
-            render: (val) => (
-                <div className="flex items-center justify-center">
-                    <span className="px-3 py-1 bg-slate-100 rounded-full text-sm font-semibold text-slate-700">
-                        x{val}
-                    </span>
-                </div>
-            ),
-        },
-        {
-            title: 'UNIT PRICE',
-            dataIndex: 'unit_price',
-            key: 'unit_price',
-            width: '12%',
-            align: 'right',
-            render: (val) => (
-                <span className="text-sm text-slate-600 font-mono">
-                    ${val.toFixed(2)}
-                </span>
-            ),
-        },
-        {
-            title: 'TOTAL',
-            dataIndex: 'total_amount',
-            key: 'total_amount',
-            width: '15%',
-            align: 'right',
-            render: (val) => (
-                <span className="text-lg font-bold text-slate-900 font-mono">
-                    ${val.toFixed(2)}
-                </span>
-            ),
-        },
-        {
-            title: 'STATUS',
-            key: 'status',
-            width: '10%',
-            align: 'center',
-            render: () => (
-                <AntTag color="success" className="rounded-full px-3 py-0.5 text-xs">
-                    Completed
-                </AntTag>
-            ),
-        },
-    ];
-
-    const summaryCards = [
-        {
-            title: 'Total Revenue',
-            value: totalRevenue,
-            icon: CircleDollarSign,
-            color: 'from-blue-600 to-indigo-600',
-            bgColor: 'bg-blue-50',
-            textColor: 'text-blue-600',
-            prefix: '$',
-            delay: 0.1,
-            trend: '+12.5%',
-            trendUp: true,
-        },
-        {
-            title: 'Items Sold',
-            value: totalCount,
-            icon: ShoppingBag,
-            color: 'from-emerald-600 to-teal-600',
-            bgColor: 'bg-emerald-50',
-            textColor: 'text-emerald-600',
-            delay: 0.2,
-            trend: '+8.2%',
-            trendUp: true,
-        },
-        {
-            title: 'Average Ticket',
-            value: totalCount > 0 ? totalRevenue / totalCount : 0,
-            icon: BarChart3,
-            color: 'from-purple-600 to-pink-600',
-            bgColor: 'bg-purple-50',
-            textColor: 'text-purple-600',
-            prefix: '$',
-            delay: 0.3,
-            trend: '+5.3%',
-            trendUp: true,
-        },
-        {
-            title: 'Transactions',
-            value: data.length,
-            icon: CreditCard,
-            color: 'from-amber-600 to-orange-600',
-            bgColor: 'bg-amber-50',
-            textColor: 'text-amber-600',
-            delay: 0.4,
-            trend: '-2.1%',
-            trendUp: false,
-        },
-    ];
+    const avgTicket = totalCount > 0 ? totalRevenue / totalCount : 0;
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-            <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-8">
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                >
-                    <PageHeader
-                        title="Sales Analytics"
-                        description="Comprehensive analysis of your daily sales performance and metrics"
-                    >
-                        <div className="flex flex-wrap items-center gap-3">
-                            {/* Date Navigation */}
-                            <div className="flex items-center bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                <Button
-                                    type="text"
-                                    icon={<ChevronLeft className="w-4 h-4" />}
-                                    onClick={() => setSelectedDate(selectedDate.subtract(1, 'day'))}
-                                    className="h-10 w-10 rounded-none border-r border-slate-200"
-                                />
-                                <DatePicker
-                                    value={selectedDate}
-                                    onChange={handleDateChange}
-                                    allowClear={false}
-                                    format="MMMM D, YYYY"
-                                    className="w-40 border-0 shadow-none focus:ring-0"
-                                    suffixIcon={<Calendar className="w-4 h-4 text-slate-400" />}
-                                />
-                                <Button
-                                    type="text"
-                                    icon={<ChevronRight className="w-4 h-4" />}
-                                    onClick={() => setSelectedDate(selectedDate.add(1, 'day'))}
-                                    className="h-10 w-10 rounded-none border-l border-slate-200"
-                                />
-                            </div>
-
-                            {/* Refresh Button */}
+        <div className="flex flex-col gap-6">
+            <PageHeader
+                title="Sales Analytics"
+                description="Daily sales performance — transactions, revenue, and product breakdown."
+                actions={
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Date navigator */}
+                        <div className="border-border bg-card flex items-center overflow-hidden rounded-lg border">
                             <Button
-                                onClick={fetchReport}
-                                className="rounded-xl h-10 px-4 border-slate-200 hover:border-slate-300 bg-white"
+                                variant="ghost"
+                                size="icon"
+                                className="size-9 rounded-none border-r"
+                                onClick={() => stepDate(-1)}
                             >
-                                <RefreshCcw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
-                                Refresh
+                                <ChevronLeft className="size-4" />
+                            </Button>
+                            <DatePicker
+                                value={selectedDate ? dayjs(selectedDate) : null}
+                                onChange={(date) => { setSelectedDate(date ? date.format('YYYY-MM-DD') : todayStr()); setPage(1); }}
+                                format="DD MMM YYYY"
+                                className="h-9"
+                                allowClear={false}
+                            />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-9 rounded-none border-l"
+                                onClick={() => stepDate(1)}
+                            >
+                                <ChevronRight className="size-4" />
                             </Button>
                         </div>
-                    </PageHeader>
-                </motion.div>
 
-                {/* KPI Cards */}
-                <dl className="mx-auto grid grid-cols-1 gap-px bg-gray-200 mt-8 mb-8 overflow-hidden rounded-2xl border border-gray-200 sm:grid-cols-2 lg:grid-cols-4 shadow-sm">
-                    {summaryCards.map((card) => (
-                        <div
-                            key={card.title}
-                            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 bg-white px-4 py-8 sm:px-6 xl:px-8"
-                        >
-                            <dt className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                                <card.icon className={cn("size-5", card.textColor)} />
-                                {card.title}
-                            </dt>
-                            <dd
-                                className={cn(
-                                    'text-xs font-semibold',
-                                    card.trendUp ? 'text-emerald-600' : 'text-rose-600'
-                                )}
-                            >
-                                {card.trend}
-                            </dd>
-                            <dd className="w-full flex-none text-3xl font-bold tracking-tight text-gray-900 mt-2">
-                                {loading ? '...' : `${card.prefix || ''}${typeof card.value === 'number' ? card.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : card.value}`}
-                            </dd>
-                        </div>
-                    ))}
-                </dl>
+                        <Button variant="outline" size="icon" className="size-9" onClick={fetchReport} disabled={loading}>
+                            <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
+                        </Button>
+                    </div>
+                }
+            />
 
-                {/* Filters Bar */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="bg-white rounded-xl border border-slate-200 shadow-sm p-4"
-                >
-                    <div className="flex flex-wrap items-center gap-4">
-                        <div className="flex-1 min-w-[300px]">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <Input
-                                    placeholder="Search products, orders, or SKU..."
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                    className="pl-10 h-10 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg"
-                                />
-                            </div>
-                        </div>
+            {/* KPI cards */}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard
+                    label="Total Revenue"
+                    value={`GHS ${totalRevenue.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`}
+                    icon={CircleDollarSign}
+                    trend={{ direction: 'neutral', label: format(parseISO(selectedDate), 'MMM d') }}
+                    loading={loading}
+                />
+                <StatCard
+                    label="Items Sold"
+                    value={totalCount.toLocaleString()}
+                    icon={ShoppingBag}
+                    trend={{ direction: 'neutral', label: 'line items' }}
+                    loading={loading}
+                />
+                <StatCard
+                    label="Avg Ticket"
+                    value={`GHS ${avgTicket.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`}
+                    icon={BarChart3}
+                    trend={{ direction: 'neutral', label: 'per item' }}
+                    loading={loading}
+                />
+                <StatCard
+                    label="Transactions"
+                    value={data.length.toLocaleString()}
+                    icon={CreditCard}
+                    trend={{ direction: 'neutral', label: 'this page' }}
+                    loading={loading}
+                />
+            </div>
 
-                        <div className="flex items-center gap-3">
-                            <Select
-                                value={categoryFilter}
-                                onValueChange={setCategoryFilter}
-                            >
-                                <SelectTrigger className="w-44 h-10 bg-white shadow-sm border-slate-200">
+            {/* Date label */}
+            <div className="flex items-center gap-2">
+                <span className="text-foreground text-sm font-semibold">
+                    {format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy')}
+                </span>
+                {selectedDate === todayStr() && (
+                    <Badge variant="outline" className="border-success/30 bg-success/10 text-success rounded-full text-[10px]">
+                        Today
+                    </Badge>
+                )}
+            </div>
+
+            <Card className="gap-0 overflow-hidden p-0">
+                {/* Toolbar */}
+                <div className="border-border bg-muted/30 flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:px-6">
+                    <div className="relative flex-1 min-w-[200px]">
+                        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                        <Input
+                            placeholder="Search product, order #, SKU…"
+                            className="h-9 pl-9"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                            <SelectTrigger className="h-9 w-[160px]">
+                                <div className="flex items-center gap-2">
+                                    <Filter className="text-muted-foreground size-3.5" />
+                                    <SelectValue placeholder="All categories" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All categories</SelectItem>
+                                {categories.map(cat => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={sortBy} onValueChange={setSortBy}>
+                            <SelectTrigger className="h-9 w-[160px]">
+                                <div className="flex items-center gap-2">
+                                    <Settings2 className="text-muted-foreground size-3.5" />
+                                    <SelectValue placeholder="Sort by" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="date_desc">Latest first</SelectItem>
+                                <SelectItem value="date_asc">Oldest first</SelectItem>
+                                <SelectItem value="amount_desc">Highest amount</SelectItem>
+                                <SelectItem value="amount_asc">Lowest amount</SelectItem>
+                                <SelectItem value="qty_desc">Most quantity</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {isAdmin && (
+                            <Select value={selectedShopId} onValueChange={v => { setSelectedShopId(v); setPage(1); }}>
+                                <SelectTrigger className="h-9 w-[160px]">
                                     <div className="flex items-center gap-2">
-                                        <Filter className="w-4 h-4 text-slate-400" />
-                                        <SelectValue placeholder="All Categories" />
+                                        <ShoppingBag className="text-muted-foreground size-3.5" />
+                                        <SelectValue placeholder="All shops" />
                                     </div>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
-                                    {categories.map(cat => (
-                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    <SelectItem value="all">All shops</SelectItem>
+                                    {shops.map(s => (
+                                        <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-
-                            <Select
-                                value={sortBy}
-                                onValueChange={setSortBy}
-                            >
-                                <SelectTrigger className="w-44 h-10 bg-white shadow-sm border-slate-200">
-                                    <div className="flex items-center gap-2">
-                                        <Settings2 className="w-4 h-4 text-slate-400" />
-                                        <SelectValue placeholder="Sort by" />
-                                    </div>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="date_desc">Latest First</SelectItem>
-                                    <SelectItem value="date_asc">Oldest First</SelectItem>
-                                    <SelectItem value="amount_desc">Highest Amount</SelectItem>
-                                    <SelectItem value="amount_asc">Lowest Amount</SelectItem>
-                                    <SelectItem value="qty_desc">Most Quantity</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {isAdmin && (
-                            <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
-                                <Select
-                                    value={selectedShopId}
-                                    onValueChange={setSelectedShopId}
-                                >
-                                    <SelectTrigger className="w-56 h-10 bg-white shadow-sm border-slate-200 focus:ring-blue-500/20">
-                                        <div className="flex items-center gap-2">
-                                            <ShoppingBag className="w-4 h-4 text-blue-500/70" />
-                                            <SelectValue placeholder="All Shops" />
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Shops (Organization)</SelectItem>
-                                        {shops.map(shop => (
-                                            <SelectItem key={shop.id} value={shop.id.toString()}>
-                                                {shop.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
                         )}
                     </div>
-                </motion.div>
+                </div>
 
-                {/* Main Table */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                >
-                    <Card className="border-0 shadow-xl overflow-hidden rounded-2xl">
-                        <div className="p-6 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-100 rounded-lg">
-                                        <BarChart3 className="w-5 h-5 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-slate-800">Sales Transactions</h3>
-                                        <p className="text-xs text-slate-400 mt-0.5">
-                                            Showing {filteredData.length} of {totalCount} items
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="pl-6">Product</TableHead>
+                                <TableHead>Order</TableHead>
+                                <TableHead className="text-center">Qty</TableHead>
+                                <TableHead className="text-right">Unit price</TableHead>
+                                <TableHead className="text-right">Total</TableHead>
+                                <TableHead>Time</TableHead>
+                                <TableHead className="pr-6">Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                Array.from({ length: 8 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        {Array.from({ length: 7 }).map((_, j) => (
+                                            <TableCell key={j}><Skeleton className="h-5 w-full rounded" /></TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : filteredData.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="py-20 text-center">
+                                        <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
+                                            <BarChart3 className="text-muted-foreground size-7" />
+                                        </div>
+                                        <p className="text-foreground font-semibold">No sales data</p>
+                                        <p className="text-muted-foreground mt-1 text-sm">
+                                            No items were sold on {format(parseISO(selectedDate), 'MMMM d, yyyy')}.
                                         </p>
-                                    </div>
-                                </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : filteredData.map((item, idx) => (
+                                <TableRow key={`${item.order_number}-${idx}`}>
+                                    <TableCell className="pl-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
+                                                <Package className="size-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-foreground font-semibold">{item.product_name}</p>
+                                                <div className="mt-0.5 flex items-center gap-2">
+                                                    <span className="text-muted-foreground font-mono text-[10px]">{item.product_sku}</span>
+                                                    {item.category_name && (
+                                                        <Badge variant="secondary" className="rounded-full text-[10px]">
+                                                            {item.category_name}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </TableCell>
 
+                                    <TableCell>
+                                        <p className="text-primary text-sm font-bold">#{item.order_number}</p>
+                                    </TableCell>
 
-                            </div>
+                                    <TableCell className="text-center">
+                                        <Badge variant="secondary" className="rounded-full font-semibold">
+                                            ×{item.quantity}
+                                        </Badge>
+                                    </TableCell>
+
+                                    <TableCell className="text-right">
+                                        <span className="text-muted-foreground num-tabular text-sm">
+                                            GHS {item.unit_price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </TableCell>
+
+                                    <TableCell className="text-right">
+                                        <span className="text-foreground num-tabular font-bold">
+                                            GHS {item.total_amount.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <span className="text-muted-foreground text-xs">
+                                            {format(new Date(item.sold_at), 'h:mm a')}
+                                        </span>
+                                    </TableCell>
+
+                                    <TableCell className="pr-6">
+                                        <Badge
+                                            variant="outline"
+                                            className="border-success/30 bg-success/10 text-success rounded-full text-xs"
+                                        >
+                                            Completed
+                                        </Badge>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {/* Footer */}
+                {!loading && filteredData.length > 0 && (
+                    <div className="border-border bg-muted/30 flex items-center justify-between border-t px-6 py-3 text-xs">
+                        <span className="text-muted-foreground">
+                            {filteredData.length} item{filteredData.length !== 1 ? 's' : ''} shown · GHS {filteredData.reduce((s, i) => s + i.total_amount, 0).toLocaleString('en-GH', { minimumFractionDigits: 2 })} total
+                        </span>
+                        <div className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-widest">
+                            <span className="bg-success size-1.5 animate-pulse rounded-full" />
+                            Live data
                         </div>
-                        <Table
-                            columns={columns}
-                            dataSource={filteredData}
-                            rowKey="id"
-                            loading={loading}
-                            pagination={{
-                                current: currentPage,
-                                pageSize: pageSize,
-                                total: totalCount,
-                                onChange: (page, size) => {
-                                    setCurrentPage(page);
-                                    setPageSize(size);
-                                },
-                                showSizeChanger: true,
-                                showTotal: (total) => `Total ${total} items`,
-                                className: "px-6 py-4",
-                            }}
-                            className="custom-table"
-                        />
-                    </Card>
-                </motion.div>
-            </div>
+                    </div>
+                )}
+            </Card>
+
+            {totalPages > 1 && (
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} isLoading={loading} total={totalCount} />
+            )}
         </div>
     );
 }
