@@ -132,7 +132,7 @@ export default function ProductCategoryPage() {
                 description="Manage your product categories and their visibility."
                 actions={
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="size-9" onClick={fetchCategories} disabled={loading}>
+                        <Button variant="outline" size="icon" className="size-9" onClick={fetchCategories} disabled={loading} aria-label="Refresh categories">
                             <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
                         </Button>
                         <Button onClick={() => openDialog()}>
@@ -209,7 +209,7 @@ export default function ProductCategoryPage() {
                                     <TableCell className="pr-6 text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="size-8">
+                                                <Button variant="ghost" size="icon" className="size-8" aria-label="Category actions">
                                                     <MoreHorizontal className="size-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>

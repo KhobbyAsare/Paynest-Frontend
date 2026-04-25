@@ -37,6 +37,15 @@ function NotifIcon({ type }: { type: string }) {
     );
 }
 
+const TYPES = [
+    { key: 'all',           label: 'All' },
+    { key: 'new_order',     label: 'New Order' },
+    { key: 'low_stock',     label: 'Low Stock' },
+    { key: 'report_ready',  label: 'Report' },
+    { key: 'daily_closure', label: 'Daily Closure' },
+    { key: 'system_alert',  label: 'System' },
+];
+
 export default function NotificationsPage() {
     const router = useRouter();
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -45,6 +54,7 @@ export default function NotificationsPage() {
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [markingAll, setMarkingAll] = useState(false);
+    const [typeFilter, setTypeFilter] = useState('all');
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -93,6 +103,10 @@ export default function NotificationsPage() {
     const fmtDate = (iso: string) =>
         new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
+    const visibleNotifications = typeFilter === 'all'
+        ? notifications
+        : notifications.filter(n => n.type === typeFilter);
+
     return (
         <div className="flex flex-col gap-6">
             <PageHeader
@@ -103,8 +117,8 @@ export default function NotificationsPage() {
             />
 
             {/* Toolbar */}
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                     {unreadCount > 0 && (
                         <Badge className="border-destructive/30 bg-destructive/10 text-destructive font-semibold">
                             {unreadCount} unread
@@ -113,7 +127,7 @@ export default function NotificationsPage() {
                     <span className="text-sm text-muted-foreground">{total} total</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => fetchPage(page)} disabled={loading} className="gap-1.5">
+                    <Button variant="outline" size="sm" onClick={() => fetchPage(page)} disabled={loading} className="gap-1.5" aria-label="Refresh notifications">
                         <RefreshCcw className={cn("size-3.5", loading && "animate-spin")} /> Refresh
                     </Button>
                     {unreadCount > 0 && (
@@ -122,6 +136,29 @@ export default function NotificationsPage() {
                         </Button>
                     )}
                 </div>
+            </div>
+
+            {/* Type filter pills */}
+            <div className="flex items-center gap-2 flex-wrap">
+                {TYPES.map(t => {
+                    const cfg = TYPE_CONFIG[t.key];
+                    const isActive = typeFilter === t.key;
+                    return (
+                        <button
+                            key={t.key}
+                            onClick={() => setTypeFilter(t.key)}
+                            className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                                isActive
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                            )}
+                        >
+                            {cfg && (() => { const Icon = cfg.icon; return <Icon className="size-3" />; })()}
+                            {t.label}
+                        </button>
+                    );
+                })}
             </div>
 
             {/* List */}
@@ -139,21 +176,25 @@ export default function NotificationsPage() {
                             </div>
                         ))}
                     </div>
-                ) : notifications.length === 0 ? (
+                ) : visibleNotifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-4">
                         <div className="size-20 bg-muted rounded-full flex items-center justify-center">
                             <Bell className="size-9 text-muted-foreground" />
                         </div>
                         <div className="text-center">
-                            <p className="font-semibold text-foreground">No notifications yet</p>
+                            <p className="font-semibold text-foreground">
+                                {typeFilter === 'all' ? 'No notifications yet' : 'No notifications of this type'}
+                            </p>
                             <p className="text-sm text-muted-foreground mt-1">
-                                You&apos;ll see order confirmations, stock alerts, and report updates here.
+                                {typeFilter === 'all'
+                                    ? "You'll see order confirmations, stock alerts, and report updates here."
+                                    : 'Try selecting a different filter above.'}
                             </p>
                         </div>
                     </div>
                 ) : (
                     <ul className="divide-y">
-                        {notifications.map(notif => {
+                        {visibleNotifications.map(notif => {
                             const cfg = TYPE_CONFIG[notif.type] ?? FALLBACK;
                             const isClickable = (notif.entity_type === "order" || notif.entity_type === "report") && notif.entity_id != null;
                             return (

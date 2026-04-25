@@ -182,7 +182,7 @@ export default function InventoryPage() {
                             </Select>
                         )}
 
-                        <Button variant="outline" size="icon" className="size-9" onClick={fetchData} title="Refresh">
+                        <Button variant="outline" size="icon" className="size-9" onClick={fetchData} aria-label="Refresh inventory">
                             <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
                         </Button>
                     </div>

@@ -361,3 +361,18 @@ Design rules applied across all redesigned pages:
 
 ### Remaining
 - None — Phase 4 redesign complete. All pages use shadcn/ui + semantic tokens + antd DatePicker for date inputs.
+
+---
+
+## Phase 5 — UX Polish (complete)
+
+- **Notifications type filter**: Filter pills (All / New Order / Low Stock / Report / Daily Closure / System) — client-side filter on loaded notifications
+- **Barcode scanner keyboard shortcut**: `Ctrl+B` / `⌘+B` toggles the scanner modal in the POS sales page
+- **Aria-labels**: All icon-only buttons across orders, customers, payments, products, product_categories, organizations, order-items, inventory, stock-movements pages now have `aria-label`
+- **Loading.tsx**: `text-gray-500` → `text-muted-foreground`, `bg-white/80` → `bg-background/80`
+
+## Phase 6 — Feature Enhancements (complete)
+
+- **CSV export utility**: `src/lib/exportCsv.ts` — `downloadCsv(filename, rows[])` helper (BOM-prefixed UTF-8, RFC 4180 escaping)
+- **Export wired**: Customers, Orders, Payments pages all have a working Export button that downloads the current filtered view as CSV
+- **Dashboard custom date range**: AdminView now has a "Custom…" button alongside 7D/30D/90D that reveals an antd `DatePicker.RangePicker`; fetching re-runs whenever the custom range changes

@@ -122,6 +122,18 @@ export default function SalesPage() {
         return () => window.removeEventListener("keydown", handler);
     }, [isCartOpen]);
 
+    // Ctrl+B / ⌘+B — toggle barcode scanner
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+                e.preventDefault();
+                setIsScannerOpen((prev) => !prev);
+            }
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, []);
+
     const filteredProducts = useMemo(() => {
         return products.filter((product) => {
             const matchesCategory =

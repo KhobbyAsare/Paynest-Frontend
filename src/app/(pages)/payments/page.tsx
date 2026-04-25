@@ -6,8 +6,9 @@ import { useForm, useWatch, Controller } from 'react-hook-form';
 import {
     Plus, MoreHorizontal, Pencil, Trash2, Search, RefreshCcw,
     Banknote, FilterX, CreditCard, Smartphone, Building2,
-    CheckCircle2, Receipt, ShoppingBag, AlertTriangle,
+    CheckCircle2, Receipt, ShoppingBag, AlertTriangle, Download,
 } from 'lucide-react';
+import { downloadCsv } from '@/lib/exportCsv';
 import {
     GetAllPayments, GetPaymentsByOrderId, CreatePayment, UpdatePayment, DeletePayment,
 } from '@/(api-handlers)/paymentsHandler';
@@ -262,6 +263,19 @@ export default function PaymentsPage() {
         return ms && mf;
     });
 
+    const handleExport = () => {
+        downloadCsv(`payments-${new Date().toISOString().split('T')[0]}.csv`, filtered.map(p => ({
+            'Reference':      p.payment_number ?? '',
+            'Order ID':       p.order_id ?? '',
+            'Method':         p.payment_method ?? '',
+            'Amount (GHS)':   p.amount ?? 0,
+            'Currency':       p.currency ?? 'GHS',
+            'Status':         p.status ?? '',
+            'Transaction ID': p.transaction_id ?? '',
+            'Created At':     p.created_at ?? '',
+        })));
+    };
+
     return (
         <div className="flex flex-col gap-6">
             <PageHeader
@@ -269,8 +283,11 @@ export default function PaymentsPage() {
                 description="Track and manage all financial transactions across your organisation."
                 actions={
                     <div className="flex gap-2">
-                        <Button variant="outline" size="icon" onClick={fetchPayments} disabled={loading}>
+                        <Button variant="outline" size="icon" onClick={fetchPayments} disabled={loading} aria-label="Refresh payments">
                             <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
+                        </Button>
+                        <Button variant="outline" onClick={handleExport} disabled={loading || filtered.length === 0}>
+                            <Download data-icon="inline-start" /> Export
                         </Button>
                         <Button onClick={() => openModal()}>
                             <Plus data-icon="inline-start" /> New Payment
@@ -433,7 +450,7 @@ export default function PaymentsPage() {
                                     <TableCell className="pr-6 text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="size-8">
+                                                <Button variant="ghost" size="icon" className="size-8" aria-label="Payment actions">
                                                     <MoreHorizontal className="size-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>

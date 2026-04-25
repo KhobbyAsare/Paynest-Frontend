@@ -144,7 +144,7 @@ export default function StockMovementsPage() {
                             </SelectContent>
                         </Select>
 
-                        <Button variant="outline" size="icon" className="size-9" onClick={() => fetchData(page)} title="Refresh">
+                        <Button variant="outline" size="icon" className="size-9" onClick={() => fetchData(page)} aria-label="Refresh stock movements">
                             <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
                         </Button>
                     </div>

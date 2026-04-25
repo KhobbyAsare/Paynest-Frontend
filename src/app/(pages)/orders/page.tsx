@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import {
     Search, RefreshCcw, Eye, CheckCircle2,
     Calendar, User, CreditCard, ShoppingBag,
-    Filter, CheckCircle, Clock, Truck, Package, XCircle, MoreVertical,
+    Filter, CheckCircle, Clock, Truck, Package, XCircle, MoreVertical, Download,
 } from 'lucide-react';
+import { downloadCsv } from '@/lib/exportCsv';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import Pagination from '@/components/(shared-components)/Pagination';
@@ -108,6 +109,20 @@ export default function OrdersPage() {
     const newCount       = orders.filter(o => o.order_status === 'initiated').length;
     const preparingCount = orders.filter(o => o.order_status === 'preparing').length;
 
+    const handleExport = () => {
+        downloadCsv(`orders-${new Date().toISOString().split('T')[0]}.csv`, filtered.map(o => ({
+            'Order #':        o.order_number,
+            'ID':             o.id,
+            'Type':           o.order_type,
+            'Customer':       o.customer ? `${o.customer.first_name} ${o.customer.last_name}` : 'Walk-in',
+            'Date':           o.created_at,
+            'Amount (GHS)':   o.total_amount ?? o.amount_paid ?? 0,
+            'Fulfillment':    o.order_status,
+            'Payment Status': o.payment_status ?? '',
+            'Payment Method': o.payment_method ?? '',
+        })));
+    };
+
     return (
         <div className="flex flex-col gap-6">
             <PageHeader
@@ -115,8 +130,11 @@ export default function OrdersPage() {
                 description="Manage customer orders, track fulfillment status, and process walk-in sales."
                 actions={
                     <div className="flex gap-2">
-                        <Button variant="outline" size="icon" onClick={() => fetchOrders(page)} disabled={loading}>
+                        <Button variant="outline" size="icon" onClick={() => fetchOrders(page)} disabled={loading} aria-label="Refresh orders">
                             <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
+                        </Button>
+                        <Button variant="outline" onClick={handleExport} disabled={loading || filtered.length === 0}>
+                            <Download data-icon="inline-start" /> Export
                         </Button>
                         <Button onClick={() => router.push('/sales')}>
                             <ShoppingBag data-icon="inline-start" />
@@ -296,7 +314,7 @@ export default function OrdersPage() {
                                         <TableCell className="pr-6 text-right" onClick={e => e.stopPropagation()}>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="size-8">
+                                                    <Button variant="ghost" size="icon" className="size-8" aria-label="Order actions">
                                                         <MoreVertical className="size-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>

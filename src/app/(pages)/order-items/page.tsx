@@ -221,7 +221,7 @@ export default function OrderItemsPage() {
                 description="Manage individual items across all orders."
                 actions={
                     <div className="flex gap-2">
-                        <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
+                        <Button variant="outline" size="icon" onClick={fetchData} disabled={loading} aria-label="Refresh order items">
                             <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
                         </Button>
                         <Button onClick={() => openModal()}>
@@ -396,7 +396,7 @@ export default function OrderItemsPage() {
                                     <TableCell className="pr-6 text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="size-8">
+                                                <Button variant="ghost" size="icon" className="size-8" aria-label="Item actions">
                                                     <MoreHorizontal className="size-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>

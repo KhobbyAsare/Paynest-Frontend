@@ -119,7 +119,7 @@ export default function OrganizationsPage() {
                 description="Manage and monitor all platform organizations in one place."
                 actions={
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="size-9" onClick={fetchOrganizations} disabled={loading}>
+                        <Button variant="outline" size="icon" className="size-9" onClick={fetchOrganizations} disabled={loading} aria-label="Refresh organizations">
                             <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
                         </Button>
                         <Button onClick={() => router.push('/organizations/create')}>
@@ -212,7 +212,7 @@ export default function OrganizationsPage() {
                                     <TableCell className="pr-6 text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="size-8">
+                                                <Button variant="ghost" size="icon" className="size-8" aria-label="Organization actions">
                                                     <MoreHorizontal className="size-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>

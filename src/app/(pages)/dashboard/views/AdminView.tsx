@@ -22,6 +22,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { StatCard } from '@/components/(shared-components)/StatCard';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import { cn } from '@/lib/utils';
+import { DatePicker } from 'antd';
+import dayjs, { type Dayjs } from 'dayjs';
 
 // Dynamically import recharts to avoid SSR issues
 const AreaChart = dynamic(() => import('recharts').then(m => m.AreaChart), { ssr: false });
@@ -117,16 +119,26 @@ export const AdminView = () => {
     const [invStats, setInvStats] = useState<InventoryStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [range, setRange] = useState(30);
+    const [customDates, setCustomDates] = useState<[Dayjs, Dayjs] | null>(null);
 
-    const load = useCallback(async (days: number) => {
+    const load = useCallback(async (days: number, custom?: [Dayjs, Dayjs]) => {
         setLoading(true);
         try {
-            const end = new Date();
-            const start = new Date();
-            start.setDate(end.getDate() - days);
             const fmt = (d: Date) => d.toISOString().split('T')[0];
+            let startStr: string;
+            let endStr: string;
+            if (custom) {
+                startStr = custom[0].format('YYYY-MM-DD');
+                endStr   = custom[1].format('YYYY-MM-DD');
+            } else {
+                const end = new Date();
+                const start = new Date();
+                start.setDate(end.getDate() - days);
+                startStr = fmt(start);
+                endStr   = fmt(end);
+            }
             const [fin, inv] = await Promise.all([
-                GetFinanceOverview(undefined, fmt(start), fmt(end)),
+                GetFinanceOverview(undefined, startStr, endStr),
                 GetInventoryStatistics(),
             ]);
             setFinance(fin);
@@ -138,7 +150,10 @@ export const AdminView = () => {
         }
     }, []);
 
-    useEffect(() => { load(range); }, [load, range]);
+    useEffect(() => {
+        if (customDates) load(0, customDates);
+        else load(range);
+    }, [load, range, customDates]);
 
     const s = finance?.summary;
     const avgOrderValue = s && s.total_orders > 0 ? s.total_revenue / s.total_orders : 0;
@@ -180,11 +195,15 @@ export const AdminView = () => {
                 description="Organization-wide performance overview"
                 separator={false}
                 actions={
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <ToggleGroup
                             type="single"
-                            value={String(range)}
-                            onValueChange={v => v && setRange(Number(v))}
+                            value={customDates ? 'custom' : String(range)}
+                            onValueChange={v => {
+                                if (!v || v === 'custom') return;
+                                setCustomDates(null);
+                                setRange(Number(v));
+                            }}
                             variant="outline"
                             size="sm"
                         >
@@ -193,13 +212,45 @@ export const AdminView = () => {
                                     {r.label}
                                 </ToggleGroupItem>
                             ))}
+                            <ToggleGroupItem value="custom" className={cn(customDates && 'bg-primary text-primary-foreground hover:bg-primary/90')}>
+                                Custom
+                            </ToggleGroupItem>
                         </ToggleGroup>
+                        {customDates !== null && (
+                            <DatePicker.RangePicker
+                                value={customDates}
+                                onChange={(dates) => {
+                                    if (dates?.[0] && dates?.[1]) {
+                                        setCustomDates([dates[0], dates[1]]);
+                                    } else {
+                                        setCustomDates(null);
+                                    }
+                                }}
+                                format="DD MMM YYYY"
+                                size="small"
+                                allowClear={false}
+                            />
+                        )}
+                        {customDates === null && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground h-8 px-2 text-xs"
+                                onClick={() => {
+                                    const end = dayjs();
+                                    const start = dayjs().subtract(range, 'day');
+                                    setCustomDates([start, end]);
+                                }}
+                            >
+                                Custom…
+                            </Button>
+                        )}
                         <Button
                             variant="outline"
                             size="icon"
                             className="size-9"
-                            onClick={() => load(range)}
-                            title="Refresh"
+                            onClick={() => customDates ? load(0, customDates) : load(range)}
+                            aria-label="Refresh dashboard"
                         >
                             <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
                         </Button>

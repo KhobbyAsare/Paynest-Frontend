@@ -33,6 +33,7 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { downloadCsv } from '@/lib/exportCsv';
 
 function tierStyle(tier: string) {
     switch (tier?.toLowerCase()) {
@@ -112,6 +113,23 @@ export default function CustomerListPage() {
         c.customer_code.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleExport = () => {
+        downloadCsv(`customers-${new Date().toISOString().split('T')[0]}.csv`, filtered.map(c => ({
+            'ID':               c.id,
+            'Code':             c.customer_code,
+            'First Name':       c.first_name,
+            'Last Name':        c.last_name,
+            'Email':            c.email,
+            'Phone':            c.phone,
+            'City':             c.city ?? '',
+            'Country':          c.country ?? '',
+            'Status':           c.is_active ? 'Active' : 'Inactive',
+            'Loyalty Tier':     c.loyalty_tier ?? '',
+            'Loyalty Points':   c.loyalty_points ?? 0,
+            'Payment Method':   c.preferred_payment_method ?? '',
+        })));
+    };
+
     return (
         <div className="flex flex-col gap-6">
             <PageHeader
@@ -119,7 +137,7 @@ export default function CustomerListPage() {
                 description="Manage your client base, loyalty programs, and contact information."
                 actions={
                     <div className="flex gap-2">
-                        <Button variant="outline">
+                        <Button variant="outline" onClick={handleExport} disabled={loading || filtered.length === 0}>
                             <Download data-icon="inline-start" /> Export
                         </Button>
                         <Button onClick={() => router.push('/customers/create')}>
@@ -158,7 +176,7 @@ export default function CustomerListPage() {
                                 </SelectContent>
                             </Select>
                         )}
-                        <Button variant="outline" size="icon" className="size-9" onClick={fetchCustomers} title="Refresh">
+                        <Button variant="outline" size="icon" className="size-9" onClick={fetchCustomers} aria-label="Refresh customers">
                             <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
                         </Button>
                     </div>
@@ -251,7 +269,7 @@ export default function CustomerListPage() {
                                     <TableCell className="pr-6 text-right">
                                         <div className="flex items-center justify-end gap-1">
                                             <Link href={`/customers/edit/${c.id}`}>
-                                                <Button variant="ghost" size="icon" className="size-8">
+                                                <Button variant="ghost" size="icon" className="size-8" aria-label={`Edit ${c.first_name} ${c.last_name}`}>
                                                     <Edit className="size-4" />
                                                 </Button>
                                             </Link>
@@ -260,6 +278,7 @@ export default function CustomerListPage() {
                                                 size="icon"
                                                 className="text-destructive hover:text-destructive size-8"
                                                 onClick={() => setDeleteTarget({ id: c.id, name: `${c.first_name} ${c.last_name}` })}
+                                                aria-label={`Delete ${c.first_name} ${c.last_name}`}
                                             >
                                                 <Trash2 className="size-4" />
                                             </Button>

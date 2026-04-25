@@ -215,7 +215,7 @@ export default function ProductsPage() {
                 description="Manage your catalogue, prices, and stock visibility."
                 actions={
                     <div className="flex gap-2">
-                        <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
+                        <Button variant="outline" size="icon" onClick={fetchData} disabled={loading} aria-label="Refresh products">
                             <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
                         </Button>
                         <Button onClick={() => openModal()}>
@@ -332,7 +332,7 @@ export default function ProductsPage() {
                                         </div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="size-6 rounded-lg">
+                                                <Button variant="ghost" size="icon" className="size-6 rounded-lg" aria-label="Product actions">
                                                     <MoreHorizontal className="size-3.5" />
                                                 </Button>
                                             </DropdownMenuTrigger>
