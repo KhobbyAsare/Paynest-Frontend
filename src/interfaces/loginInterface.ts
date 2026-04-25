@@ -15,6 +15,7 @@ export interface UserResponse {
     profile_pic: string,
     is_active: boolean,
     email_verified: boolean,
+    is_employee_profile: boolean,
     last_login: string,
     created_at: string,
     updated_at: string
