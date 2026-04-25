@@ -2,18 +2,30 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Wallet, ArrowLeft, Mail } from "lucide-react";
+import { Wallet, ArrowLeft, Mail, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { forgotPasswordHandler } from "@/(api-handlers)/loginHandler";
+import { handleErrorMessage } from "@/utils/handleErrorMessage";
 
 export default function ForgetPasswordPage() {
     const [submitted, setSubmitted] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [email, setEmail] = useState("");
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (email) setSubmitted(true);
+        if (!email) return;
+        setIsLoading(true);
+        try {
+            await forgotPasswordHandler(email);
+            setSubmitted(true);
+        } catch (error) {
+            handleErrorMessage(error, "Failed to send reset link. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -138,8 +150,10 @@ export default function ForgetPasswordPage() {
                                         onChange={e => setEmail(e.target.value)}
                                     />
                                 </div>
-                                <Button type="submit" className="w-full h-11 font-semibold text-sm">
-                                    Send reset link
+                                <Button type="submit" disabled={isLoading} className="w-full h-11 font-semibold text-sm">
+                                    {isLoading
+                                        ? <><Loader2 className="mr-2 size-4 animate-spin" />Sending…</>
+                                        : "Send reset link"}
                                 </Button>
                             </form>
                         </>
