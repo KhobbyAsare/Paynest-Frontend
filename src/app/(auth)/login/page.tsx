@@ -54,7 +54,14 @@ export default function LoginPage() {
                 else if (role === "manager") router.push("/orders");
                 else router.push("/dashboard");
             }
-        } catch (error) {
+        } catch (error: any) {
+            const detail = error?.response?.data?.detail;
+            if (error?.response?.status === 403 && detail === "EMAIL_NOT_VERIFIED") {
+                const username = data.email_or_username;
+                const emailParam = username.includes("@") ? `?email=${encodeURIComponent(username)}` : "";
+                router.push(`/verify-email/pending${emailParam}`);
+                return;
+            }
             handleErrorMessage(error, "Login failed. Please check your credentials.");
         } finally {
             setIsLoading(false);

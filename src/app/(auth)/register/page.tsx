@@ -41,12 +41,9 @@ export default function RegisterPage() {
             phone_number: data.phone_number, invitation_code: data.invitation_code,
         };
         try {
-            const response = await registrationHandler(payload);
-            if (response) {
-                toast.success("Registration successful! You can now login.");
-                reset();
-                router.push("/login");
-            }
+            await registrationHandler(payload);
+            reset();
+            router.push(`/verify-email/pending?email=${encodeURIComponent(data.email)}`);
         } catch (error) {
             handleErrorMessage(error, "Registration failed. Please try again.");
         } finally {
