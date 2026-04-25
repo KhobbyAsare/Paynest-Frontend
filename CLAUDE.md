@@ -294,7 +294,7 @@ export default function ResourcePage() {
 ## Known Gaps / TODO
 
 - [ ] Email notifications — backend SMTP credentials not configured yet (infrastructure is ready)
-- [ ] Receipt printer hardware integration (current solution uses browser print)
+- [x] Receipt printer hardware integration — WebUSB ESC/POS (`src/lib/escpos.ts` + `src/lib/printerService.ts`); settings at `/settings/printer`; POS modal auto-selects hardware over browser print
 - [ ] SMS notifications (no provider integrated)
 
 ## Completed

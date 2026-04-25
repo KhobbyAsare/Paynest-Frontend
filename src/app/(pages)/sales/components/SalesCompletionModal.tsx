@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Dialog,
     DialogContent,
@@ -41,9 +41,11 @@ import {
     Loader2,
     MapPin,
     Printer,
+    Usb,
     X,
 } from "lucide-react";
 import { handleErrorMessage } from "@/lib/handleErrorMessage";
+import { printerService } from "@/lib/printerService";
 
 interface SalesCompletionModalProps {
     isOpen: boolean;
@@ -106,6 +108,7 @@ export function SalesCompletionModal({
     const [completedSale, setCompletedSale] = useState<CompletedSale | null>(
         null,
     );
+    const [printerConnected, setPrinterConnected] = useState(false);
 
     const finalTotal = Math.max(0, total - discountAmount);
 
@@ -135,6 +138,13 @@ export function SalesCompletionModal({
             setDeliveryAddress("");
         }
     }, [isOpen]);
+
+    // Sync printer connection status when the receipt view becomes visible
+    useEffect(() => {
+        if (completedSale) {
+            setPrinterConnected(printerService.isConnected());
+        }
+    }, [completedSale]);
 
     const handleComplete = async () => {
         if (isOrderMode && !selectedCustomerId) {
@@ -230,7 +240,13 @@ export function SalesCompletionModal({
         }
     };
 
-    const handlePrint = () => {
+    // Format number as "GHS X.XX" — safe for ESC/POS (no Unicode cedis symbol)
+    const fmtEsc = useCallback(
+        (n: number) => `GHS ${n.toFixed(2)}`,
+        [],
+    );
+
+    const browserPrint = useCallback(() => {
         if (!completedSale) return;
 
         const printWindow = window.open("", "_blank");
@@ -355,7 +371,49 @@ export function SalesCompletionModal({
         `);
 
         printWindow.document.close();
-    };
+    }, [completedSale]);
+
+    const handlePrint = useCallback(async () => {
+        if (!completedSale) return;
+
+        if (printerService.isConnected()) {
+            try {
+                const { paperWidth } = printerService.getSettings();
+                await printerService.print({
+                    orgName: completedSale.orgName,
+                    receiptType: completedSale.isOrder ? "Order Receipt" : "Payment Receipt",
+                    date: completedSale.timestamp.toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                    }),
+                    time: completedSale.timestamp.toLocaleTimeString("en-GB", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    }),
+                    items: completedSale.items.map((item) => ({
+                        name: item.name,
+                        qty: item.quantity,
+                        total: fmtEsc(item.lineTotal),
+                    })),
+                    subtotal: fmtEsc(completedSale.subtotal),
+                    tax: fmtEsc(completedSale.tax),
+                    discount: completedSale.discount > 0 ? fmtEsc(completedSale.discount) : null,
+                    total: fmtEsc(completedSale.total),
+                    paymentMethod:
+                        paymentLabel[completedSale.paymentMethod] ||
+                        completedSale.paymentMethod,
+                    paperWidth,
+                });
+                toast.success("Receipt sent to printer");
+            } catch {
+                toast.error("Hardware print failed — using browser print");
+                browserPrint();
+            }
+        } else {
+            browserPrint();
+        }
+    }, [completedSale, fmtEsc, browserPrint]);
 
     const handleCloseReceipt = () => {
         setCompletedSale(null);
@@ -480,19 +538,28 @@ export function SalesCompletionModal({
                         </p>
                     </div>
 
-                    <div className="border-border flex gap-2 border-t p-5">
-                        <Button
-                            variant="outline"
-                            className="flex-1"
-                            onClick={handleCloseReceipt}
-                        >
-                            <X data-icon="inline-start" />
-                            Close
-                        </Button>
-                        <Button className="flex-1" onClick={handlePrint}>
-                            <Printer data-icon="inline-start" />
-                            Print Receipt
-                        </Button>
+                    <div className="border-border flex flex-col gap-3 border-t p-5">
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={handleCloseReceipt}
+                            >
+                                <X data-icon="inline-start" />
+                                Close
+                            </Button>
+                            <Button className="flex-1" onClick={handlePrint}>
+                                <Printer data-icon="inline-start" />
+                                Print Receipt
+                            </Button>
+                        </div>
+                        {/* Printer status hint */}
+                        <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                            <Usb className="size-3" />
+                            {printerConnected
+                                ? <span className="text-success font-medium">Hardware printer connected</span>
+                                : <span>No printer connected — will use browser print</span>}
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
