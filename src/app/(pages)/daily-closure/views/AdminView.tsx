@@ -25,6 +25,7 @@ import { format } from "date-fns";
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 import { useRouter } from "next/navigation";
 
 interface AdminViewProps {
@@ -62,6 +63,7 @@ export default function AdminView({
     setDiscrepancyReason,
     activeShopId,
 }: Readonly<AdminViewProps>) {
+    const fmt = useCurrency();
     const router = useRouter();
     const status = closure?.status?.toLowerCase() || "";
     const [history, setHistory] = useState<DailyClosureResponse[]>([]);
@@ -128,7 +130,7 @@ export default function AdminView({
                             { label: 'Total Orders', value: closure.total_orders, icon: Receipt, color: 'text-primary' },
                             { label: 'Total Items',  value: closure.total_items,  icon: Calculator, color: 'text-info' },
                             { label: 'Customers',   value: closure.total_customers, icon: FileText, color: 'text-primary' },
-                            { label: 'Net Sales',   value: `GHS ${closure.net_sales.toFixed(2)}`, icon: Banknote, color: 'text-success' },
+                            { label: 'Net Sales',   value: fmt(closure.net_sales), icon: Banknote, color: 'text-success' },
                         ].map(stat => (
                             <div key={stat.label} className="bg-card flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-8 sm:px-6">
                                 <dt className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
@@ -162,12 +164,12 @@ export default function AdminView({
                                     ].map(([label, val]) => (
                                         <div key={String(label)} className="flex justify-between items-center">
                                             <span className="text-muted-foreground text-sm">{label}</span>
-                                            <span className="text-foreground font-semibold text-sm">GHS {Number(val).toFixed(2)}</span>
+                                            <span className="text-foreground font-semibold text-sm">{fmt(Number(val))}</span>
                                         </div>
                                     ))}
                                     <div className="border-border flex justify-between items-center border-t pt-4">
                                         <span className="text-foreground font-bold">Gross Sales</span>
-                                        <span className="text-foreground text-lg font-extrabold">GHS {closure.gross_sales.toFixed(2)}</span>
+                                        <span className="text-foreground text-lg font-extrabold">{fmt(closure.gross_sales)}</span>
                                     </div>
                                 </div>
 
@@ -175,17 +177,17 @@ export default function AdminView({
                                     <h3 className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Cash Summary</h3>
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground text-sm">Opening Balance</span>
-                                        <span className="text-foreground font-semibold text-sm">GHS {closure.opening_balance.toFixed(2)}</span>
+                                        <span className="text-foreground font-semibold text-sm">{fmt(closure.opening_balance)}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground text-sm">Expected Cash</span>
-                                        <span className="text-primary text-lg font-bold">GHS {closure.expected_cash.toFixed(2)}</span>
+                                        <span className="text-primary text-lg font-bold">{fmt(closure.expected_cash)}</span>
                                     </div>
                                     {['submitted', 'verified', 'rejected', 'discrepancy'].includes(status) && (
                                         <>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-muted-foreground text-sm">Actual Cash Submitted</span>
-                                                <span className="text-foreground font-semibold text-sm">GHS {closure.actual_cash.toFixed(2)}</span>
+                                                <span className="text-foreground font-semibold text-sm">{fmt(closure.actual_cash)}</span>
                                             </div>
                                             <div className="border-border flex justify-between items-center border-t pt-4">
                                                 <span className="text-foreground font-bold">Difference</span>
@@ -193,7 +195,7 @@ export default function AdminView({
                                                     "text-lg font-extrabold",
                                                     closure.cash_difference < 0 ? "text-destructive" : "text-success"
                                                 )}>
-                                                    {closure.cash_difference > 0 ? '+' : ''}GHS {closure.cash_difference.toFixed(2)}
+                                                    {closure.cash_difference > 0 ? '+' : ''}{fmt(closure.cash_difference)}
                                                 </span>
                                             </div>
                                         </>
@@ -219,7 +221,7 @@ export default function AdminView({
                                     <p className="text-warning-foreground text-xs font-bold uppercase tracking-widest">Attendant Submission</p>
                                     <div className="flex justify-between items-baseline">
                                         <span className="text-muted-foreground text-sm">Actual Cash:</span>
-                                        <span className="text-foreground text-xl font-extrabold">GHS {closure.actual_cash.toFixed(2)}</span>
+                                        <span className="text-foreground text-xl font-extrabold">{fmt(closure.actual_cash)}</span>
                                     </div>
                                     <div className="border-warning/20 border-t pt-2">
                                         <p className="text-muted-foreground text-xs italic">&quot;{closure.notes || 'No notes provided'}&quot;</p>
@@ -398,8 +400,8 @@ export default function AdminView({
                                     <TableCell className="pl-6 text-sm">{format(new Date(rec.closure_date), 'MMM d, yyyy')}</TableCell>
                                     <TableCell className="text-muted-foreground text-sm font-mono">{rec.closure_number}</TableCell>
                                     <TableCell><StatusBadge status={rec.status} /></TableCell>
-                                    <TableCell className="text-sm">GHS {rec.net_sales.toFixed(2)}</TableCell>
-                                    <TableCell className="text-muted-foreground text-sm">GHS {rec.total_tax.toFixed(2)}</TableCell>
+                                    <TableCell className="text-sm">{fmt(rec.net_sales)}</TableCell>
+                                    <TableCell className="text-muted-foreground text-sm">{fmt(rec.total_tax)}</TableCell>
                                     <TableCell>
                                         <span className={cn(
                                             "text-sm font-medium",

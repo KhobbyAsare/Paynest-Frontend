@@ -46,6 +46,8 @@ import {
 } from "lucide-react";
 import { handleErrorMessage } from "@/lib/handleErrorMessage";
 import { printerService } from "@/lib/printerService";
+import { useCurrency, useOrgCurrency } from "@/hooks/useCurrency";
+import { formatCurrencyAscii } from "@/lib/currency";
 
 interface SalesCompletionModalProps {
     isOpen: boolean;
@@ -80,12 +82,6 @@ const paymentLabel: Record<string, string> = {
     "mobile transfer": "Mobile Money",
 };
 
-const fmt = (n: number) =>
-    new Intl.NumberFormat("en-GH", {
-        style: "currency",
-        currency: "GHS",
-    }).format(n);
-
 export function SalesCompletionModal({
     isOpen,
     onClose,
@@ -93,6 +89,8 @@ export function SalesCompletionModal({
     subTotal,
     tax,
 }: Readonly<SalesCompletionModalProps>) {
+    const fmt = useCurrency();
+    const orgCurrency = useOrgCurrency();
     const { cart, isOrderMode, paymentMethod, setPaymentMethod, clearCart } =
         useSalesStore();
     const { user } = useAuthStore();
@@ -186,7 +184,7 @@ export function SalesCompletionModal({
                         product_id,
                         quantity,
                     })),
-                    payment,
+                    // No payment — orders are paid later via "Confirm Payment" on the orders page
                     delivery_amount: 0,
                     discount_amount: discountAmount,
                     is_delivered: false,
@@ -240,10 +238,10 @@ export function SalesCompletionModal({
         }
     };
 
-    // Format number as "GHS X.XX" — safe for ESC/POS (no Unicode cedis symbol)
+    // Safe ASCII format for ESC/POS thermal printers (no Unicode currency symbols)
     const fmtEsc = useCallback(
-        (n: number) => `GHS ${n.toFixed(2)}`,
-        [],
+        (n: number) => formatCurrencyAscii(n, orgCurrency),
+        [orgCurrency],
     );
 
     const browserPrint = useCallback(() => {
@@ -371,7 +369,7 @@ export function SalesCompletionModal({
         `);
 
         printWindow.document.close();
-    }, [completedSale]);
+    }, [completedSale, fmt]);
 
     const handlePrint = useCallback(async () => {
         if (!completedSale) return;
@@ -577,7 +575,7 @@ export function SalesCompletionModal({
                         <span className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-md">
                             <CheckCircle2 className="size-4" />
                         </span>
-                        {isOrderMode ? "Complete Order" : "Complete Payment"}
+                        {isOrderMode ? "Complete Order" : "Complete Sale"}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -613,7 +611,7 @@ export function SalesCompletionModal({
                                 </span>
                                 <div className="relative w-28">
                                     <span className="text-muted-foreground absolute top-1/2 left-2 -translate-y-1/2 text-[10px] font-medium">
-                                        GHS
+                                        {orgCurrency}
                                     </span>
                                     <Input
                                         type="number"
@@ -721,8 +719,8 @@ export function SalesCompletionModal({
                         </div>
                     )}
 
-                    {/* Payment method */}
-                    <div className="flex flex-col gap-2">
+                    {/* Payment method — walk-ins only; orders are paid later */}
+                    {!isOrderMode && <div className="flex flex-col gap-2">
                         <Label className="text-foreground text-sm font-medium">
                             Payment Method
                         </Label>
@@ -769,7 +767,14 @@ export function SalesCompletionModal({
                                 </span>
                             </ToggleGroupItem>
                         </ToggleGroup>
-                    </div>
+                    </div>}
+
+                    {/* Order mode note — payment is confirmed later */}
+                    {isOrderMode && (
+                        <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-2.5 text-xs">
+                            Payment will be collected separately. Use <strong className="text-foreground">Confirm Payment</strong> on the Orders page once the order is fulfilled.
+                        </p>
+                    )}
                 </div>
 
                 <DialogFooter className="border-border flex-row gap-2 border-t p-4">
@@ -796,7 +801,7 @@ export function SalesCompletionModal({
                                 className="animate-spin"
                             />
                         ) : null}
-                        {isOrderMode ? "Confirm Order" : "Confirm & Pay"}
+                        {isOrderMode ? "Confirm Order" : "Confirm Sales"}
                         <ChevronRight data-icon="inline-end" />
                     </Button>
                 </DialogFooter>

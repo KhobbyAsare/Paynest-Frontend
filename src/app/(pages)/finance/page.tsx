@@ -24,12 +24,9 @@ import { FinanceOverviewResponse, ShopFinance, RevenueTrend } from "@/interfaces
 import { OrganizationShopResponse } from "@/interfaces/organizationShops";
 import { toast } from "sonner";
 import { useAuthStore } from "@/(zustand-store)/authStore";
+import { useCurrency } from "@/hooks/useCurrency";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import { cn } from "@/lib/utils";
-
-function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(amount);
-}
 
 function toISODate(d: Date) {
     return d.toISOString().split('T')[0];
@@ -48,6 +45,7 @@ function ProgressBar({ percent, status }: { percent: number; status: 'success' |
 }
 
 export default function FinancePage() {
+    const fmt = useCurrency();
     const { user } = useAuthStore();
     const role = (user?.role || "attendant").toLowerCase();
     const isAdmin = role === 'admin' || role === 'superadmin';
@@ -101,25 +99,25 @@ export default function FinancePage() {
     const statsConfig = financeData ? [
         {
             name: 'Total Revenue',
-            value: formatCurrency(financeData.summary.total_revenue),
+            value: fmt(financeData.summary.total_revenue),
             sub: `${financeData.summary.total_orders} Orders`,
             icon: <DollarSign className="text-primary size-5" />,
         },
         {
             name: 'Estimated Profit',
-            value: formatCurrency(financeData.summary.net_profit),
+            value: fmt(financeData.summary.net_profit),
             sub: `${Math.round(financeData.summary.total_revenue > 0 ? (financeData.summary.net_profit / financeData.summary.total_revenue) * 100 : 0)}% Margin`,
             icon: <Briefcase className="text-success size-5" />,
         },
         {
             name: 'Cost of Goods',
-            value: formatCurrency(financeData.summary.total_cost),
+            value: fmt(financeData.summary.total_cost),
             sub: 'Inventory Value',
             icon: <ShoppingCart className="text-info size-5" />,
         },
         {
             name: 'Tax Collected',
-            value: formatCurrency(financeData.summary.total_tax),
+            value: fmt(financeData.summary.total_tax),
             sub: 'Government Dues',
             icon: <PieChart className="text-warning-foreground size-5" />,
         },
@@ -269,9 +267,9 @@ export default function FinancePage() {
                                                             </div>
                                                         </TableCell>
                                                         <TableCell className="text-foreground font-semibold">{shop.orders_count}</TableCell>
-                                                        <TableCell className="font-medium">{formatCurrency(shop.revenue)}</TableCell>
+                                                        <TableCell className="font-medium">{fmt(shop.revenue)}</TableCell>
                                                         <TableCell className={cn("font-semibold", shop.profit >= 0 ? "text-success" : "text-destructive")}>
-                                                            {formatCurrency(shop.profit)}
+                                                            {fmt(shop.profit)}
                                                         </TableCell>
                                                         <TableCell className="pr-6">
                                                             <div className="flex items-center gap-2">
@@ -319,7 +317,7 @@ export default function FinancePage() {
                                                             {new Date(t.date).toLocaleDateString('en-GH', { weekday: 'short', month: 'short', day: 'numeric' })}
                                                         </TableCell>
                                                         <TableCell className="text-center font-semibold">{t.orders}</TableCell>
-                                                        <TableCell className="text-foreground text-right font-bold">{formatCurrency(t.revenue)}</TableCell>
+                                                        <TableCell className="text-foreground text-right font-bold">{fmt(t.revenue)}</TableCell>
                                                         <TableCell className="pr-6 text-right">
                                                             {diff !== null ? (
                                                                 <div className={cn("flex items-center justify-end gap-1 text-xs font-bold", diff >= 0 ? "text-success" : "text-destructive")}>
@@ -349,7 +347,7 @@ export default function FinancePage() {
                                     <p className="text-primary-foreground/80 text-sm leading-relaxed">
                                         Average order value:{' '}
                                         <span className="text-primary-foreground font-bold">
-                                            {formatCurrency(financeData.summary.total_orders > 0
+                                            {fmt(financeData.summary.total_orders > 0
                                                 ? financeData.summary.total_revenue / financeData.summary.total_orders
                                                 : 0)}
                                         </span>.
@@ -396,7 +394,7 @@ export default function FinancePage() {
                                                 </p>
                                                 <p className="text-muted-foreground text-[10px]">{t.orders} Orders</p>
                                             </div>
-                                            <p className="text-foreground text-xs font-bold">{formatCurrency(t.revenue)}</p>
+                                            <p className="text-foreground text-xs font-bold">{fmt(t.revenue)}</p>
                                         </div>
                                     ))}
                                 </CardContent>

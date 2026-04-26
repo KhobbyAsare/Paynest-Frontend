@@ -31,6 +31,7 @@ import { format } from 'date-fns';
 import AttendantView from './views/AttendantView';
 import AdminView from './views/AdminView';
 import { cn } from '@/lib/utils';
+import { useOrgCurrency } from '@/hooks/useCurrency';
 
 const statusConfig: Record<string, { badgeClass: string; Icon: any; label: string }> = {
     opened:      { badgeClass: 'border-primary/20 bg-primary/10 text-primary',                    Icon: Clock,         label: 'Opened' },
@@ -43,6 +44,7 @@ const statusConfig: Record<string, { badgeClass: string; Icon: any; label: strin
 
 export default function DailyClosurePage() {
     const { user } = useAuthStore();
+    const orgCurrency = useOrgCurrency();
     const [closure, setClosure]               = useState<DailyClosureResponse | null>(null);
     const [shops, setShops]                   = useState<OrganizationShopResponse[]>([]);
     const [selectedShopId, setSelectedShopId] = useState<number | null>(null);
@@ -214,25 +216,24 @@ export default function DailyClosurePage() {
 
             {/* Active closure banner */}
             {closure && activeCfg && (
-                <Card className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-4">
-                        <div className="bg-primary/10 flex size-11 items-center justify-center rounded-xl">
+                <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-xl">
                             <Wallet className="text-primary size-5" />
                         </div>
                         <div>
-                            <p className="text-muted-foreground text-xs">Active closure</p>
-                            <p className="text-foreground font-bold">{closure.closure_number}</p>
-                        </div>
-                        <div className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                            <Calendar className="size-3.5" />
-                            <span>{format(new Date(closure.closure_date), 'MMM d, yyyy')}</span>
+                            <p className="text-foreground font-semibold leading-tight">{closure.closure_number}</p>
+                            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                                <Calendar className="size-3" />
+                                {format(new Date(closure.closure_date), 'MMM d, yyyy')}
+                            </p>
                         </div>
                     </div>
                     <Badge
                         variant="outline"
-                        className={cn('flex items-center gap-1.5 rounded-full px-4 py-1.5', activeCfg.badgeClass)}
+                        className={cn('flex items-center gap-1.5 rounded-full px-3 py-1', activeCfg.badgeClass)}
                     >
-                        <activeCfg.Icon className="size-3.5" />
+                        <activeCfg.Icon className="size-3" />
                         {activeCfg.label}
                     </Badge>
                 </Card>
@@ -270,24 +271,28 @@ export default function DailyClosurePage() {
 
             {/* Open closure dialog */}
             <Dialog open={isModalOpen} onOpenChange={open => !open && setIsModalOpen(false)}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <div className="bg-success/10 mb-1 inline-flex size-10 items-center justify-center rounded-xl">
+                <DialogContent className="flex max-h-[90vh] max-w-md flex-col gap-0 overflow-hidden p-0">
+                    {/* Header */}
+                    <DialogHeader className="border-border flex-row items-center gap-3 border-b px-6 py-4 pr-14">
+                        <div className="bg-success/10 flex size-10 shrink-0 items-center justify-center rounded-xl">
                             <Banknote className="text-success size-5" />
                         </div>
-                        <DialogTitle>Open Daily Closure</DialogTitle>
-                        <p className="text-muted-foreground text-sm">Set your opening float and notes for today.</p>
+                        <div>
+                            <DialogTitle className="text-base leading-tight">Open Daily Closure</DialogTitle>
+                            <p className="text-muted-foreground text-xs">Set your opening float and notes for today.</p>
+                        </div>
                     </DialogHeader>
 
-                    <div className="space-y-5 pt-2">
+                    {/* Body */}
+                    <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
                         {/* Shop info */}
                         {shops.length > 0 && (
-                            <div className="bg-muted/40 flex items-center gap-3 rounded-xl border p-3">
-                                <Building2 className="text-muted-foreground size-5" />
-                                <div>
+                            <div className="bg-muted/40 border-border flex items-center gap-3 rounded-lg border p-3">
+                                <Building2 className="text-muted-foreground size-4 shrink-0" />
+                                <div className="min-w-0">
                                     <p className="text-muted-foreground text-xs">Selected shop</p>
-                                    <p className="text-foreground font-medium">
-                                        {shops.find(s => s.id === activeShopId)?.name || 'Unknown'}
+                                    <p className="text-foreground truncate text-sm font-medium">
+                                        {shops.find(s => s.id === activeShopId)?.name ?? 'Unknown'}
                                     </p>
                                 </div>
                             </div>
@@ -295,59 +300,57 @@ export default function DailyClosurePage() {
 
                         {/* Opening balance */}
                         <div className="space-y-1.5">
-                            <Label className="flex items-center gap-1.5">
-                                <Wallet className="text-muted-foreground size-4" /> Opening cash balance
-                            </Label>
+                            <Label>Opening cash balance</Label>
                             <div className="relative">
-                                <span className="text-muted-foreground absolute left-4 top-1/2 -translate-y-1/2 font-semibold">GHS</span>
+                                <span className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium">
+                                    {orgCurrency}
+                                </span>
                                 <Input
                                     type="number"
                                     placeholder="0.00"
                                     min="0"
                                     step="0.01"
-                                    className="h-12 pl-14 text-base font-semibold"
+                                    className="pl-12"
                                     value={openingBalance}
                                     onChange={e => setOpeningBalance(e.target.value)}
                                 />
                             </div>
-                            <p className="text-muted-foreground text-xs">Enter the initial cash amount in the register</p>
+                            <p className="text-muted-foreground text-xs">Initial cash amount in the register</p>
                         </div>
 
                         {/* Notes */}
                         <div className="space-y-1.5">
-                            <Label className="flex items-center gap-1.5">
-                                <FileText className="text-muted-foreground size-4" /> Opening notes (optional)
-                            </Label>
+                            <Label>Opening notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
                             <Textarea
-                                placeholder="Add any notes about shift start, float details…"
-                                className="min-h-[90px] resize-none"
+                                placeholder="Shift start notes, float details…"
+                                className="resize-none"
+                                rows={3}
                                 value={openingNotes}
                                 onChange={e => setOpeningNotes(e.target.value)}
                             />
                         </div>
 
                         {/* Date / time */}
-                        <div className="bg-muted/40 flex items-center gap-4 rounded-lg px-4 py-2.5 text-sm">
-                            <span className="text-muted-foreground flex items-center gap-1.5">
+                        <div className="bg-muted/40 border-border flex items-center gap-3 rounded-lg border px-4 py-2.5 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1.5">
                                 <Calendar className="size-3.5" /> {format(new Date(), 'MMMM d, yyyy')}
                             </span>
-                            <span className="bg-border w-px h-4" />
-                            <span className="text-muted-foreground flex items-center gap-1.5">
+                            <span className="bg-border h-3 w-px" />
+                            <span className="flex items-center gap-1.5">
                                 <Clock className="size-3.5" /> {format(new Date(), 'h:mm a')}
                             </span>
                         </div>
                     </div>
 
-                    <DialogFooter>
+                    {/* Footer */}
+                    <div className="border-border flex shrink-0 justify-end gap-2 border-t px-6 py-4">
                         <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                         <Button onClick={handleOpenClosure} disabled={isActionLoading || !openingBalance}>
-                            {isActionLoading ? (
-                                <><RefreshCcw className="mr-2 size-4 animate-spin" /> Opening…</>
-                            ) : (
-                                <><Save className="mr-2 size-4" /> Open Closure</>
-                            )}
+                            {isActionLoading
+                                ? <><RefreshCcw className="size-4 animate-spin" /> Opening…</>
+                                : <><Save className="size-4" /> Open Closure</>}
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

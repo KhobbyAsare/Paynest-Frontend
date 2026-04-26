@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { StatCard } from '@/components/(shared-components)/StatCard';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import { cn } from '@/lib/utils';
+import { useCurrency, useOrgCurrency } from '@/hooks/useCurrency';
 import { DatePicker } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 
@@ -65,6 +66,7 @@ function ChartTooltip({ active, payload, label }: {
     payload?: { value: number; name: string }[];
     label?: string;
 }) {
+    const fmt = useCurrency();
     if (!active || !payload?.length) return null;
     return (
         <div className="bg-card border-border rounded-xl border p-3 shadow-lg text-xs">
@@ -73,9 +75,7 @@ function ChartTooltip({ active, payload, label }: {
                 <div key={i} className="flex justify-between gap-6">
                     <span className="text-muted-foreground capitalize">{p.name}</span>
                     <span className="text-foreground font-semibold num-tabular">
-                        {p.name === 'revenue'
-                            ? `GHS ${p.value.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`
-                            : p.value}
+                        {p.name === 'revenue' ? fmt(p.value) : p.value}
                     </span>
                 </div>
             ))}
@@ -159,10 +159,11 @@ export const AdminView = () => {
     const avgOrderValue = s && s.total_orders > 0 ? s.total_revenue / s.total_orders : 0;
     const profitMargin  = s && s.total_revenue > 0 ? (s.gross_profit / s.total_revenue) * 100 : 0;
 
-    const fmt      = (n: number) => `GHS ${n.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const fmt      = useCurrency();
+    const currency = useOrgCurrency();
     const fmtShort = (n: number) => {
-        if (n >= 1_000_000) return `GHS ${(n / 1_000_000).toFixed(1)}M`;
-        if (n >= 1_000)     return `GHS ${(n / 1_000).toFixed(1)}K`;
+        if (n >= 1_000_000) return `${currency} ${(n / 1_000_000).toFixed(1)}M`;
+        if (n >= 1_000)     return `${currency} ${(n / 1_000).toFixed(1)}K`;
         return fmt(n);
     };
 
@@ -264,7 +265,7 @@ export const AdminView = () => {
                 <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
                     <StatCard
                         label="Total Revenue"
-                        value={s ? fmtShort(s.total_revenue) : 'GHS 0'}
+                        value={s ? fmtShort(s.total_revenue) : fmt(0)}
                         sub={s ? fmt(s.total_revenue) : undefined}
                         icon={DollarSign}
                         trend={{ direction: 'up', label: `${range}d period` }}
@@ -272,7 +273,7 @@ export const AdminView = () => {
                     />
                     <StatCard
                         label="Gross Profit"
-                        value={s ? fmtShort(s.gross_profit) : 'GHS 0'}
+                        value={s ? fmtShort(s.gross_profit) : fmt(0)}
                         sub={s ? `Margin ${profitMargin.toFixed(1)}%` : undefined}
                         icon={TrendingUp}
                         trend={{ direction: profitMargin > 20 ? 'up' : 'neutral', label: `${profitMargin.toFixed(1)}% margin` }}
@@ -281,14 +282,14 @@ export const AdminView = () => {
                     <StatCard
                         label="Total Orders"
                         value={s ? s.total_orders.toLocaleString() : '0'}
-                        sub={s ? `GHS ${s.total_discounts.toFixed(2)} discounts` : undefined}
+                        sub={s ? `${fmt(s.total_discounts)} discounts` : undefined}
                         icon={ShoppingCart}
                         trend={{ direction: 'neutral', label: 'paid orders' }}
                         loading={loading}
                     />
                     <StatCard
                         label="Avg Order Value"
-                        value={s && s.total_orders > 0 ? fmtShort(avgOrderValue) : 'GHS 0'}
+                        value={s && s.total_orders > 0 ? fmtShort(avgOrderValue) : fmt(0)}
                         sub={s ? `Tax: ${fmtShort(s.total_tax)}` : undefined}
                         icon={Percent}
                         trend={{ direction: 'neutral', label: 'per transaction' }}
@@ -310,7 +311,7 @@ export const AdminView = () => {
                     />
                     <StatCard
                         label="Inventory Value"
-                        value={invStats ? fmtShort(invStats.total_inventory_value) : 'GHS 0'}
+                        value={invStats ? fmtShort(invStats.total_inventory_value) : fmt(0)}
                         sub={invStats ? fmt(invStats.total_inventory_value) : undefined}
                         icon={DollarSign}
                         trend={{ direction: 'neutral', label: 'at cost price' }}

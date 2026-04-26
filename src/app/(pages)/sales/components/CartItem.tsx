@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Hash, MessageSquare, Minus, Package, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -44,6 +45,7 @@ export function CartItem({
     onUpdateQuantity,
     onRemove,
 }: Readonly<CartItemProps>) {
+    const fmt = useCurrency();
     const [showNotes, setShowNotes] = useState(false);
     const [notes, setNotes] = useState("");
     const [imageError, setImageError] = useState(false);
@@ -80,7 +82,7 @@ export function CartItem({
                                 {name}
                             </h4>
                             <p className="text-muted-foreground num-tabular mt-0.5 text-[11px]">
-                                GHS {price.toFixed(2)} each
+                                {fmt(price)} each
                                 {sku && (
                                     <>
                                         {" · "}
@@ -105,7 +107,7 @@ export function CartItem({
 
                     <div className="mt-1 flex items-center justify-between gap-2">
                         <span className="num-tabular text-primary text-sm font-bold tracking-tight">
-                            GHS {(price * quantity).toFixed(2)}
+                            {fmt(price * quantity)}
                         </span>
                         <div className="bg-muted flex items-center rounded-lg p-0.5">
                             <Button

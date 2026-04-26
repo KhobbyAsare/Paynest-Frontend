@@ -48,6 +48,7 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { useCurrency, useOrgCurrency } from '@/hooks/useCurrency';
 
 type PaymentMethod = 'Cash' | 'Mobile Money' | 'Card' | 'Check' | 'Bank Transfer';
 
@@ -91,6 +92,8 @@ function MethodIcon({ method }: { method: string }) {
 }
 
 export default function PaymentsPage() {
+    const fmt = useCurrency();
+    const orgCurrency = useOrgCurrency();
     const [payments, setPayments]           = useState<PaymentResponse[]>([]);
     const [orders, setOrders]               = useState<OrderWalkInsResponse[]>([]);
     const [users, setUsers]                 = useState<UserResponse[]>([]);
@@ -112,7 +115,7 @@ export default function PaymentsPage() {
     const { register, handleSubmit, control, reset, setValue, formState: { errors } } = useForm<FormValues>({
         defaultValues: {
             payment_method: 'Cash',
-            currency: 'GHS',
+            currency: orgCurrency,
             exchange_rate: '1',
         },
     });
@@ -176,7 +179,7 @@ export default function PaymentsPage() {
         } else {
             reset({
                 payment_number:  `PAY-${Date.now().toString().slice(-6)}`,
-                currency:        'GHS',
+                currency:        orgCurrency,
                 exchange_rate:   '1',
                 payment_method:  'Cash',
                 order_id:        selectedOrderId !== '-1' ? selectedOrderId : '',
@@ -256,19 +259,21 @@ export default function PaymentsPage() {
 
     const hasFilters = searchTerm !== '' || selectedStatus !== 'all' || selectedShopId !== 'all';
 
-    const filtered = payments.filter(p => {
-        const ms = p.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.payment_method?.toLowerCase().includes(searchTerm.toLowerCase());
-        const mf = selectedStatus === 'all' || p.status?.toLowerCase() === selectedStatus;
-        return ms && mf;
-    });
+    const filtered = payments
+        .filter(p => {
+            const ms = p.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.payment_method?.toLowerCase().includes(searchTerm.toLowerCase());
+            const mf = selectedStatus === 'all' || p.status?.toLowerCase() === selectedStatus;
+            return ms && mf;
+        })
+        .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
 
     const handleExport = () => {
         downloadCsv(`payments-${new Date().toISOString().split('T')[0]}.csv`, filtered.map(p => ({
             'Reference':      p.payment_number ?? '',
             'Order ID':       p.order_id ?? '',
             'Method':         p.payment_method ?? '',
-            'Amount (GHS)':   p.amount ?? 0,
+            [`Amount (${orgCurrency})`]: p.amount ?? 0,
             'Currency':       p.currency ?? 'GHS',
             'Status':         p.status ?? '',
             'Transaction ID': p.transaction_id ?? '',
@@ -311,7 +316,7 @@ export default function PaymentsPage() {
                             <SelectItem value="-1">All payments</SelectItem>
                             {orders.map(o => (
                                 <SelectItem key={o.id} value={o.id.toString()}>
-                                    #{o.order_number || o.id} — GHS {o.total_amount}
+                                    #{o.order_number || o.id} — {fmt(o.total_amount)}
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -519,7 +524,7 @@ export default function PaymentsPage() {
                                                         <SelectContent>
                                                             {orders.map(o => (
                                                                 <SelectItem key={o.id} value={o.id.toString()}>
-                                                                    #{o.order_number || o.id} — GHS {o.total_amount}
+                                                                    #{o.order_number || o.id} — {fmt(o.total_amount)}
                                                                 </SelectItem>
                                                             ))}
                                                         </SelectContent>

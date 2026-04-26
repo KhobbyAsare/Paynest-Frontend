@@ -17,6 +17,8 @@ import {
     Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useOrgCurrency } from "@/hooks/useCurrency";
+import { formatCurrencyAscii } from "@/lib/currency";
 
 const PAPER_OPTIONS: { label: string; value: 58 | 80; desc: string }[] = [
     { label: "58 mm", value: 58, desc: "32 chars / line — smaller desktop printers" },
@@ -30,6 +32,7 @@ export default function PrinterSettingsPage() {
     const [connecting, setConnecting] = useState(false);
     const [testing, setTesting] = useState(false);
     const [paperWidth, setPaperWidth] = useState<58 | 80>(80);
+    const orgCurrency = useOrgCurrency();
 
     const syncState = useCallback(() => {
         setConnected(printerService.isConnected());
@@ -80,7 +83,7 @@ export default function PrinterSettingsPage() {
         setTesting(true);
         try {
             const settings = printerService.getSettings();
-            const bytes = buildReceiptBytes({
+            const testData = {
                 orgName: "Paynest POS",
                 receiptType: "Test Receipt",
                 date: new Date().toLocaleDateString("en-GB", {
@@ -93,41 +96,18 @@ export default function PrinterSettingsPage() {
                     minute: "2-digit",
                 }),
                 items: [
-                    { name: "Test Item A", qty: 2, total: "GHS 20.00" },
-                    { name: "Test Item B", qty: 1, total: "GHS 15.50" },
+                    { name: "Test Item A", qty: 2, total: formatCurrencyAscii(20.00, orgCurrency) },
+                    { name: "Test Item B", qty: 1, total: formatCurrencyAscii(15.50, orgCurrency) },
                 ],
-                subtotal: "GHS 35.50",
-                tax: "GHS 1.42",
+                subtotal: formatCurrencyAscii(35.50, orgCurrency),
+                tax: formatCurrencyAscii(1.42, orgCurrency),
                 discount: null,
-                total: "GHS 36.92",
+                total: formatCurrencyAscii(36.92, orgCurrency),
                 paymentMethod: "Cash",
                 paperWidth: settings.paperWidth,
-            });
-            // printerService.print expects EscPosReceiptData, but we already built bytes here
-            // so we use a direct transferOut workaround via print() with pre-built data
-            await printerService.print({
-                orgName: "Paynest POS",
-                receiptType: "Test Receipt",
-                date: new Date().toLocaleDateString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                }),
-                time: new Date().toLocaleTimeString("en-GB", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                }),
-                items: [
-                    { name: "Test Item A", qty: 2, total: "GHS 20.00" },
-                    { name: "Test Item B", qty: 1, total: "GHS 15.50" },
-                ],
-                subtotal: "GHS 35.50",
-                tax: "GHS 1.42",
-                discount: null,
-                total: "GHS 36.92",
-                paymentMethod: "Cash",
-                paperWidth: settings.paperWidth,
-            });
+            };
+            const bytes = buildReceiptBytes(testData);
+            await printerService.print(testData);
             // bytes variable was just for reference; printerService.print() rebuilds internally
             void bytes;
             toast.success("Test receipt printed!");

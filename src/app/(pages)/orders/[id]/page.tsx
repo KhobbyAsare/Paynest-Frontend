@@ -53,12 +53,9 @@ import {
     Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-
-type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'credit' | 'bank_transfer' | string;
-type PaymentStatus = 'paid' | 'unpaid' | 'failed' | 'pending' | string;
-type OrderType = 'delivery' | 'pickup' | 'dine_in' | 'walk_in' | string;
 
 const statusConfig: Record<OrderStatus, {
     label: string;
@@ -117,25 +114,26 @@ const paymentStatusConfig: Record<string, {
     badgeClass: string;
     icon: React.ElementType;
 }> = {
-    paid:    { label: 'Paid',    badgeClass: 'border-success/30 bg-success/10 text-success',           icon: CheckCircle2 },
-    unpaid:  { label: 'Unpaid',  badgeClass: 'border-destructive/30 bg-destructive/10 text-destructive', icon: AlertCircle  },
-    failed:  { label: 'Failed',  badgeClass: 'border-destructive/30 bg-destructive/10 text-destructive', icon: XCircle      },
-    pending: { label: 'Pending', badgeClass: 'border-warning/30 bg-warning/10 text-warning-foreground', icon: Timer        },
+    paid: { label: 'Paid', badgeClass: 'border-success/30 bg-success/10 text-success', icon: CheckCircle2 },
+    unpaid: { label: 'Unpaid', badgeClass: 'border-destructive/30 bg-destructive/10 text-destructive', icon: AlertCircle },
+    failed: { label: 'Failed', badgeClass: 'border-destructive/30 bg-destructive/10 text-destructive', icon: XCircle },
+    pending: { label: 'Pending', badgeClass: 'border-warning/30 bg-warning/10 text-warning-foreground', icon: Timer },
 };
 
 const orderTypeConfig: Record<string, { label: string; icon: React.ElementType; cls: string }> = {
-    delivery: { label: 'Delivery', icon: Truck,       cls: 'text-primary bg-primary/10'             },
-    pickup:   { label: 'Pickup',   icon: Store,       cls: 'text-info bg-info/10'                   },
-    dine_in:  { label: 'Dine In',  icon: User,        cls: 'text-success bg-success/10'             },
-    walk_in:  { label: 'Walk-in',  icon: UserCircle,  cls: 'text-warning-foreground bg-warning/10'  },
+    delivery: { label: 'Delivery', icon: Truck, cls: 'text-primary bg-primary/10' },
+    pickup: { label: 'Pickup', icon: Store, cls: 'text-info bg-info/10' },
+    dine_in: { label: 'Dine In', icon: User, cls: 'text-success bg-success/10' },
+    walk_in: { label: 'Walk-in', icon: UserCircle, cls: 'text-warning-foreground bg-warning/10' },
 };
 
 export default function OrderDetailsPage() {
+    const fmt = useCurrency();
     const { id } = useParams();
     const router = useRouter();
-    const [order, setOrder]       = useState<OrderWalkInsResponse | null>(null);
+    const [order, setOrder] = useState<OrderWalkInsResponse | null>(null);
     const [products, setProducts] = useState<Record<number, ProductResponse>>({});
-    const [loading, setLoading]   = useState(true);
+    const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
 
     const fetchOrderDetails = useCallback(async () => {
@@ -258,7 +256,7 @@ export default function OrderDetailsPage() {
                         <div>
                             <div className="mb-1 flex flex-wrap items-center gap-2">
                                 <h1 className="text-foreground text-2xl font-bold lg:text-3xl">
-                                    Order #{order.order_number}
+                                    Transaction #{order.order_number}
                                 </h1>
                                 <Badge
                                     variant="outline"
@@ -516,7 +514,7 @@ export default function OrderDetailsPage() {
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <span className="text-muted-foreground text-sm">
-                                                            GHS {price.toFixed(2)}
+                                                            {fmt(price)}
                                                         </span>
                                                     </TableCell>
                                                     <TableCell className="text-center">
@@ -526,7 +524,7 @@ export default function OrderDetailsPage() {
                                                     </TableCell>
                                                     <TableCell className="pr-6 text-right">
                                                         <span className="text-foreground font-bold">
-                                                            GHS {subtotal.toFixed(2)}
+                                                            {fmt(subtotal)}
                                                         </span>
                                                     </TableCell>
                                                 </TableRow>
@@ -543,7 +541,7 @@ export default function OrderDetailsPage() {
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-muted-foreground">Subtotal</span>
                                             <span className="text-foreground font-medium">
-                                                GHS {order.subtotal.toFixed(2)}
+                                                {fmt(order.subtotal)}
                                             </span>
                                         </div>
                                     )}
@@ -551,7 +549,7 @@ export default function OrderDetailsPage() {
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-muted-foreground">Tax</span>
                                             <span className="text-foreground font-medium">
-                                                GHS {order.tax_amount.toFixed(2)}
+                                                {fmt(order.tax_amount)}
                                             </span>
                                         </div>
                                     )}
@@ -561,21 +559,21 @@ export default function OrderDetailsPage() {
                                                 <Gift className="size-3" /> Discount
                                             </span>
                                             <span className="text-success font-medium">
-                                                -GHS {order.discount_amount.toFixed(2)}
+                                                -{fmt(order.discount_amount)}
                                             </span>
                                         </div>
                                     )}
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-muted-foreground">Delivery</span>
                                         <span className="text-foreground font-medium">
-                                            GHS {order.delivery_amount.toFixed(2)}
+                                            {fmt(order.delivery_amount)}
                                         </span>
                                     </div>
                                     <Separator />
                                     <div className="flex items-center justify-between">
                                         <span className="text-foreground font-semibold">Total</span>
                                         <span className="text-foreground text-2xl font-bold">
-                                            GHS {order.total_amount.toFixed(2)}
+                                            {fmt(order.total_amount)}
                                         </span>
                                     </div>
                                 </div>
@@ -736,7 +734,7 @@ export default function OrderDetailsPage() {
                                 <div className="space-y-4">
                                     <div>
                                         <p className="text-3xl font-bold mb-1">
-                                            GHS {order.amount_paid.toFixed(2)}
+                                            {fmt(order.amount_paid)}
                                         </p>
                                         <p className="text-primary-foreground/60 flex items-center gap-1 text-xs">
                                             <PaymentMethodIcon className="size-3" />
@@ -748,7 +746,7 @@ export default function OrderDetailsPage() {
                                         <div className="rounded-lg bg-white/10 p-3">
                                             <p className="text-primary-foreground/60 mb-1 text-xs">Amount Due</p>
                                             <p className="text-warning-foreground text-lg font-bold">
-                                                GHS {order.amount_due.toFixed(2)}
+                                                {fmt(order.amount_due)}
                                             </p>
                                         </div>
                                     )}

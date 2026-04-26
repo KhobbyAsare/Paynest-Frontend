@@ -25,6 +25,7 @@ import { GetClosureDetails, VerifyDailyClosure } from "@/(api-handlers)/dailyClo
 import { DailyClosureDetailResponse } from "@/interfaces/dailyClosure";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 import { toast } from "sonner";
 
 function StatusBadge({ status }: { status: string }) {
@@ -39,6 +40,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ClosureDetailPage() {
+    const fmt = useCurrency();
     const params = useParams();
     const router = useRouter();
     const [closure, setClosure] = useState<DailyClosureDetailResponse | null>(null);
@@ -164,7 +166,7 @@ export default function ClosureDetailPage() {
                             closure.cash_difference < -0.01 ? "text-destructive" :
                                 closure.cash_difference > 0.01 ? "text-success" : "text-foreground"
                         )}>
-                            {closure.cash_difference > 0 ? '+' : ''}GHS {closure.cash_difference.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {closure.cash_difference > 0 ? '+' : ''}{fmt(closure.cash_difference)}
                         </p>
                     </div>
 
@@ -195,10 +197,10 @@ export default function ClosureDetailPage() {
             {/* Stats */}
             <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border overflow-hidden rounded-2xl border">
                 {[
-                    { label: 'Net Sales',    value: `GHS ${closure.net_sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, sub: `GHS ${closure.total_tax.toFixed(2)} Tax`,    icon: Banknote,    color: 'text-success' },
-                    { label: 'Actual Cash',  value: `GHS ${(closure.actual_cash ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, sub: 'Counter submission', icon: Receipt,    color: 'text-warning-foreground' },
+                    { label: 'Net Sales',    value: fmt(closure.net_sales), sub: `${fmt(closure.total_tax)} Tax`,    icon: Banknote,    color: 'text-success' },
+                    { label: 'Actual Cash',  value: fmt(closure.actual_cash ?? 0), sub: 'Counter submission', icon: Receipt,    color: 'text-warning-foreground' },
                     { label: 'Total Items',  value: String(closure.total_items), sub: `${closure.total_orders} Orders`,                          icon: Package,    color: 'text-info' },
-                    { label: 'Avg Order',    value: `GHS ${(closure.net_sales / (closure.total_orders || 1)).toFixed(2)}`, sub: 'Per customer',    icon: Calculator, color: 'text-primary' },
+                    { label: 'Avg Order',    value: fmt(closure.net_sales / (closure.total_orders || 1)), sub: 'Per customer',    icon: Calculator, color: 'text-primary' },
                 ].map(stat => (
                     <div key={stat.label} className="bg-card flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-8 sm:px-6">
                         <dt className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
@@ -234,7 +236,7 @@ export default function ClosureDetailPage() {
                                     </div>
                                     <span className="text-muted-foreground text-sm">Opening Balance (Float)</span>
                                 </div>
-                                <span className="text-foreground text-sm font-bold">GHS {closure.opening_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span className="text-foreground text-sm font-bold">{fmt(closure.opening_balance)}</span>
                             </div>
                             <div className="flex justify-center"><Plus className="text-muted-foreground/40 size-3" /></div>
                             <div className="flex justify-between items-center">
@@ -244,14 +246,14 @@ export default function ClosureDetailPage() {
                                     </div>
                                     <span className="text-muted-foreground text-sm">Total Cash Sales</span>
                                 </div>
-                                <span className="text-success text-sm font-bold">GHS {closure.cash_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span className="text-success text-sm font-bold">{fmt(closure.cash_total)}</span>
                             </div>
                             <div className="border-border flex justify-between items-center border-t pt-4">
                                 <div className="flex items-center gap-2">
                                     <Equal className="text-primary size-4" />
                                     <span className="text-foreground text-sm font-black uppercase">Expected Cash</span>
                                 </div>
-                                <span className="text-primary text-lg font-black">GHS {closure.expected_cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span className="text-primary text-lg font-black">{fmt(closure.expected_cash)}</span>
                             </div>
                         </div>
 
@@ -267,7 +269,7 @@ export default function ClosureDetailPage() {
                                     </div>
                                     <span className="text-muted-foreground text-sm">Actual Cash Submitted</span>
                                 </div>
-                                <span className="text-foreground text-sm font-bold">GHS {(closure.actual_cash ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span className="text-foreground text-sm font-bold">{fmt(closure.actual_cash ?? 0)}</span>
                             </div>
                             <div className="flex justify-center"><Minus className="text-muted-foreground/40 size-3" /></div>
                             <div className="flex justify-between items-center">
@@ -277,7 +279,7 @@ export default function ClosureDetailPage() {
                                     </div>
                                     <span className="text-muted-foreground text-sm italic">Total Expected Cash</span>
                                 </div>
-                                <span className="text-muted-foreground text-sm font-bold">GHS {closure.expected_cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span className="text-muted-foreground text-sm font-bold">{fmt(closure.expected_cash)}</span>
                             </div>
                             <div className="border-border flex justify-between items-center border-t pt-4">
                                 <div className="flex items-center gap-2">
@@ -289,7 +291,7 @@ export default function ClosureDetailPage() {
                                     closure.cash_difference < -0.01 ? "text-destructive" :
                                         closure.cash_difference > 0.01 ? "text-success" : "text-foreground"
                                 )}>
-                                    {closure.cash_difference > 0 ? '+' : ''}GHS {closure.cash_difference.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    {closure.cash_difference > 0 ? '+' : ''}{fmt(closure.cash_difference)}
                                 </span>
                             </div>
                         </div>
@@ -327,9 +329,9 @@ export default function ClosureDetailPage() {
                                     ) : closure.sold_products.map(p => (
                                         <TableRow key={p.product_name}>
                                             <TableCell className="pl-6 font-medium">{p.product_name}</TableCell>
-                                            <TableCell className="text-muted-foreground text-sm">GHS {p.unit_price.toFixed(2)}</TableCell>
+                                            <TableCell className="text-muted-foreground text-sm">{fmt(p.unit_price)}</TableCell>
                                             <TableCell className="font-bold">{p.quantity}</TableCell>
-                                            <TableCell className="pr-6 text-primary font-bold">GHS {p.total_sales.toFixed(2)}</TableCell>
+                                            <TableCell className="pr-6 text-primary font-bold">{fmt(p.total_sales)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

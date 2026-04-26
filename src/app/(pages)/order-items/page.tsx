@@ -47,6 +47,7 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface ItemFormValues {
     target_order_id: string;
@@ -72,6 +73,7 @@ function statusBadgeClass(status: string) {
 }
 
 export default function OrderItemsPage() {
+    const fmt = useCurrency();
     const [orderItems, setOrderItems]         = useState<OrderItemResponse[]>([]);
     const [products, setProducts]             = useState<ProductResponse[]>([]);
     const [orders, setOrders]                 = useState<OrderWalkInsResponse[]>([]);
@@ -206,13 +208,15 @@ export default function OrderItemsPage() {
 
     const hasFilters = searchTerm !== '' || selectedStatus !== 'all' || searchOrderId !== '' || selectedShopId !== 'all';
 
-    const filtered = orderItems.filter(item => {
-        const ms = item.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.product_sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.order_id?.toString().includes(searchTerm);
-        const mf = selectedStatus === 'all' || item.item_status?.toLowerCase() === selectedStatus;
-        return ms && mf;
-    });
+    const filtered = orderItems
+        .filter(item => {
+            const ms = item.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.product_sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.order_id?.toString().includes(searchTerm);
+            const mf = selectedStatus === 'all' || item.item_status?.toLowerCase() === selectedStatus;
+            return ms && mf;
+        })
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return (
         <div className="flex flex-col gap-6">
@@ -368,13 +372,13 @@ export default function OrderItemsPage() {
 
                                     <TableCell className="text-right">
                                         <span className="text-foreground num-tabular text-sm">
-                                            GHS {Number(item.unit_price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                            {fmt(Number(item.unit_price))}
                                         </span>
                                     </TableCell>
 
                                     <TableCell className="text-right">
                                         <span className="text-foreground num-tabular font-semibold">
-                                            GHS {Number(item.total_amount).toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                            {fmt(Number(item.total_amount))}
                                         </span>
                                     </TableCell>
 
@@ -429,162 +433,182 @@ export default function OrderItemsPage() {
 
             {/* Create / Edit dialog */}
             <Dialog open={isModalOpen} onOpenChange={open => !open && closeModal()}>
-                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <div className="bg-primary/10 mb-1 inline-flex size-10 items-center justify-center rounded-xl">
+                <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0">
+                    {/* Sticky header — pr-14 leaves room for the Dialog's absolute close button */}
+                    <DialogHeader className="border-border flex-row items-center gap-3 border-b px-6 py-4 pr-14">
+                        <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-xl">
                             {editingItem ? <Pencil className="text-primary size-5" /> : <Plus className="text-primary size-5" />}
                         </div>
-                        <DialogTitle>{editingItem ? 'Edit Order Item' : 'Add Order Item'}</DialogTitle>
+                        <div className="min-w-0">
+                            <DialogTitle className="text-base leading-tight">
+                                {editingItem ? 'Edit Order Item' : 'Add Order Item'}
+                            </DialogTitle>
+                            <p className="text-muted-foreground truncate text-xs">
+                                {editingItem
+                                    ? `Item #${editingItem.id} · Order #${editingItem.order_number || editingItem.order_id}`
+                                    : 'Add a product to an existing order.'}
+                            </p>
+                        </div>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
-                        <p className="text-muted-foreground flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
-                            <ShoppingCart className="size-3.5" /> Item details
-                        </p>
+                    {/* Scrollable body */}
+                    <div className="flex-1 overflow-y-auto px-6 py-5">
+                        <form id="order-item-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                            <p className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider">
+                                <ShoppingCart className="size-3.5" /> Item details
+                            </p>
 
-                        {/* Order + Product selects (create only) */}
-                        {!editingItem && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label>Order <span className="text-destructive">*</span></Label>
-                                    <Controller
-                                        control={control}
-                                        name="target_order_id"
-                                        rules={{ required: true }}
-                                        render={({ field }) => (
-                                            <Select value={field.value} onValueChange={field.onChange}>
-                                                <SelectTrigger className={cn('h-9', errors.target_order_id && 'border-destructive')}>
-                                                    <SelectValue placeholder="Select order…" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {orders.map(o => (
-                                                        <SelectItem key={o.id} value={o.id.toString()}>
-                                                            #{o.order_number || o.id} — {o.order_status}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Product <span className="text-destructive">*</span></Label>
-                                    <Controller
-                                        control={control}
-                                        name="product_id"
-                                        rules={{ required: true }}
-                                        render={({ field }) => (
-                                            <Select value={field.value} onValueChange={field.onChange}>
-                                                <SelectTrigger className={cn('h-9', errors.product_id && 'border-destructive')}>
-                                                    <SelectValue placeholder="Select product…" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {products.map(p => (
-                                                        <SelectItem key={p.id} value={p.id.toString()}>
-                                                            {p.name} — GHS {p.selling_price}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Qty + unit price */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <Label>Quantity <span className="text-destructive">*</span></Label>
-                                <Input
-                                    type="number"
-                                    min="1"
-                                    className="h-9"
-                                    {...register('quantity', { required: true, min: 1 })}
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Unit price (override)</Label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    className="h-9"
-                                    placeholder="Use product price…"
-                                    {...register('unit_price')}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Tax + discount */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <Label>Tax rate %</Label>
-                                <Input type="number" step="0.01" min="0" max="100" className="h-9" {...register('tax_rate')} />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Discount %</Label>
-                                <Input type="number" step="0.01" min="0" max="100" className="h-9" {...register('discount_percentage')} />
-                            </div>
-                        </div>
-
-                        {/* Inventory ID + status (edit) */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <Label>Inventory ID</Label>
-                                <Input type="number" min="1" className="h-9" placeholder="Optional…" {...register('inventory_id')} />
-                            </div>
-                            {editingItem && (
-                                <div className="space-y-1.5">
-                                    <Label>Status</Label>
-                                    <Controller
-                                        control={control}
-                                        name="item_status"
-                                        render={({ field }) => (
-                                            <Select value={field.value} onValueChange={field.onChange}>
-                                                <SelectTrigger className="h-9">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="pending">Pending</SelectItem>
-                                                    <SelectItem value="processing">Processing</SelectItem>
-                                                    <SelectItem value="completed">Completed</SelectItem>
-                                                    <SelectItem value="delivered">Delivered</SelectItem>
-                                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                    />
+                            {/* Order + Product (create only) — stacked full-width; order numbers are too long for 2-col */}
+                            {!editingItem && (
+                                <div className="space-y-4">
+                                    <div className="space-y-1.5">
+                                        <Label>Order <span className="text-destructive">*</span></Label>
+                                        <Controller
+                                            control={control}
+                                            name="target_order_id"
+                                            rules={{ required: true }}
+                                            render={({ field }) => (
+                                                <Select value={field.value} onValueChange={field.onChange}>
+                                                    <SelectTrigger className={cn(errors.target_order_id && 'border-destructive')}>
+                                                        <SelectValue placeholder="Select order…" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {orders.map(o => (
+                                                            <SelectItem key={o.id} value={o.id.toString()}>
+                                                                #{o.order_number || o.id} — {o.order_status}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label>Product <span className="text-destructive">*</span></Label>
+                                        <Controller
+                                            control={control}
+                                            name="product_id"
+                                            rules={{ required: true }}
+                                            render={({ field }) => (
+                                                <Select value={field.value} onValueChange={field.onChange}>
+                                                    <SelectTrigger className={cn(errors.product_id && 'border-destructive')}>
+                                                        <SelectValue placeholder="Select product…" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {products.map(p => (
+                                                            <SelectItem key={p.id} value={p.id.toString()}>
+                                                                {p.name} — {fmt(p.selling_price)}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                    </div>
                                 </div>
                             )}
-                        </div>
 
-                        {/* Qty cancelled (edit only) */}
-                        {editingItem && (
-                            <div className="space-y-1.5">
-                                <Label>Quantity cancelled</Label>
-                                <Input type="number" min="0" className="h-9" {...register('quantity_cancelled')} />
+                            {/* Qty + unit price */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label>Quantity <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        {...register('quantity', { required: true, min: 1 })}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>
+                                        Unit price{' '}
+                                        <span className="text-muted-foreground font-normal">(override)</span>
+                                    </Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="Uses product price"
+                                        {...register('unit_price')}
+                                    />
+                                </div>
                             </div>
-                        )}
 
-                        {/* Notes */}
-                        <div className="space-y-1.5">
-                            <Label>Notes</Label>
-                            <Textarea
-                                className="resize-none"
-                                rows={3}
-                                placeholder="Special instructions…"
-                                {...register('notes')}
-                            />
-                        </div>
+                            {/* Tax + discount */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label>Tax rate %</Label>
+                                    <Input type="number" step="0.01" min="0" max="100" {...register('tax_rate')} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Discount %</Label>
+                                    <Input type="number" step="0.01" min="0" max="100" {...register('discount_percentage')} />
+                                </div>
+                            </div>
 
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={closeModal}>Cancel</Button>
-                            <Button type="submit" disabled={submitting}>
-                                {submitting ? 'Saving…' : (editingItem ? 'Update Item' : 'Add Item')}
-                            </Button>
-                        </DialogFooter>
-                    </form>
+                            {/* Inventory ID — full width when creating, half when editing (paired with Status) */}
+                            {editingItem ? (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label>Inventory ID</Label>
+                                        <Input type="number" min="1" placeholder="Optional" {...register('inventory_id')} />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label>Status</Label>
+                                        <Controller
+                                            control={control}
+                                            name="item_status"
+                                            render={({ field }) => (
+                                                <Select value={field.value} onValueChange={field.onChange}>
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="pending">Pending</SelectItem>
+                                                        <SelectItem value="processing">Processing</SelectItem>
+                                                        <SelectItem value="completed">Completed</SelectItem>
+                                                        <SelectItem value="delivered">Delivered</SelectItem>
+                                                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-1.5">
+                                    <Label>Inventory ID</Label>
+                                    <Input type="number" min="1" placeholder="Optional" {...register('inventory_id')} />
+                                </div>
+                            )}
+
+                            {/* Qty cancelled (edit only) */}
+                            {editingItem && (
+                                <div className="space-y-1.5">
+                                    <Label>Quantity cancelled</Label>
+                                    <Input type="number" min="0" {...register('quantity_cancelled')} />
+                                </div>
+                            )}
+
+                            {/* Notes */}
+                            <div className="space-y-1.5">
+                                <Label>Notes</Label>
+                                <Textarea
+                                    className="resize-none"
+                                    rows={3}
+                                    placeholder="Special instructions…"
+                                    {...register('notes')}
+                                />
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* Sticky footer */}
+                    <div className="border-border flex shrink-0 justify-end gap-2 border-t px-6 py-4">
+                        <Button type="button" variant="outline" onClick={closeModal}>Cancel</Button>
+                        <Button type="submit" form="order-item-form" disabled={submitting}>
+                            {submitting ? 'Saving…' : (editingItem ? 'Update Item' : 'Add Item')}
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 

@@ -28,6 +28,7 @@ import {
     Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { format, addDays, subDays, parseISO } from 'date-fns';
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
@@ -39,6 +40,7 @@ function todayStr() {
 }
 
 export default function SalesReportPage() {
+    const fmt = useCurrency();
     const [loading, setLoading]               = useState(false);
     const [data, setData]                     = useState<SoldItem[]>([]);
     const [totalCount, setTotalCount]         = useState(0);
@@ -153,7 +155,7 @@ export default function SalesReportPage() {
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard
                     label="Total Revenue"
-                    value={`GHS ${totalRevenue.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`}
+                    value={fmt(totalRevenue)}
                     icon={CircleDollarSign}
                     trend={{ direction: 'neutral', label: format(parseISO(selectedDate), 'MMM d') }}
                     loading={loading}
@@ -167,7 +169,7 @@ export default function SalesReportPage() {
                 />
                 <StatCard
                     label="Avg Ticket"
-                    value={`GHS ${avgTicket.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`}
+                    value={fmt(avgTicket)}
                     icon={BarChart3}
                     trend={{ direction: 'neutral', label: 'per item' }}
                     loading={loading}
@@ -325,13 +327,13 @@ export default function SalesReportPage() {
 
                                     <TableCell className="text-right">
                                         <span className="text-muted-foreground num-tabular text-sm">
-                                            GHS {item.unit_price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                            {fmt(item.unit_price)}
                                         </span>
                                     </TableCell>
 
                                     <TableCell className="text-right">
                                         <span className="text-foreground num-tabular font-bold">
-                                            GHS {item.total_amount.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                            {fmt(item.total_amount)}
                                         </span>
                                     </TableCell>
 
@@ -359,7 +361,7 @@ export default function SalesReportPage() {
                 {!loading && filteredData.length > 0 && (
                     <div className="border-border bg-muted/30 flex items-center justify-between border-t px-6 py-3 text-xs">
                         <span className="text-muted-foreground">
-                            {filteredData.length} item{filteredData.length !== 1 ? 's' : ''} shown · GHS {filteredData.reduce((s, i) => s + i.total_amount, 0).toLocaleString('en-GH', { minimumFractionDigits: 2 })} total
+                            {filteredData.length} item{filteredData.length !== 1 ? 's' : ''} shown · {fmt(filteredData.reduce((s, i) => s + i.total_amount, 0))} total
                         </span>
                         <div className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-widest">
                             <span className="bg-success size-1.5 animate-pulse rounded-full" />

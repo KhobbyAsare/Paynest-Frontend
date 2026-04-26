@@ -1,4 +1,4 @@
-import { WalkInsRequest, OrderWalkInsResponse, OrderRequest, OrderStatus, SoldItemsReportResponse } from "@/interfaces/orders_walkins";
+import { WalkInsRequest, OrderWalkInsResponse, OrderRequest, OrderStatus, SoldItemsReportResponse, ConfirmPaymentRequest } from "@/interfaces/orders_walkins";
 import { getAPIHeaders } from "@/lib/getToken";
 import axios from "axios";
 
@@ -68,6 +68,18 @@ export const UpdateOrderStatus = async (id: number, status_name: OrderStatus): P
         throw error;
     }
 }
+
+export const ConfirmOrderPayment = async (orderId: number, data: ConfirmPaymentRequest): Promise<OrderWalkInsResponse> => {
+    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+    try {
+        const response = await axios.post(`${url}/orders/${orderId}/confirm-payment`, data, {
+            headers: getAPIHeaders(),
+        });
+        return response.data;
+    } catch (error: unknown) {
+        throw error;
+    }
+};
 
 export const GetSoldItemsReport = async (date?: string, page: number = 1, size: number = 10, shopId?: number): Promise<SoldItemsReportResponse> => {
     const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;

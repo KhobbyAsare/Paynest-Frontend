@@ -5,16 +5,17 @@ import {
     Search, RefreshCcw, Eye, CheckCircle2,
     Calendar, User, CreditCard, ShoppingBag,
     Filter, CheckCircle, Clock, Truck, Package, XCircle, MoreVertical, Download,
+    Banknote, Wallet, Loader2,
 } from 'lucide-react';
 import { downloadCsv } from '@/lib/exportCsv';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import Pagination from '@/components/(shared-components)/Pagination';
 import { StatusPill } from '@/components/(shared-components)/StatusPill';
-import { GetWalkinOrdersList, CloseOrder, UpdateOrderStatus } from '@/(api-handlers)/orders_walkinsHandler';
+import { GetWalkinOrdersList, CloseOrder, UpdateOrderStatus, ConfirmOrderPayment } from '@/(api-handlers)/orders_walkinsHandler';
 import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
 import { useAuthStore } from '@/(zustand-store)/authStore';
-import { OrderWalkInsResponse, OrderStatus } from '@/interfaces/orders_walkins';
+import { OrderWalkInsResponse, OrderStatus, PaymentMethod } from '@/interfaces/orders_walkins';
 import { OrganizationShopResponse } from '@/interfaces/organizationShops';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import { Button } from '@/components/ui/button';
@@ -30,9 +31,14 @@ import {
     DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
+import { useCurrency, useOrgCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -61,6 +67,12 @@ export default function OrdersPage() {
     const [selectedShopId, setSelectedShopId] = useState('all');
     const role = (user?.role || 'attendant').toLowerCase();
     const isAdmin = role === 'admin' || role === 'superadmin';
+    const fmt         = useCurrency();
+    const orgCurrency = useOrgCurrency();
+
+    const [paymentTarget, setPaymentTarget] = useState<OrderWalkInsResponse | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+    const [confirmingPayment, setConfirmingPayment] = useState(false);
 
     useEffect(() => {
         if (!isAdmin) return;
@@ -99,6 +111,25 @@ export default function OrdersPage() {
         } catch (error) { handleErrorMessage(error, 'Failed to close order'); }
     };
 
+    const handleConfirmPayment = async () => {
+        if (!paymentTarget) return;
+        setConfirmingPayment(true);
+        try {
+            await ConfirmOrderPayment(paymentTarget.id, {
+                method: paymentMethod,
+                status: 'paid',
+                amount_paid: paymentTarget.total_amount ?? paymentTarget.amount_paid ?? 0,
+            });
+            toast.success('Payment confirmed');
+            setPaymentTarget(null);
+            fetchOrders(page);
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to confirm payment');
+        } finally {
+            setConfirmingPayment(false);
+        }
+    };
+
     const filtered = orders.filter(o => {
         const ms = o.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (o.delivery_address?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
@@ -116,7 +147,7 @@ export default function OrdersPage() {
             'Type':           o.order_type,
             'Customer':       o.customer ? `${o.customer.first_name} ${o.customer.last_name}` : 'Walk-in',
             'Date':           o.created_at,
-            'Amount (GHS)':   o.total_amount ?? o.amount_paid ?? 0,
+            [`Amount (${orgCurrency})`]: o.total_amount ?? o.amount_paid ?? 0,
             'Fulfillment':    o.order_status,
             'Payment Status': o.payment_status ?? '',
             'Payment Method': o.payment_method ?? '',
@@ -284,7 +315,7 @@ export default function OrdersPage() {
 
                                         <TableCell className="text-right">
                                             <p className="text-foreground num-tabular font-bold">
-                                                GHS {(order.total_amount ?? order.amount_paid ?? 0).toFixed(2)}
+                                                {fmt(order.total_amount ?? order.amount_paid ?? 0)}
                                             </p>
                                             <p className="text-muted-foreground text-[10px]">
                                                 {order.items?.length ?? 0} items
@@ -323,6 +354,15 @@ export default function OrdersPage() {
                                                     <DropdownMenuItem onClick={() => router.push(`/orders/${order.id}`)}>
                                                         <Eye className="size-4" /> View details
                                                     </DropdownMenuItem>
+
+                                                    {!order.order_number.startsWith('SALES-') && order.payment_status !== 'paid' && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem onClick={() => { setPaymentTarget(order); setPaymentMethod('cash'); }}>
+                                                                <Banknote className="size-4" /> Confirm payment
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
 
                                                     {!order.close_at && (
                                                         <>
@@ -382,6 +422,67 @@ export default function OrdersPage() {
             </Card>
 
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} isLoading={loading} total={total} />
+
+            <Dialog open={!!paymentTarget} onOpenChange={open => { if (!open) setPaymentTarget(null); }}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Wallet className="size-5" />
+                            Confirm Payment
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    {paymentTarget && (
+                        <div className="space-y-4 py-2">
+                            <div className="bg-muted rounded-lg p-4 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Order</span>
+                                    <span className="font-bold">#{paymentTarget.order_number}</span>
+                                </div>
+                                <div className="mt-1 flex justify-between">
+                                    <span className="text-muted-foreground">Amount due</span>
+                                    <span className="font-bold">
+                                        {fmt(paymentTarget.total_amount ?? paymentTarget.amount_paid ?? 0)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">Payment method</p>
+                                <ToggleGroup
+                                    type="single"
+                                    value={paymentMethod}
+                                    onValueChange={v => { if (v) setPaymentMethod(v as PaymentMethod); }}
+                                    className="grid grid-cols-3 gap-2"
+                                >
+                                    {(['cash', 'bank transfer', 'mobile transfer'] as PaymentMethod[]).map(m => (
+                                        <ToggleGroupItem
+                                            key={m}
+                                            value={m}
+                                            className="h-9 rounded-md border text-xs capitalize data-[state=on]:border-primary data-[state=on]:bg-primary/10"
+                                        >
+                                            {m === 'cash' && <Banknote className="mr-1 size-3.5" />}
+                                            {m === 'bank transfer' && <CreditCard className="mr-1 size-3.5" />}
+                                            {m === 'mobile transfer' && <Wallet className="mr-1 size-3.5" />}
+                                            {m}
+                                        </ToggleGroupItem>
+                                    ))}
+                                </ToggleGroup>
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setPaymentTarget(null)} disabled={confirmingPayment}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleConfirmPayment} disabled={confirmingPayment}>
+                            {confirmingPayment ? <Loader2 className="mr-2 size-4 animate-spin" /> : <CheckCircle2 className="mr-2 size-4" />}
+                            Confirm Payment
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

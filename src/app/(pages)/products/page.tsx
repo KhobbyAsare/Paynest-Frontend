@@ -44,6 +44,7 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { useCurrency, useOrgCurrency } from '@/hooks/useCurrency';
 
 interface ProductFormValues {
     name: string;
@@ -77,6 +78,8 @@ function calcMarkup(cost: number, selling: number) {
 }
 
 export default function ProductsPage() {
+    const fmt = useCurrency();
+    const orgCurrency = useOrgCurrency();
     const [products, setProducts] = useState<ProductResponse[]>([]);
     const [categories, setCategories] = useState<ProductCategoriesResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -378,13 +381,13 @@ export default function ProductsPage() {
                                         <div>
                                             <p className="text-muted-foreground text-[10px]">Selling</p>
                                             <p className="text-foreground num-tabular text-base font-bold">
-                                                GHS {product.selling_price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                                {fmt(product.selling_price)}
                                             </p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-muted-foreground text-[10px]">Cost</p>
                                             <p className="text-muted-foreground num-tabular text-sm font-medium">
-                                                GHS {product.cost_price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                                {fmt(product.cost_price)}
                                             </p>
                                         </div>
                                     </div>
@@ -396,7 +399,7 @@ export default function ProductsPage() {
                                         </span>
                                         <span className={cn('flex items-center gap-1 text-xs font-medium', profit >= 0 ? 'text-success' : 'text-destructive')}>
                                             {profit >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-                                            GHS {Math.abs(profit).toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                                            {fmt(Math.abs(profit))}
                                         </span>
                                     </div>
 
@@ -508,7 +511,7 @@ export default function ProductsPage() {
                             </p>
                             <div className="grid grid-cols-4 gap-4">
                                 <div className="space-y-1.5">
-                                    <Label>Cost price (GHS) <span className="text-destructive">*</span></Label>
+                                    <Label>Cost price ({orgCurrency}) <span className="text-destructive">*</span></Label>
                                     <Input
                                         type="number"
                                         step="0.01"
@@ -519,7 +522,7 @@ export default function ProductsPage() {
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label>Selling price (GHS) <span className="text-destructive">*</span></Label>
+                                    <Label>Selling price ({orgCurrency}) <span className="text-destructive">*</span></Label>
                                     <Input
                                         type="number"
                                         step="0.01"
@@ -629,11 +632,11 @@ export default function ProductsPage() {
                                 {/* Price stats */}
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
-                                        { label: 'Selling price', value: `GHS ${viewingProduct.selling_price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`, cls: '' },
-                                        { label: 'Cost price', value: `GHS ${viewingProduct.cost_price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`, cls: '' },
+                                        { label: 'Selling price', value: fmt(viewingProduct.selling_price), cls: '' },
+                                        { label: 'Cost price', value: fmt(viewingProduct.cost_price), cls: '' },
                                         {
                                             label: 'Profit',
-                                            value: `GHS ${(viewingProduct.selling_price - viewingProduct.cost_price).toLocaleString('en-GH', { minimumFractionDigits: 2 })}`,
+                                            value: fmt(viewingProduct.selling_price - viewingProduct.cost_price),
                                             cls: (viewingProduct.selling_price - viewingProduct.cost_price) >= 0 ? 'text-success' : 'text-destructive',
                                         },
                                     ].map(s => (

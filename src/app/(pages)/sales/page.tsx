@@ -35,6 +35,7 @@ import { ProductResponse } from "@/interfaces/products";
 import { ProductCategoriesResponse } from "@/interfaces/productCategories";
 import { useSalesStore } from "@/(zustand-store)/salesStore";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 import { CategoryItem } from "./components/CategoryItem";
 import { ProductCard } from "./components/ProductCard";
 import { CartItem } from "./components/CartItem";
@@ -50,6 +51,7 @@ const PAYMENT_METHODS = [
 const CART_WIDTH = 440;
 
 export default function SalesPage() {
+    const fmt = useCurrency();
     const [products, setProducts] = useState<ProductResponse[]>([]);
     const [categories, setCategories] = useState<ProductCategoriesResponse[]>(
         [],
@@ -389,7 +391,7 @@ export default function SalesPage() {
                         >
                             <ShoppingBag data-icon="inline-start" className="size-5" />
                             <span className="num-tabular font-semibold">
-                                {itemCount} · GHS {total.toFixed(2)}
+                                {itemCount} · {fmt(total)}
                             </span>
                         </Button>
                     </motion.div>
@@ -455,6 +457,7 @@ function CartPanel({
     onCheckout,
     onClose,
 }: Readonly<CartPanelProps>) {
+    const fmt = useCurrency();
     return (
         <div className="flex h-full min-h-0 flex-col">
             {/* Header */}
@@ -471,7 +474,7 @@ function CartPanel({
                         <h2 className="truncate text-sm font-semibold">Current sale</h2>
                         <p className="num-tabular text-[11px] text-white/80">
                             {itemCount} {itemCount === 1 ? "item" : "items"}
-                            {itemCount > 0 && <> · GHS {total.toFixed(2)}</>}
+                            {itemCount > 0 && <> · {fmt(total)}</>}
                         </p>
                     </div>
                 </div>
@@ -580,13 +583,13 @@ function CartPanel({
                     <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Subtotal</span>
                         <span className="num-tabular text-foreground font-medium">
-                            GHS {subTotal.toFixed(2)}
+                            {fmt(subTotal)}
                         </span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Tax (4%)</span>
                         <span className="num-tabular text-foreground font-medium">
-                            GHS {tax.toFixed(2)}
+                            {fmt(tax)}
                         </span>
                     </div>
                     <Separator className="my-2" />
@@ -595,7 +598,7 @@ function CartPanel({
                             Total
                         </span>
                         <span className="num-tabular text-primary text-2xl font-bold tracking-tight">
-                            GHS {total.toFixed(2)}
+                            {fmt(total)}
                         </span>
                     </div>
                 </div>

@@ -17,14 +17,14 @@ const Loading = () => {
         </div>
 
         {/* Loading Text */}
-        <p className="text-secondary mb-8">Loading your POS system...</p>
+        <p className="text-gray-600 mb-8">Loading your POS system...</p>
 
         {/* Animated Dots */}
         <div className="flex justify-center space-x-2">
           {[0, 1, 2].map((index) => (
             <div
               key={index}
-              className="h-2 w-2 bg-secondary rounded-full animate-pulse"
+              className="h-2 w-2 bg-primary rounded-full animate-pulse"
               style={{ animationDelay: `${index * 0.2}s` }}
             />
           ))}

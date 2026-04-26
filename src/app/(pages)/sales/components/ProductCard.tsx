@@ -7,6 +7,7 @@ import { ProductResponse } from "@/interfaces/products";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useOrgCurrency } from "@/hooks/useCurrency";
 
 interface ProductCardProps {
     product: ProductResponse;
@@ -55,6 +56,7 @@ export function ProductCard({
     onUpdateQuantity,
 }: Readonly<ProductCardProps>) {
     const [imageError, setImageError] = useState(false);
+    const orgCurrency = useOrgCurrency();
     const gradient = pickGradient(product.name);
     const stock = stockTone(product.stock_quantity);
     const outOfStock = product.stock_quantity === 0;
@@ -127,7 +129,7 @@ export function ProductCard({
 
                 <div className="mt-1 flex items-baseline gap-1">
                     <span className="text-muted-foreground text-[10px] font-medium">
-                        GHS
+                        {orgCurrency}
                     </span>
                     <span className="num-tabular text-foreground text-lg font-bold tracking-tight">
                         {product.selling_price.toFixed(2)}

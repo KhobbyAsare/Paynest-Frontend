@@ -28,8 +28,10 @@ import {
     Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function InventoryPage() {
+    const fmt = useCurrency();
     const router = useRouter();
     const [inventory, setInventory] = useState<InventoryResponse[]>([]);
     const [stats, setStats] = useState<InventoryStats | null>(null);
@@ -119,7 +121,7 @@ export default function InventoryPage() {
                 />
                 <StatCard
                     label="Inventory Value"
-                    value={stats ? `GHS ${stats.total_inventory_value.toLocaleString('en-GH', { minimumFractionDigits: 2 })}` : 'GHS 0'}
+                    value={stats ? fmt(stats.total_inventory_value) : fmt(0)}
                     icon={DollarSign}
                     trend={{ direction: 'neutral', label: 'at cost price' }}
                     loading={loading}

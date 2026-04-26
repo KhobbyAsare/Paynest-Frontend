@@ -36,7 +36,7 @@ export interface OrderRequest {
         product_id: number,
         quantity: number
     }[],
-    payment: {
+    payment?: {
         method: PaymentMethod,
         status: PaymentStatus,
         amount_paid: number
@@ -47,6 +47,12 @@ export interface OrderRequest {
     delivery_address: string | null,
     actual_delivery_date: string,
     expected_delivery_date: string
+}
+
+export interface ConfirmPaymentRequest {
+    method: PaymentMethod,
+    status: "paid",
+    amount_paid: number
 }
 
 export interface OrderWalkInsResponse {
