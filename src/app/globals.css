@@ -76,8 +76,8 @@
   --color-info-muted: var(--info-muted);
 
   /* Fonts */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plus-jakarta-sans);
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
 
   /* Radii */
   --radius-sm: calc(var(--radius) - 4px);

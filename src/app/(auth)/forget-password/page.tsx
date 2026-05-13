@@ -32,7 +32,7 @@ export default function ForgetPasswordPage() {
         <div className="flex h-screen overflow-hidden">
 
             {/* ═══ LEFT PANEL ═══ */}
-            <div className="hidden lg:flex lg:w-[580px] xl:w-[660px] flex-shrink-0 h-full relative overflow-hidden bg-primary text-primary-foreground">
+            <div className="hidden lg:flex lg:w-[580px] xl:w-[660px] flex-shrink-0 h-full relative overflow-hidden bg-[var(--brand-800)] text-white">
 
                 {/* Animations */}
                 <style>{`

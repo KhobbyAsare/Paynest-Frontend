@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
         <div className="flex h-screen overflow-hidden">
 
             {/* ═══ LEFT PANEL ═══ */}
-            <div className="hidden lg:flex lg:w-[580px] xl:w-[660px] flex-shrink-0 h-full relative overflow-hidden bg-primary text-primary-foreground">
+            <div className="hidden lg:flex lg:w-[580px] xl:w-[660px] flex-shrink-0 h-full relative overflow-hidden bg-[var(--brand-800)] text-white">
                 <style>{`
                     @keyframes pn-rp-blob-a { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(45px,-55px) scale(1.13)} }
                     @keyframes pn-rp-blob-b { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-38px,50px) scale(0.89)} }
