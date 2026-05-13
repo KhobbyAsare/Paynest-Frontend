@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-    Save, X, Package, Navigation,
-    ArrowLeft, AlertCircle, TrendingUp, Info
+    ArrowLeft, Package, Store, Ruler, TrendingUp,
+    MapPin, CheckCircle2, Loader2, AlertTriangle,
+    BarChart3, RotateCcw, ShieldCheck,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { CreateInventory } from '@/(api-handlers)/inventoryHandler';
@@ -16,17 +17,13 @@ import { ProductResponse } from '@/interfaces/products';
 import { CreateInventoryRequest } from '@/interfaces/inventory';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import { useAuthStore } from '@/(zustand-store)/authStore';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -49,7 +46,6 @@ interface FormValues {
 interface FormErrors {
     product_id?: string;
     shop_id?: string;
-    unit_of_measurement?: string;
     current_stock?: string;
     minimum_stock?: string;
     maximum_stock?: string;
@@ -73,23 +69,38 @@ const defaultValues: FormValues = {
     bin_location: '',
 };
 
-function FieldLabel({ children, required }: Readonly<{ children: React.ReactNode; required?: boolean }>) {
+function SectionHeader({ icon: Icon, label, description, iconCls }: {
+    icon: React.ElementType;
+    label: string;
+    description: string;
+    iconCls: string;
+}) {
     return (
-        <label className="block text-sm font-medium text-foreground mb-1.5">
-            {children}
-            {required && <span className="text-destructive ml-0.5">*</span>}
-        </label>
+        <div className="flex items-start gap-3">
+            <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', iconCls)}>
+                <Icon className="size-4" />
+            </div>
+            <div>
+                <p className="text-foreground text-sm font-semibold">{label}</p>
+                <p className="text-muted-foreground text-xs">{description}</p>
+            </div>
+        </div>
     );
 }
 
-function FieldError({ message }: Readonly<{ message?: string }>) {
+function FieldErr({ message }: { message?: string }) {
     if (!message) return null;
-    return <p className="mt-1 text-xs text-destructive">{message}</p>;
+    return (
+        <p className="mt-1 flex items-center gap-1 text-[11px] text-destructive">
+            <AlertTriangle className="size-3" /> {message}
+        </p>
+    );
 }
 
 export default function CreateInventoryPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
+    const searchParams = useSearchParams();
+    const [submitting, setSubmitting] = useState(false);
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
     const [products, setProducts] = useState<ProductResponse[]>([]);
     const [values, setValues] = useState<FormValues>(defaultValues);
@@ -100,21 +111,35 @@ export default function CreateInventoryPage() {
     const isAdmin = role === 'admin' || role === 'superadmin';
     const userShopId = user?.employee_profile?.shop_id;
 
+    const selectedProduct = useMemo(
+        () => products.find(p => String(p.id) === values.product_id) ?? null,
+        [products, values.product_id],
+    );
+    const selectedShop = useMemo(
+        () => shops.find(s => String(s.id) === values.shop_id) ?? null,
+        [shops, values.shop_id],
+    );
+
+    const currentStock = Number(values.current_stock) || 0;
+    const maxStock = Number(values.maximum_stock) || 100;
+    const stockPct = Math.min((currentStock / maxStock) * 100, 100);
+
     useEffect(() => {
-        const fetchData = async () => {
+        (async () => {
             try {
                 const [shopsData, productsData] = await Promise.all([
                     getOrganizationShops(),
-                    GetProducts()
+                    GetProducts(),
                 ]);
                 setShops(shopsData);
                 setProducts(productsData);
-            } catch (error) {
-                console.error("Failed to fetch requirements", error);
-                toast.error("Failed to load dependency data");
+                const pid = searchParams.get('product_id');
+                if (pid) setValues(prev => ({ ...prev, product_id: pid }));
+            } catch {
+                toast.error('Failed to load data');
             }
-        };
-        fetchData();
+        })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -125,30 +150,28 @@ export default function CreateInventoryPage() {
         }
     }, [isAdmin, userShopId, shops, values.shop_id]);
 
-    function handleFieldChange<K extends keyof FormValues>(key: K, value: FormValues[K]) {
-        setValues(prev => ({ ...prev, [key]: value }));
+    function set<K extends keyof FormValues>(key: K, val: FormValues[K]) {
+        setValues(prev => ({ ...prev, [key]: val }));
         setErrors(prev => ({ ...prev, [key]: undefined }));
     }
 
     function validate(): boolean {
-        const newErrors: FormErrors = {};
-        if (!values.product_id) newErrors.product_id = 'Please select a product';
-        if (!values.shop_id) newErrors.shop_id = 'Please select a shop';
-        if (!values.unit_of_measurement) newErrors.unit_of_measurement = 'Please select a unit';
-        if (values.current_stock === '') newErrors.current_stock = 'Opening stock is required';
-        if (values.minimum_stock === '') newErrors.minimum_stock = 'Min stock is required';
-        if (values.maximum_stock === '') newErrors.maximum_stock = 'Max stock is required';
-        if (values.reorder_point === '') newErrors.reorder_point = 'Reorder point is required';
-        if (values.reorder_quantity === '') newErrors.reorder_quantity = 'Reorder quantity is required';
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        const e: FormErrors = {};
+        if (!values.product_id) e.product_id = 'Select a product';
+        if (!values.shop_id) e.shop_id = 'Select a shop';
+        if (values.current_stock === '') e.current_stock = 'Required';
+        if (values.minimum_stock === '') e.minimum_stock = 'Required';
+        if (values.maximum_stock === '') e.maximum_stock = 'Required';
+        if (values.reorder_point === '') e.reorder_point = 'Required';
+        if (values.reorder_quantity === '') e.reorder_quantity = 'Required';
+        setErrors(e);
+        return Object.keys(e).length === 0;
     }
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!validate()) return;
-
-        setLoading(true);
+        setSubmitting(true);
         try {
             const payload: CreateInventoryRequest = {
                 product_id: Number(values.product_id),
@@ -165,93 +188,185 @@ export default function CreateInventoryPage() {
                 is_active: values.is_active,
             };
             await CreateInventory(payload);
-            toast.success('Inventory record created successfully');
+            toast.success('Inventory record created');
             router.push('/inventory');
-        } catch (error: unknown) {
-            handleErrorMessage(error, 'Failed to create inventory record');
+        } catch (err) {
+            handleErrorMessage(err, 'Failed to create inventory record');
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     }
 
     return (
         <div className="flex flex-col gap-6">
-            {/* Breadcrumb + Heading */}
-            <div>
-                <nav className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Link href="/inventory" className="hover:text-foreground transition-colors">Inventory</Link>
-                    <span>/</span>
-                    <span className="text-foreground">Create New Record</span>
-                </nav>
 
-                <div className="flex items-center gap-4">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => router.back()}
-                        className="shrink-0"
-                    >
-                        <ArrowLeft className="size-4" />
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground tracking-tight">Create Inventory Record</h1>
-                        <p className="text-muted-foreground text-sm">Initialize a new stock tracking entry for a product.</p>
+            {/* ── Page header ── */}
+            <div className="flex items-start gap-4">
+                <Button variant="outline" size="icon" className="mt-0.5 shrink-0" onClick={() => router.back()}>
+                    <ArrowLeft className="size-4" />
+                </Button>
+                <div className="flex-1 min-w-0">
+                    <nav className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Link href="/inventory" className="hover:text-foreground transition-colors">Inventory</Link>
+                        <span>/</span>
+                        <span className="text-foreground">New record</span>
+                    </nav>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl font-bold tracking-tight">Stock a Product</h1>
+                        <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary rounded-full text-[10px] font-semibold">
+                            New record
+                        </Badge>
                     </div>
+                    <p className="text-muted-foreground mt-0.5 text-sm">
+                        Set up stock tracking, thresholds, and storage location for a product.
+                    </p>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <form onSubmit={handleSubmit} noValidate>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-                    {/* Product Association */}
-                    <Card className="md:col-span-2 rounded-2xl">
-                        <CardHeader className="pb-0">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <Package className="size-4 text-primary" />
-                                Product Association
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <FieldLabel required>Select Product</FieldLabel>
-                                    <Select value={values.product_id} onValueChange={val => handleFieldChange('product_id', val)}>
-                                        <SelectTrigger className={cn("w-full", errors.product_id && 'border-destructive')}>
-                                            <SelectValue placeholder="Search product..." />
+                    {/* ── Left column (main form) ── */}
+                    <div className="lg:col-span-2 space-y-4">
+
+                        {/* Product & shop */}
+                        <div className="bg-card rounded-2xl border p-6 space-y-5">
+                            <SectionHeader
+                                icon={Package}
+                                label="Product & Shop"
+                                description="Link this inventory record to a product and store."
+                                iconCls="bg-primary/10 text-primary"
+                            />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label>Product <span className="text-destructive">*</span></Label>
+                                    <Select value={values.product_id} onValueChange={v => set('product_id', v)}>
+                                        <SelectTrigger className={cn('h-10', errors.product_id && 'border-destructive')}>
+                                            <SelectValue placeholder="Choose a product…" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {products.map(product => (
-                                                <SelectItem key={product.id} value={String(product.id)}>
-                                                    {product.name}
-                                                </SelectItem>
+                                            {products.map(p => (
+                                                <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <FieldError message={errors.product_id} />
+                                    <FieldErr message={errors.product_id} />
                                 </div>
 
-                                <div>
-                                    <FieldLabel required>Assigned Shop</FieldLabel>
-                                    <Select value={values.shop_id} onValueChange={val => handleFieldChange('shop_id', val)} disabled={!isAdmin}>
-                                        <SelectTrigger className={cn("w-full", errors.shop_id && 'border-destructive')}>
-                                            <SelectValue placeholder="Select Shop" />
+                                <div className="space-y-1.5">
+                                    <Label>Shop <span className="text-destructive">*</span></Label>
+                                    <Select value={values.shop_id} onValueChange={v => set('shop_id', v)} disabled={!isAdmin}>
+                                        <SelectTrigger className={cn('h-10', errors.shop_id && 'border-destructive')}>
+                                            <SelectValue placeholder="Choose a shop…" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {shops.map(shop => (
-                                                <SelectItem key={shop.id} value={String(shop.id)}>
-                                                    {shop.name}
-                                                </SelectItem>
+                                            {shops.map(s => (
+                                                <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <FieldError message={errors.shop_id} />
+                                    <FieldErr message={errors.shop_id} />
                                 </div>
+                            </div>
+                        </div>
 
-                                <div>
-                                    <FieldLabel required>Unit of Measurement</FieldLabel>
-                                    <Select value={values.unit_of_measurement} onValueChange={val => handleFieldChange('unit_of_measurement', val)}>
-                                        <SelectTrigger className={cn("w-full", errors.unit_of_measurement && 'border-destructive')}>
-                                            <SelectValue placeholder="Select unit" />
+                        {/* Stock levels */}
+                        <div className="bg-card rounded-2xl border p-6 space-y-5">
+                            <SectionHeader
+                                icon={BarChart3}
+                                label="Stock Levels"
+                                description="Define opening stock and automated reorder thresholds."
+                                iconCls="bg-success/10 text-success"
+                            />
+
+                            {/* Opening stock + visual bar */}
+                            <div className="space-y-2">
+                                <Label>Opening stock <span className="text-destructive">*</span></Label>
+                                <Input
+                                    type="number" min="0"
+                                    className={cn('h-10', errors.current_stock && 'border-destructive')}
+                                    placeholder="0"
+                                    value={values.current_stock}
+                                    onChange={e => set('current_stock', e.target.value)}
+                                />
+                                <FieldErr message={errors.current_stock} />
+                                {/* Mini stock bar */}
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                                        <span>0</span>
+                                        <span className={cn(
+                                            'font-semibold',
+                                            stockPct === 0 ? 'text-destructive'
+                                                : stockPct < 20 ? 'text-warning-foreground'
+                                                    : 'text-success'
+                                        )}>
+                                            {currentStock} / {maxStock} {values.unit_of_measurement}
+                                        </span>
+                                        <span>Max {maxStock}</span>
+                                    </div>
+                                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                        <div
+                                            className={cn(
+                                                'h-full rounded-full transition-all duration-500',
+                                                stockPct === 0 ? 'bg-destructive w-0'
+                                                    : stockPct < 20 ? 'bg-warning'
+                                                        : 'bg-success',
+                                            )}
+                                            style={{ width: `${stockPct}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {([
+                                    { key: 'minimum_stock', label: 'Min. stock', hint: 'Alert threshold' },
+                                    { key: 'maximum_stock', label: 'Max. stock', hint: 'Capacity limit' },
+                                    { key: 'reorder_point', label: 'Reorder point', hint: 'Auto-flag level' },
+                                    { key: 'reorder_quantity', label: 'Reorder qty', hint: 'Amount to order' },
+                                ] as { key: keyof FormErrors & keyof FormValues; label: string; hint: string }[]).map(({ key, label, hint }) => (
+                                    <div key={key} className="space-y-1.5">
+                                        <Label>
+                                            {label} <span className="text-destructive">*</span>
+                                            <span className="text-muted-foreground font-normal ml-1 text-[10px]">— {hint}</span>
+                                        </Label>
+                                        <Input
+                                            type="number" min="0"
+                                            className={cn('h-10', errors[key] && 'border-destructive')}
+                                            value={values[key] as string}
+                                            onChange={e => set(key, e.target.value)}
+                                        />
+                                        <FieldErr message={errors[key]} />
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Reorder callout */}
+                            <div className="flex items-start gap-3 rounded-xl border border-info/20 bg-info/5 px-4 py-3">
+                                <RotateCcw className="mt-0.5 size-4 shrink-0 text-info" />
+                                <p className="text-xs text-info">
+                                    Automatic reorder alert fires when stock drops to{' '}
+                                    <strong>{values.reorder_point || '—'}</strong>{' '}
+                                    {values.unit_of_measurement}. System will suggest ordering{' '}
+                                    <strong>{values.reorder_quantity || '—'}</strong> more.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Unit & availability */}
+                        <div className="bg-card rounded-2xl border p-6 space-y-5">
+                            <SectionHeader
+                                icon={Ruler}
+                                label="Unit & Availability"
+                                description="How the stock is measured and whether it's listed for sale."
+                                iconCls="bg-warning/10 text-warning-foreground"
+                            />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label>Unit of measurement</Label>
+                                    <Select value={values.unit_of_measurement} onValueChange={v => set('unit_of_measurement', v)}>
+                                        <SelectTrigger className="h-10">
+                                            <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="units">Units / Pieces</SelectItem>
@@ -260,139 +375,166 @@ export default function CreateInventoryPage() {
                                             <SelectItem value="packs">Packs</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <FieldError message={errors.unit_of_measurement} />
-                                </div>
-
-                                <div>
-                                    <FieldLabel>Available for Sale</FieldLabel>
-                                    <div className="flex items-center gap-3 h-9">
-                                        <Switch
-                                            checked={values.on_sale}
-                                            onCheckedChange={val => handleFieldChange('on_sale', val)}
-                                        />
-                                        <span className="text-sm text-muted-foreground">
-                                            {values.on_sale ? 'Listed for sale' : 'Not for sale'}
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
 
-                    {/* Status Sidebar */}
-                    <div className="space-y-6">
-                        <Card className="rounded-2xl bg-muted/30">
-                            <CardContent className="pt-6">
-                                <FieldLabel>Status</FieldLabel>
-                                <div className="flex items-center justify-between bg-card p-3 rounded-xl border">
-                                    <span className="text-sm font-medium text-foreground">Active Tracking</span>
-                                    <Switch
-                                        checked={values.is_active}
-                                        onCheckedChange={val => handleFieldChange('is_active', val)}
-                                    />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className={cn(
+                                    'flex items-center justify-between rounded-xl border p-4 transition-colors',
+                                    values.on_sale ? 'border-success/30 bg-success/5' : 'bg-muted/40',
+                                )}>
+                                    <div>
+                                        <p className="text-sm font-semibold text-foreground">Available for sale</p>
+                                        <p className="text-xs text-muted-foreground">Show in POS checkout</p>
+                                    </div>
+                                    <Switch checked={values.on_sale} onCheckedChange={v => set('on_sale', v)} />
                                 </div>
-                                <hr className="my-4 border-border" />
-                                <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                                    <Info className="size-4 shrink-0 text-info mt-0.5" />
-                                    <p>Inactive records will be hidden from the main inventory dashboard but preserved for logs.</p>
+                                <div className={cn(
+                                    'flex items-center justify-between rounded-xl border p-4 transition-colors',
+                                    values.is_active ? 'border-primary/30 bg-primary/5' : 'bg-muted/40',
+                                )}>
+                                    <div>
+                                        <p className="text-sm font-semibold text-foreground">Active tracking</p>
+                                        <p className="text-xs text-muted-foreground">Include in inventory</p>
+                                    </div>
+                                    <Switch checked={values.is_active} onCheckedChange={v => set('is_active', v)} />
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
+
+                        {/* Storage location */}
+                        <div className="bg-card rounded-2xl border p-6 space-y-5">
+                            <SectionHeader
+                                icon={MapPin}
+                                label="Storage Location"
+                                description="Where this product is physically stored in your warehouse."
+                                iconCls="bg-info/10 text-info"
+                            />
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label>Aisle</Label>
+                                    <Input className="h-10 font-mono" placeholder="e.g. A4" value={values.aisle} onChange={e => set('aisle', e.target.value)} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Shelf</Label>
+                                    <Input className="h-10 font-mono" placeholder="e.g. B2" value={values.shelf} onChange={e => set('shelf', e.target.value)} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Bin</Label>
+                                    <Input className="h-10 font-mono" placeholder="e.g. BIN-09" value={values.bin_location} onChange={e => set('bin_location', e.target.value)} />
+                                </div>
+                            </div>
+                            {(values.aisle || values.shelf || values.bin_location) && (
+                                <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-4 py-2.5">
+                                    <MapPin className="size-3.5 text-muted-foreground shrink-0" />
+                                    <span className="text-xs text-muted-foreground">
+                                        Location:{' '}
+                                        <span className="text-foreground font-mono font-semibold">
+                                            {[values.aisle, values.shelf, values.bin_location].filter(Boolean).join(' · ')}
+                                        </span>
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Stock Configuration */}
-                    <Card className="md:col-span-3 rounded-2xl">
-                        <CardHeader className="pb-0">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <TrendingUp className="size-4 text-success" />
-                                Stock Configuration
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                                {(
-                                    [
-                                        { key: 'current_stock', label: 'Opening Stock' },
-                                        { key: 'minimum_stock', label: 'Min. Stock' },
-                                        { key: 'maximum_stock', label: 'Max. Stock' },
-                                        { key: 'reorder_point', label: 'Reorder Point' },
-                                        { key: 'reorder_quantity', label: 'Reorder Qty' },
-                                    ] as { key: keyof FormErrors & keyof FormValues; label: string }[]
-                                ).map(({ key, label }) => (
-                                    <div key={key}>
-                                        <FieldLabel required>{label}</FieldLabel>
-                                        <Input
-                                            type="number"
-                                            min={0}
-                                            value={values[key] as string}
-                                            onChange={e => handleFieldChange(key, e.target.value)}
-                                            className={cn(errors[key] && 'border-destructive')}
-                                        />
-                                        <FieldError message={errors[key]} />
-                                    </div>
-                                ))}
+                    {/* ── Right sidebar ── */}
+                    <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+
+                        {/* Live summary card */}
+                        <div className="bg-card rounded-2xl border overflow-hidden">
+                            <div className="bg-gradient-to-br from-primary/[0.07] to-transparent px-5 py-4 border-b border-border/60">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Record summary</p>
+                            </div>
+                            <div className="px-5 py-4 space-y-3">
+                                <SummaryRow icon={Package} label="Product" value={selectedProduct?.name ?? <span className="text-muted-foreground italic">Not selected</span>} />
+                                <SummaryRow icon={Store} label="Shop" value={selectedShop?.name ?? <span className="text-muted-foreground italic">Not selected</span>} />
+                                <SummaryRow icon={TrendingUp} label="Opening stock"
+                                    value={
+                                        <span className={cn(
+                                            'font-bold',
+                                            currentStock === 0 ? 'text-destructive'
+                                                : currentStock <= Number(values.minimum_stock) ? 'text-warning-foreground'
+                                                    : 'text-success'
+                                        )}>
+                                            {currentStock} {values.unit_of_measurement}
+                                        </span>
+                                    }
+                                />
+                                <SummaryRow icon={RotateCcw} label="Reorder at" value={`${values.reorder_point || '—'} ${values.unit_of_measurement}`} />
+                                {(values.aisle || values.shelf || values.bin_location) && (
+                                    <SummaryRow icon={MapPin} label="Location"
+                                        value={<span className="font-mono">{[values.aisle, values.shelf, values.bin_location].filter(Boolean).join(' · ')}</span>}
+                                    />
+                                )}
                             </div>
 
-                            <div className="mt-4 p-4 bg-success/10 rounded-xl border border-success/20 flex items-start gap-3">
-                                <AlertCircle className="size-5 text-success shrink-0 mt-0.5" />
-                                <div className="text-sm text-success">
-                                    <p className="font-semibold">Smart Tracking Enabled</p>
-                                    <p className="opacity-80">
-                                        System will automatically mark items for reorder when stock falls below{' '}
-                                        <strong>{values.reorder_point || 10}</strong> units.
-                                    </p>
-                                </div>
+                            {/* Status badges */}
+                            <div className="border-t border-border/60 px-5 py-3 flex gap-2 flex-wrap">
+                                <Badge variant="outline" className={cn(
+                                    'rounded-full text-[10px] font-semibold',
+                                    values.is_active ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border text-muted-foreground',
+                                )}>
+                                    {values.is_active ? 'Active' : 'Inactive'}
+                                </Badge>
+                                <Badge variant="outline" className={cn(
+                                    'rounded-full text-[10px] font-semibold',
+                                    values.on_sale ? 'border-success/30 bg-success/10 text-success' : 'border-border text-muted-foreground',
+                                )}>
+                                    {values.on_sale ? 'On sale' : 'Not for sale'}
+                                </Badge>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
 
-                    {/* Storage Location */}
-                    <Card className="md:col-span-3 rounded-2xl">
-                        <CardHeader className="pb-0">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <Navigation className="size-4 text-warning-foreground" />
-                                Storage Location
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <FieldLabel>Aisle</FieldLabel>
-                                    <Input placeholder="e.g. Aisle 4" value={values.aisle} onChange={e => handleFieldChange('aisle', e.target.value)} />
-                                </div>
-                                <div>
-                                    <FieldLabel>Shelf</FieldLabel>
-                                    <Input placeholder="e.g. Shelf B2" value={values.shelf} onChange={e => handleFieldChange('shelf', e.target.value)} />
-                                </div>
-                                <div>
-                                    <FieldLabel>Bin Location</FieldLabel>
-                                    <Input placeholder="e.g. BIN-092" value={values.bin_location} onChange={e => handleFieldChange('bin_location', e.target.value)} />
-                                </div>
+                        {/* Tips card */}
+                        <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4 space-y-3">
+                            <div className="flex items-center gap-2">
+                                <ShieldCheck className="size-4 text-muted-foreground" />
+                                <p className="text-xs font-semibold text-foreground">Tips</p>
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                            {[
+                                'Set reorder point above minimum stock so you have time to reorder.',
+                                'Use bin location codes for fast warehouse picking.',
+                                'Toggle "Available for sale" off to hide from POS without deleting.',
+                            ].map(tip => (
+                                <div key={tip} className="flex items-start gap-2">
+                                    <CheckCircle2 className="size-3 text-success mt-0.5 shrink-0" />
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{tip}</p>
+                                </div>
+                            ))}
+                        </div>
 
-                {/* Form Actions */}
-                <div className="flex justify-end gap-3 pt-4">
-                    <Button type="button" variant="outline" onClick={() => router.back()} className="h-11 px-6 rounded-xl">
-                        <X className="size-4" /> Cancel
-                    </Button>
-                    <Button type="submit" disabled={loading} className="h-11 px-8 rounded-xl">
-                        {loading ? (
-                            <span className="flex items-center gap-2">
-                                <span className="size-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                                Saving…
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-2">
-                                <Save className="size-4" />
-                                Create Inventory Record
-                            </span>
-                        )}
-                    </Button>
+                        {/* Action buttons */}
+                        <div className="flex flex-col gap-2">
+                            <Button type="submit" className="h-11 w-full text-sm" disabled={submitting}>
+                                {submitting
+                                    ? <><Loader2 className="size-4 animate-spin" /> Creating record…</>
+                                    : <><CheckCircle2 className="size-4" /> Create inventory record</>
+                                }
+                            </Button>
+                            <Button type="button" variant="outline" className="h-10 w-full text-sm" onClick={() => router.back()}>
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </form>
+        </div>
+    );
+}
+
+function SummaryRow({ icon: Icon, label, value }: {
+    icon: React.ElementType;
+    label: string;
+    value: React.ReactNode;
+}) {
+    return (
+        <div className="flex items-start gap-2.5">
+            <Icon className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
+            <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{label}</p>
+                <p className="text-sm font-medium text-foreground truncate">{value}</p>
+            </div>
         </div>
     );
 }

@@ -76,7 +76,7 @@ export const GetInventoryByProduct = async (product_id: number): Promise<Invento
 
 export const AdjustInventoryStock = async (inventory_id: number, inventory_data: AdjustInventoryStockRequest): Promise<InventoryResponse> => {
     try {
-        const response = await apiClient.put(`/inventory/${inventory_id}/adjust`, inventory_data)
+        const response = await apiClient.patch(`/inventory/${inventory_id}/adjust`, inventory_data)
         return response.data
     } catch (error: unknown) {
         throw error;

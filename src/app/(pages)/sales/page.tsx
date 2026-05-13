@@ -556,6 +556,7 @@ function CartPanel({
                                     name={item.product.name}
                                     price={item.product.selling_price}
                                     quantity={item.quantity}
+                                    imageUrl={item.product.image_url ?? undefined}
                                     onUpdateQuantity={updateCartQuantity}
                                     onRemove={removeFromCart}
                                 />

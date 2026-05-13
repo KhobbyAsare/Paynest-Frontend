@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import {
     Banknote, Calculator, Calendar, FileText,
     RefreshCcw, ClipboardCheck, Receipt, CheckCircle2,
-    AlertCircle, Eye, CheckCircle, XCircle,
+    AlertCircle, Eye, CheckCircle, XCircle, Users,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { DailyClosureResponse } from "@/interfaces/dailyClosure";
 import { GetAllClosures } from "@/(api-handlers)/dailyClosureHandler";
 import { Button } from "@/components/ui/button";
@@ -124,25 +125,29 @@ export default function AdminView({
         return (
             <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
-                    {/* Stats grid */}
-                    <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border overflow-hidden rounded-2xl border">
-                        {[
-                            { label: 'Total Orders', value: closure.total_orders, icon: Receipt, color: 'text-primary' },
-                            { label: 'Total Items',  value: closure.total_items,  icon: Calculator, color: 'text-info' },
-                            { label: 'Customers',   value: closure.total_customers, icon: FileText, color: 'text-primary' },
-                            { label: 'Net Sales',   value: fmt(closure.net_sales), icon: Banknote, color: 'text-success' },
-                        ].map(stat => (
-                            <div key={stat.label} className="bg-card flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-8 sm:px-6">
-                                <dt className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
-                                    <stat.icon className={cn("size-5", stat.color)} />
-                                    {stat.label}
-                                </dt>
-                                <dd className="text-foreground mt-2 w-full flex-none text-3xl font-bold tracking-tight">
-                                    {stat.value}
-                                </dd>
-                            </div>
-                        ))}
-                    </dl>
+                    {/* Stats strip */}
+                    <Card className="overflow-hidden p-0">
+                        <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0">
+                            {(
+                                [
+                                    { label: "Total Orders", value: String(closure.total_orders),    icon: Receipt,    iconCls: "bg-primary/10 text-primary" },
+                                    { label: "Total Items",  value: String(closure.total_items),     icon: Calculator, iconCls: "bg-info/10 text-info" },
+                                    { label: "Customers",   value: String(closure.total_customers), icon: Users,      iconCls: "bg-warning/10 text-warning-foreground" },
+                                    { label: "Net Sales",   value: fmt(closure.net_sales),          icon: Banknote,   iconCls: "bg-success/10 text-success" },
+                                ] as { label: string; value: string; icon: LucideIcon; iconCls: string }[]
+                            ).map(({ label, value, icon: Icon, iconCls }) => (
+                                <div key={label} className="flex items-center gap-3 px-5 py-4">
+                                    <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", iconCls)}>
+                                        <Icon className="size-4" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-muted-foreground truncate text-xs font-medium">{label}</p>
+                                        <p className="text-foreground truncate text-lg font-bold leading-tight num-tabular">{value}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </Card>
 
                     {/* Financial Reconciliation */}
                     <Card className="overflow-hidden">

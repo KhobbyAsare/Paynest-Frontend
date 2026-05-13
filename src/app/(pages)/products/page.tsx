@@ -8,11 +8,12 @@ import {
     Barcode, Package, Tag, Layers, FilterX, DollarSign,
     Percent, CheckCircle, XCircle, TrendingUp, TrendingDown,
     Eye, Calendar, Clock, Building2, AlertTriangle,
-    ImagePlus, X, Loader2, ImageOff,
+    ImagePlus, X, Loader2, ImageOff, Boxes,
 } from 'lucide-react';
 import {
     GetProducts, CreateProduct, UpdateProdctDetails, DeleteProduct, uploadProductImage,
 } from '@/(api-handlers)/productsHandler';
+import { useRouter } from 'next/navigation';
 import { GetProductCategories } from '@/(api-handlers)/productCategoriesHandler';
 import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
 import { useAuthStore } from '@/(zustand-store)/authStore';
@@ -81,6 +82,7 @@ function calcMarkup(cost: number, selling: number) {
 export default function ProductsPage() {
     const fmt = useCurrency();
     const orgCurrency = useOrgCurrency();
+    const router = useRouter();
     const [products, setProducts] = useState<ProductResponse[]>([]);
     const [categories, setCategories] = useState<ProductCategoriesResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -345,7 +347,20 @@ export default function ProductsPage() {
                     {filtered.map(product => {
                         const mp = product.markup_percentage ?? 0;
                         const profit = product.selling_price - product.cost_price;
-                        const initial = product.name.charAt(0).toUpperCase();
+                        const PLACEHOLDER_GRADIENTS = [
+                            'from-brand-700 to-brand-500',
+                            'from-info to-brand-600',
+                            'from-brand-800 to-info',
+                            'from-brand-600 to-brand-400',
+                            'from-info/80 to-brand-700',
+                            'from-brand-500 to-brand-800',
+                        ];
+                        const gradientIdx = Math.abs(
+                            Array.from(product.name).reduce((acc, c) => c.codePointAt(0)! + ((acc << 5) - acc), 0)
+                        ) % PLACEHOLDER_GRADIENTS.length;
+                        const placeholderGradient = product.is_active
+                            ? PLACEHOLDER_GRADIENTS[gradientIdx]
+                            : 'from-muted to-muted/60';
                         return (
                             <div
                                 key={product.id}
@@ -361,26 +376,16 @@ export default function ProductsPage() {
                                                 alt={product.name}
                                                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                                             />
-                                            {/* Bottom gradient so text is legible */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                                         </>
                                     ) : (
                                         <div className={cn(
-                                            'h-full w-full flex flex-col items-center justify-center gap-2',
-                                            product.is_active
-                                                ? 'bg-gradient-to-br from-primary/15 to-primary/5'
-                                                : 'bg-gradient-to-br from-muted to-muted/60',
+                                            'h-full w-full bg-gradient-to-br flex flex-col items-center justify-center text-white',
+                                            placeholderGradient,
                                         )}>
-                                            <span className={cn(
-                                                'text-4xl font-black select-none',
-                                                product.is_active ? 'text-primary/25' : 'text-muted-foreground/20',
-                                            )}>
-                                                {initial}
+                                            <Package className="mb-1.5 size-9 opacity-85" />
+                                            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium opacity-95 backdrop-blur-sm">
+                                                {getCategoryName(product.category_id)}
                                             </span>
-                                            <Package className={cn(
-                                                'size-5',
-                                                product.is_active ? 'text-primary/20' : 'text-muted-foreground/20',
-                                            )} />
                                         </div>
                                     )}
 
@@ -427,28 +432,17 @@ export default function ProductsPage() {
                                         </DropdownMenu>
                                     </div>
 
-                                    {/* Name + category overlay at bottom (only on image cards) */}
-                                    {product.image_url && (
-                                        <div className="absolute bottom-0 left-0 right-0 px-3.5 pb-3 pt-4">
-                                            <p className="text-white text-sm font-semibold leading-tight line-clamp-1 drop-shadow">{product.name}</p>
-                                            <p className="text-white/70 mt-0.5 flex items-center gap-1 text-[10px]">
-                                                <Tag className="size-3" /> {getCategoryName(product.category_id)}
-                                            </p>
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* ── Card body ── */}
                                 <div className="p-4 space-y-3.5">
-                                    {/* Name + category (only when no image) */}
-                                    {!product.image_url && (
-                                        <div>
-                                            <p className="text-foreground text-sm font-semibold leading-tight line-clamp-1">{product.name}</p>
-                                            <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[10px]">
-                                                <Tag className="size-3" /> {getCategoryName(product.category_id)}
-                                            </p>
-                                        </div>
-                                    )}
+                                    {/* Name + category — always in the body */}
+                                    <div>
+                                        <p className="text-foreground text-sm font-semibold leading-tight line-clamp-1">{product.name}</p>
+                                        <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[10px]">
+                                            <Tag className="size-3" /> {getCategoryName(product.category_id)}
+                                        </p>
+                                    </div>
 
                                     {/* SKU row */}
                                     <div className="flex items-center justify-between text-[10px] text-muted-foreground">
@@ -524,14 +518,25 @@ export default function ProductsPage() {
                                         >
                                             <Eye className="size-3.5" /> Details
                                         </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-8 flex-1 text-xs"
-                                            onClick={() => openModal(product)}
-                                        >
-                                            <Pencil className="size-3.5" /> Edit
-                                        </Button>
+                                        {!product.inventory ? (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 flex-1 text-xs border-success/40 text-success hover:bg-success/10"
+                                                onClick={() => router.push(`/inventory/create?product_id=${product.id}`)}
+                                            >
+                                                <Boxes className="size-3.5" /> Stock
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 flex-1 text-xs"
+                                                onClick={() => openModal(product)}
+                                            >
+                                                <Pencil className="size-3.5" /> Edit
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

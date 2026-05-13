@@ -7,6 +7,7 @@ import {
     ChevronLeft, ChevronRight, RefreshCcw, Filter,
     BarChart3, Package, CreditCard, Settings2,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { GetSoldItemsReport } from '@/(api-handlers)/orders_walkinsHandler';
 import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
 import { useAuthStore } from '@/(zustand-store)/authStore';
@@ -15,7 +16,6 @@ import { OrganizationShopResponse } from '@/interfaces/organizationShops';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import Pagination from '@/components/(shared-components)/Pagination';
-import { StatCard } from '@/components/(shared-components)/StatCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -151,37 +151,58 @@ export default function SalesReportPage() {
                 }
             />
 
-            {/* KPI cards */}
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <StatCard
-                    label="Total Revenue"
-                    value={fmt(totalRevenue)}
-                    icon={CircleDollarSign}
-                    trend={{ direction: 'neutral', label: format(parseISO(selectedDate), 'MMM d') }}
-                    loading={loading}
-                />
-                <StatCard
-                    label="Items Sold"
-                    value={totalCount.toLocaleString()}
-                    icon={ShoppingBag}
-                    trend={{ direction: 'neutral', label: 'line items' }}
-                    loading={loading}
-                />
-                <StatCard
-                    label="Avg Ticket"
-                    value={fmt(avgTicket)}
-                    icon={BarChart3}
-                    trend={{ direction: 'neutral', label: 'per item' }}
-                    loading={loading}
-                />
-                <StatCard
-                    label="Transactions"
-                    value={data.length.toLocaleString()}
-                    icon={CreditCard}
-                    trend={{ direction: 'neutral', label: 'this page' }}
-                    loading={loading}
-                />
-            </div>
+            {/* KPI strip */}
+            <Card className="overflow-hidden p-0">
+                <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0">
+                    {(
+                        [
+                            {
+                                label: 'Total Revenue',
+                                value: fmt(totalRevenue),
+                                icon: CircleDollarSign,
+                                sub: format(parseISO(selectedDate), 'MMM d'),
+                                iconCls: 'bg-success/10 text-success',
+                            },
+                            {
+                                label: 'Items Sold',
+                                value: totalCount.toLocaleString(),
+                                icon: ShoppingBag,
+                                sub: 'line items',
+                                iconCls: 'bg-primary/10 text-primary',
+                            },
+                            {
+                                label: 'Avg per Item',
+                                value: fmt(avgTicket),
+                                icon: BarChart3,
+                                sub: 'average ticket',
+                                iconCls: 'bg-info/10 text-info',
+                            },
+                            {
+                                label: 'Transactions',
+                                value: data.length.toLocaleString(),
+                                icon: CreditCard,
+                                sub: 'on this page',
+                                iconCls: 'bg-warning/10 text-warning-foreground',
+                            },
+                        ] as { label: string; value: string; icon: LucideIcon; sub: string; iconCls: string }[]
+                    ).map(({ label, value, icon: Icon, sub, iconCls }) => (
+                        <div key={label} className="flex items-center gap-3 px-5 py-4">
+                            <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', iconCls)}>
+                                <Icon className="size-4" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-muted-foreground truncate text-xs font-medium">{label}</p>
+                                {loading ? (
+                                    <Skeleton className="mt-1 h-5 w-16" />
+                                ) : (
+                                    <p className="text-foreground truncate text-lg font-bold leading-tight num-tabular">{value}</p>
+                                )}
+                                <p className="text-muted-foreground truncate text-[10px]">{sub}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </Card>
 
             {/* Date label */}
             <div className="flex items-center gap-2">

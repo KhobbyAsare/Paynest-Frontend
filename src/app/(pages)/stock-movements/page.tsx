@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import {
     Search, RefreshCcw, ArrowUpDown, TrendingUp, TrendingDown, Activity, Package,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import Pagination from '@/components/(shared-components)/Pagination';
-import { StatCard } from '@/components/(shared-components)/StatCard';
 import { GetStockMovement, GetStockMovementSummary } from '@/(api-handlers)/stockMovementHandler';
 import { StockMovementResponse, StockMovementSummary } from '@/interfaces/StockMovements';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
@@ -83,40 +83,58 @@ export default function StockMovementsPage() {
                 description="Track all stock changes including purchases, sales, transfers and adjustments."
             />
 
-            {/* Stat cards */}
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <StatCard
-                    label="Total Movements"
-                    value={summary ? summary.total_movements.toLocaleString() : '0'}
-                    icon={Activity}
-                    trend={{ direction: 'neutral', label: 'all time' }}
-                    loading={loading}
-                />
-                <StatCard
-                    label="Net Stock Change"
-                    value={summary ? (netPositive ? `+${summary.net_change}` : `${summary.net_change}`) : '0'}
-                    icon={netPositive ? TrendingUp : TrendingDown}
-                    trend={{
-                        direction: netPositive ? 'up' : 'down',
-                        label: netPositive ? 'net gain' : 'net loss',
-                    }}
-                    loading={loading}
-                />
-                <StatCard
-                    label="Purchases"
-                    value={summary ? summary.purchases.toLocaleString() : '0'}
-                    icon={Package}
-                    trend={{ direction: 'up', label: 'stock in' }}
-                    loading={loading}
-                />
-                <StatCard
-                    label="Sales"
-                    value={summary ? summary.sales.toLocaleString() : '0'}
-                    icon={ArrowUpDown}
-                    trend={{ direction: 'neutral', label: 'stock out' }}
-                    loading={loading}
-                />
-            </div>
+            {/* Stats strip */}
+            <Card className="overflow-hidden p-0">
+                <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0">
+                    {(
+                        [
+                            {
+                                label: 'Total Movements',
+                                value: summary ? summary.total_movements.toLocaleString() : '—',
+                                icon: Activity,
+                                sub: 'all time',
+                                iconCls: 'bg-primary/10 text-primary',
+                            },
+                            {
+                                label: 'Net Stock Change',
+                                value: summary ? (netPositive ? `+${summary.net_change}` : `${summary.net_change}`) : '—',
+                                icon: netPositive ? TrendingUp : TrendingDown,
+                                sub: netPositive ? 'net gain' : 'net loss',
+                                iconCls: netPositive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive',
+                            },
+                            {
+                                label: 'Purchases',
+                                value: summary ? summary.purchases.toLocaleString() : '—',
+                                icon: Package,
+                                sub: 'stock in',
+                                iconCls: 'bg-success/10 text-success',
+                            },
+                            {
+                                label: 'Sales',
+                                value: summary ? summary.sales.toLocaleString() : '—',
+                                icon: ArrowUpDown,
+                                sub: 'stock out',
+                                iconCls: 'bg-info/10 text-info',
+                            },
+                        ] as { label: string; value: string; icon: LucideIcon; sub: string; iconCls: string }[]
+                    ).map(({ label, value, icon: Icon, sub, iconCls }) => (
+                        <div key={label} className="flex items-center gap-3 px-5 py-4">
+                            <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', iconCls)}>
+                                <Icon className="size-4" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-muted-foreground truncate text-xs font-medium">{label}</p>
+                                {loading ? (
+                                    <Skeleton className="mt-1 h-5 w-16" />
+                                ) : (
+                                    <p className="text-foreground truncate text-lg font-bold leading-tight num-tabular">{value}</p>
+                                )}
+                                <p className="text-muted-foreground truncate text-[10px]">{sub}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </Card>
 
             <Card className="gap-0 overflow-hidden p-0">
                 {/* Toolbar */}

@@ -47,17 +47,17 @@ export interface InventoryStats {
 }
 
 export interface UpdateInventoryRequest {
-    current_stock: number,
-    minimum_stock: number,
-    maximum_stock: number,
-    reorder_point: number,
-    reorder_quantity: number,
-    aisle: string,
-    shelf: string,
-    bin_location: string,
-    unit_of_measurement: string,
-    on_sale: boolean,
-    is_active: boolean
+    current_stock?: number,
+    minimum_stock?: number,
+    maximum_stock?: number,
+    reorder_point?: number,
+    reorder_quantity?: number,
+    aisle?: string,
+    shelf?: string,
+    bin_location?: string,
+    unit_of_measurement?: string,
+    on_sale?: boolean,
+    is_active?: boolean
 }
 
 export interface AdjustInventoryStockRequest {

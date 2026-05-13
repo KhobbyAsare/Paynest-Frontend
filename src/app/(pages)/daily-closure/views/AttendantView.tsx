@@ -4,6 +4,7 @@ import {
     Banknote, Calculator, Calendar, Clock, FileText,
     RefreshCcw, ClipboardCheck, Receipt, Users, CheckCircle, XCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { DailyClosureResponse } from "@/interfaces/dailyClosure";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,33 +96,29 @@ export default function AttendantView({
                 </div>
             )}
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                {[
-                    { label: "Total Orders",  value: closure.total_orders,               icon: Receipt,    accent: false },
-                    { label: "Total Items",   value: closure.total_items,                icon: Calculator, accent: false },
-                    { label: "Customers",     value: closure.total_customers,            icon: Users,      accent: false },
-                    { label: "Net Sales",     value: fmt(closure.net_sales),             icon: Banknote,   accent: true  },
-                ].map(stat => (
-                    <Card key={stat.label} className="p-4">
-                        <div className="flex items-center gap-2">
-                            <div className={cn(
-                                "flex size-8 items-center justify-center rounded-lg",
-                                stat.accent ? "bg-success/10" : "bg-primary/10",
-                            )}>
-                                <stat.icon className={cn("size-4", stat.accent ? "text-success" : "text-primary")} />
+            {/* Stats strip */}
+            <Card className="overflow-hidden p-0">
+                <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0">
+                    {(
+                        [
+                            { label: "Total Orders", value: String(closure.total_orders),    icon: Receipt,    iconCls: "bg-primary/10 text-primary" },
+                            { label: "Total Items",  value: String(closure.total_items),     icon: Calculator, iconCls: "bg-info/10 text-info" },
+                            { label: "Customers",    value: String(closure.total_customers), icon: Users,      iconCls: "bg-warning/10 text-warning-foreground" },
+                            { label: "Net Sales",    value: fmt(closure.net_sales),          icon: Banknote,   iconCls: "bg-success/10 text-success" },
+                        ] as { label: string; value: string; icon: LucideIcon; iconCls: string }[]
+                    ).map(({ label, value, icon: Icon, iconCls }) => (
+                        <div key={label} className="flex items-center gap-3 px-5 py-4">
+                            <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", iconCls)}>
+                                <Icon className="size-4" />
                             </div>
-                            <p className="text-muted-foreground text-sm">{stat.label}</p>
+                            <div className="min-w-0">
+                                <p className="text-muted-foreground truncate text-xs font-medium">{label}</p>
+                                <p className="text-foreground truncate text-lg font-bold leading-tight num-tabular">{value}</p>
+                            </div>
                         </div>
-                        <p className={cn(
-                            "mt-2 text-2xl font-bold tracking-tight",
-                            stat.accent && "text-success",
-                        )}>
-                            {stat.value}
-                        </p>
-                    </Card>
-                ))}
-            </div>
+                    ))}
+                </div>
+            </Card>
 
             {/* Main layout */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
