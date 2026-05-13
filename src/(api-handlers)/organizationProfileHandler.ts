@@ -1,15 +1,11 @@
 import { OrganizationResponse } from "@/interfaces/organization";
 import { UpdateOrganizationProfileRequest } from "@/interfaces/organizationProfile";
-import { getAPIHeaders } from "@/lib/getToken";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 
 
 export const getOrganizationProfileByOrgId = async (organization_id: number): Promise<OrganizationResponse[]> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/organization/${organization_id}/`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/organization/${organization_id}/`)
         return response.data
     } catch (error: any) {
         throw error;
@@ -17,11 +13,8 @@ export const getOrganizationProfileByOrgId = async (organization_id: number): Pr
 }
 
 export const updateOrganizationProfile = async (organization_id: number, data: UpdateOrganizationProfileRequest): Promise<OrganizationResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.put(`${url}/organization/${organization_id}/`, data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.put(`/organization/${organization_id}/`, data)
         return response.data
     } catch (error: any) {
         throw error;

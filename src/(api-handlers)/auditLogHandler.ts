@@ -1,6 +1,5 @@
 import { AuditLogResponse } from "@/interfaces/auditLog";
-import { getAPIHeaders } from "@/lib/getToken";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 
 
 export const getAllAuditLogs = async (
@@ -12,10 +11,8 @@ export const getAllAuditLogs = async (
     limit = 100,
     offset = 0
 ): Promise<{ items: AuditLogResponse[]; total: number }> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/audit-logs/`, {
-            headers: getAPIHeaders(),
+        const response = await apiClient.get(`/audit-logs/`, {
             params: { organization_id, user_id, action, entity_type, entity_id, limit, offset }
         })
         return response.data
@@ -25,13 +22,10 @@ export const getAllAuditLogs = async (
 }
 
 export const getAuditLogById = async (audit_log_id: number): Promise<AuditLogResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/audit-logs/${audit_log_id}`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/audit-logs/${audit_log_id}`)
         return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
         throw error;
     }
 }

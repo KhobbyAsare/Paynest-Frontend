@@ -1,13 +1,9 @@
 import { OrganizationShopRequest, OrganizationShopResponse } from "@/interfaces/organizationShops";
-import { getAPIHeaders } from "@/lib/getToken";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 
 export const createOrganizationShop = async (organizationShopRequest: OrganizationShopRequest): Promise<OrganizationShopResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.post(`${url}/shops/`, organizationShopRequest, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.post(`/shops/`, organizationShopRequest)
         return response.data
     } catch (error: any) {
         throw error;
@@ -15,11 +11,8 @@ export const createOrganizationShop = async (organizationShopRequest: Organizati
 }
 
 export const getOrganizationShops = async (): Promise<OrganizationShopResponse[]> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/shops/`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/shops/`)
         return response.data
     } catch (error: any) {
         throw error;

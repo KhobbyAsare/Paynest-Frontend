@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { OrganizationResponse } from "@/interfaces/organization";
 import {
     getAllOrganizations, changeOrganizationPlanType, deleteOrganization,
@@ -28,29 +28,52 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Plus, MoreHorizontal, Pencil, Trash2, Building2, RefreshCcw } from "lucide-react";
+import {
+    Search, Plus, MoreHorizontal, Pencil, Trash2, Building2, RefreshCcw,
+    CheckCircle2, XCircle, Users, Store, BadgeCheck, Phone, Mail,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 10;
 
-const PLAN_COLORS: Record<string, string> = {
-    free:       'border-border bg-muted text-muted-foreground',
-    basic:      'border-primary/20 bg-primary/10 text-primary',
-    pro:        'border-info/30 bg-info/10 text-info',
-    enterprise: 'border-warning/30 bg-warning/10 text-warning-foreground',
-    starter:    'border-border bg-muted text-muted-foreground',
+const PLAN_BADGE: Record<string, string> = {
+    free:         'border-border bg-muted text-muted-foreground',
+    basic:        'border-info/30 bg-info/10 text-info',
+    pro:          'border-primary/30 bg-primary/10 text-primary',
+    enterprise:   'border-warning/30 bg-warning/10 text-warning-foreground',
+    starter:      'border-border bg-muted text-muted-foreground',
     professional: 'border-info/30 bg-info/10 text-info',
 };
+
+function getInitials(name: string) {
+    return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+function StatChip({ label, value, sub }: { label: string; value: number; sub?: string }) {
+    return (
+        <Card className="p-0">
+            <CardContent className="px-5 py-4">
+                <p className="text-muted-foreground text-xs font-medium">{label}</p>
+                <p className="text-foreground text-2xl font-bold mt-0.5">{value}</p>
+                {sub && <p className="text-muted-foreground text-xs mt-0.5">{sub}</p>}
+            </CardContent>
+        </Card>
+    );
+}
+
+type StatusFilter = 'all' | 'active' | 'inactive';
 
 export default function OrganizationsPage() {
     const router = useRouter();
     const [organizations, setOrganizations] = useState<OrganizationResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [planFilter, setPlanFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
 
     const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(null);
@@ -71,13 +94,25 @@ export default function OrganizationsPage() {
     };
 
     useEffect(() => { fetchOrganizations(); }, []);
-    useEffect(() => { setCurrentPage(1); }, [searchText]);
+    useEffect(() => { setCurrentPage(1); }, [searchText, statusFilter, planFilter]);
 
-    const filtered = organizations.filter(org =>
-        `${org.name} ${org.email} ${org.phone_number}`
-            .toLowerCase()
-            .includes(searchText.toLowerCase())
-    );
+    const stats = useMemo(() => {
+        const active     = organizations.filter(o => o.is_active).length;
+        const enterprise = organizations.filter(o => o.plan_type === 'enterprise').length;
+        const pro        = organizations.filter(o => o.plan_type === 'pro').length;
+        return { total: organizations.length, active, inactive: organizations.length - active, enterprise, pro };
+    }, [organizations]);
+
+    const planTypes = useMemo(() => (
+        [...new Set(organizations.map(o => o.plan_type))].sort()
+    ), [organizations]);
+
+    const filtered = useMemo(() => organizations.filter(org => {
+        const matchSearch = `${org.name} ${org.email} ${org.phone_number}`.toLowerCase().includes(searchText.toLowerCase());
+        const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? org.is_active : !org.is_active);
+        const matchPlan   = planFilter === 'all' || org.plan_type === planFilter;
+        return matchSearch && matchStatus && matchPlan;
+    }), [organizations, searchText, statusFilter, planFilter]);
 
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
     const current = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -129,28 +164,76 @@ export default function OrganizationsPage() {
                 }
             />
 
-            <div className="relative max-w-sm">
-                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                <Input
-                    placeholder="Search organizations…"
-                    className="h-9 pl-9"
-                    value={searchText}
-                    onChange={e => setSearchText(e.target.value)}
-                />
+            {/* ── Summary stat chips ──────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <StatChip label="Total" value={stats.total} sub="organizations" />
+                <StatChip label="Active" value={stats.active} sub={`${stats.inactive} inactive`} />
+                <StatChip label="Pro" value={stats.pro} sub="on pro plan" />
+                <StatChip label="Enterprise" value={stats.enterprise} sub="on enterprise plan" />
             </div>
 
+            {/* ── Filters toolbar ─────────────────────────────────────────────── */}
+            <div className="flex flex-wrap items-center gap-3">
+                <div className="relative min-w-48 flex-1 max-w-sm">
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                    <Input
+                        placeholder="Search organizations…"
+                        className="h-9 pl-9 bg-white"
+                        value={searchText}
+                        onChange={e => setSearchText(e.target.value)}
+                    />
+                </div>
+
+                <div className="flex rounded-lg border bg-muted/40 p-0.5 gap-0.5">
+                    {(['all', 'active', 'inactive'] as StatusFilter[]).map(s => (
+                        <button
+                            key={s}
+                            onClick={() => setStatusFilter(s)}
+                            className={cn(
+                                "rounded-md px-3 py-1 text-xs font-medium capitalize transition-colors",
+                                statusFilter === s
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            {s}
+                        </button>
+                    ))}
+                </div>
+
+                <Select value={planFilter} onValueChange={setPlanFilter}>
+                    <SelectTrigger className="h-9 w-36 bg-white text-xs">
+                        <SelectValue placeholder="All plans" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All plans</SelectItem>
+                        {planTypes.map(p => (
+                            <SelectItem key={p} value={p} className="capitalize">
+                                {p.charAt(0).toUpperCase() + p.slice(1)}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {(searchText || statusFilter !== 'all' || planFilter !== 'all') && (
+                    <span className="text-muted-foreground text-xs">
+                        {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+                    </span>
+                )}
+            </div>
+
+            {/* ── Table ───────────────────────────────────────────────────────── */}
             <Card className="gap-0 overflow-hidden p-0">
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="pl-6">Name</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead>Email</TableHead>
+                                <TableHead className="pl-6 w-[260px]">Organization</TableHead>
+                                <TableHead>Contact</TableHead>
                                 <TableHead>Plan</TableHead>
-                                <TableHead>Shops / Users</TableHead>
+                                <TableHead>Capacity</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Created</TableHead>
+                                <TableHead>Joined</TableHead>
                                 <TableHead className="pr-6 w-[60px] text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -158,14 +241,14 @@ export default function OrganizationsPage() {
                             {loading ? (
                                 Array.from({ length: 6 }).map((_, i) => (
                                     <TableRow key={i}>
-                                        {Array.from({ length: 8 }).map((_, j) => (
+                                        {Array.from({ length: 7 }).map((_, j) => (
                                             <TableCell key={j}><Skeleton className="h-5 w-full rounded" /></TableCell>
                                         ))}
                                     </TableRow>
                                 ))
                             ) : current.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="py-20 text-center">
+                                    <TableCell colSpan={7} className="py-20 text-center">
                                         <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
                                             <Building2 className="text-muted-foreground size-7" />
                                         </div>
@@ -177,38 +260,71 @@ export default function OrganizationsPage() {
                                 </TableRow>
                             ) : current.map(org => (
                                 <TableRow key={org.id}>
-                                    <TableCell className="pl-6 font-semibold">{org.name}</TableCell>
-                                    <TableCell className="text-muted-foreground max-w-xs line-clamp-1 text-sm">
-                                        {org.description || '—'}
+                                    {/* Identity */}
+                                    <TableCell className="pl-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold">
+                                                {getInitials(org.name)}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-foreground truncate font-semibold text-sm leading-tight">{org.name}</p>
+                                                {org.description && (
+                                                    <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">{org.description}</p>
+                                                )}
+                                            </div>
+                                        </div>
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground text-sm">{org.email}</TableCell>
+                                    {/* Contact */}
+                                    <TableCell>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+                                                <Mail className="size-3 shrink-0" /> {org.email}
+                                            </span>
+                                            {org.phone_number && (
+                                                <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+                                                    <Phone className="size-3 shrink-0" /> {org.phone_number}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    {/* Plan */}
                                     <TableCell>
                                         <Badge
                                             variant="outline"
-                                            className={cn("capitalize rounded-full text-xs", PLAN_COLORS[org.plan_type] ?? 'border-border bg-muted text-muted-foreground')}
+                                            className={cn("capitalize rounded-full text-xs font-medium", PLAN_BADGE[org.plan_type] ?? 'border-border bg-muted text-muted-foreground')}
                                         >
+                                            {org.plan_type === 'enterprise' && <BadgeCheck className="mr-1 size-3" />}
                                             {org.plan_type}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground text-sm">
-                                        {org.max_shops} shops / {org.max_users} users
-                                    </TableCell>
+                                    {/* Capacity */}
                                     <TableCell>
-                                        <Badge
-                                            variant="outline"
-                                            className={cn(
-                                                "rounded-full text-xs",
-                                                org.is_active
-                                                    ? "border-success/30 bg-success/10 text-success"
-                                                    : "border-destructive/30 bg-destructive/10 text-destructive"
-                                            )}
-                                        >
-                                            {org.is_active ? 'Active' : 'Inactive'}
-                                        </Badge>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+                                                <Store className="size-3 shrink-0" /> {org.max_shops} shops
+                                            </span>
+                                            <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+                                                <Users className="size-3 shrink-0" /> {org.max_users} users
+                                            </span>
+                                        </div>
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground text-sm">
-                                        {new Date(org.created_at).toLocaleDateString()}
+                                    {/* Status */}
+                                    <TableCell>
+                                        {org.is_active ? (
+                                            <span className="text-success inline-flex items-center gap-1 text-xs font-medium">
+                                                <CheckCircle2 className="size-3.5" /> Active
+                                            </span>
+                                        ) : (
+                                            <span className="text-destructive inline-flex items-center gap-1 text-xs font-medium">
+                                                <XCircle className="size-3.5" /> Inactive
+                                            </span>
+                                        )}
                                     </TableCell>
+                                    {/* Joined */}
+                                    <TableCell className="text-muted-foreground text-xs">
+                                        {new Date(org.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </TableCell>
+                                    {/* Actions */}
                                     <TableCell className="pr-6 text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>

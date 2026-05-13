@@ -1,16 +1,13 @@
 import { FinanceOverviewResponse } from "@/interfaces/finance";
-import { getAPIHeaders } from "@/lib/getToken";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 
 export const GetFinanceOverview = async (
     shop_id?: number,
     start_date?: string,
     end_date?: string
 ): Promise<FinanceOverviewResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/finance/overview`, {
-            headers: getAPIHeaders(),
+        const response = await apiClient.get(`/finance/overview`, {
             params: {
                 shop_id,
                 start_date,

@@ -1,13 +1,9 @@
 import { WalkInsRequest, OrderWalkInsResponse, OrderRequest, OrderStatus, SoldItemsReportResponse, ConfirmPaymentRequest } from "@/interfaces/orders_walkins";
-import { getAPIHeaders } from "@/lib/getToken";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 
 export const CreateWalkIns = async (product_data: WalkInsRequest | OrderRequest): Promise<OrderWalkInsResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.post(`${url}/orders/`, product_data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.post(`/orders/`, product_data)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -19,11 +15,9 @@ export const GetWalkinOrdersList = async (
     skip = 0,
     limit = 50
 ): Promise<{ items: OrderWalkInsResponse[]; total: number }> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/orders/`, {
+        const response = await apiClient.get(`/orders/`, {
             params: { shop_id: shopId, skip, limit },
-            headers: getAPIHeaders(),
         })
         return response.data
     } catch (error: unknown) {
@@ -33,11 +27,8 @@ export const GetWalkinOrdersList = async (
 
 
 export const GetWalkinOrderById = async (id: number): Promise<OrderWalkInsResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/orders/${id}/`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/orders/${id}/`)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -45,11 +36,8 @@ export const GetWalkinOrderById = async (id: number): Promise<OrderWalkInsRespon
 }
 
 export const CloseOrder = async (id: number): Promise<OrderWalkInsResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.patch(`${url}/orders/${id}/close/`, {}, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.patch(`/orders/${id}/close/`, {})
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -58,11 +46,8 @@ export const CloseOrder = async (id: number): Promise<OrderWalkInsResponse> => {
 
 
 export const UpdateOrderStatus = async (id: number, status_name: OrderStatus): Promise<OrderWalkInsResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.put(`${url}/orders/${id}/status/${status_name}`, {}, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.put(`/orders/${id}/status/${status_name}`, {})
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -70,11 +55,8 @@ export const UpdateOrderStatus = async (id: number, status_name: OrderStatus): P
 }
 
 export const ConfirmOrderPayment = async (orderId: number, data: ConfirmPaymentRequest): Promise<OrderWalkInsResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.post(`${url}/orders/${orderId}/confirm-payment`, data, {
-            headers: getAPIHeaders(),
-        });
+        const response = await apiClient.post(`/orders/${orderId}/confirm-payment`, data);
         return response.data;
     } catch (error: unknown) {
         throw error;
@@ -82,19 +64,17 @@ export const ConfirmOrderPayment = async (orderId: number, data: ConfirmPaymentR
 };
 
 export const GetSoldItemsReport = async (date?: string, page: number = 1, size: number = 10, shopId?: number): Promise<SoldItemsReportResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/orders/sold-items/report`, {
+        const response = await apiClient.get(`/orders/sold-items/report`, {
             params: {
                 report_date: date,
                 page,
                 size,
                 shop_id: shopId
             },
-            headers: getAPIHeaders(),
         })
         return response.data
     } catch (error: unknown) {
         throw error;
     }
-}
+}

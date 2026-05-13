@@ -5,68 +5,79 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/(zustand-store)/authStore';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    Server,
-    Database,
-    Globe,
-    Lock,
-    Cpu,
-    HardDrive,
-    AlertTriangle,
-    CheckCircle2,
+    Server, Database, Globe, Lock, Cpu, HardDrive,
+    AlertTriangle, CheckCircle2, Zap, Users, Store,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const systemInfo = [
     {
         section: 'Application',
-        icon: <Globe className="size-4 text-info" />,
+        icon: Globe,
+        iconClass: 'text-info',
+        bgClass: 'bg-info/10',
         items: [
-            { label: 'Version', value: '1.0.0' },
+            { label: 'Version',     value: '1.0.0' },
             { label: 'Environment', value: 'Production', badge: 'border-success/30 bg-success/10 text-success' },
-            { label: 'Framework', value: 'Next.js 16 (App Router)' },
-            { label: 'API Base', value: process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL || 'http://127.0.0.1:8000' },
+            { label: 'Framework',   value: 'Next.js 16 (App Router)' },
+            { label: 'API Base',    value: process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL || 'http://127.0.0.1:8000' },
         ],
     },
     {
         section: 'Backend',
-        icon: <Server className="size-4 text-primary" />,
+        icon: Server,
+        iconClass: 'text-primary',
+        bgClass: 'bg-primary/10',
         items: [
-            { label: 'Runtime', value: 'FastAPI (Python 3.11+)' },
-            { label: 'Auth', value: 'JWT Bearer Tokens' },
+            { label: 'Runtime',          value: 'FastAPI (Python 3.11+)' },
+            { label: 'Auth',             value: 'JWT Bearer Tokens' },
             { label: 'Password Hashing', value: 'bcrypt' },
-            { label: 'CORS', value: 'Configured' },
+            { label: 'CORS',             value: 'Configured', badge: 'border-success/30 bg-success/10 text-success' },
         ],
     },
     {
         section: 'Database',
-        icon: <Database className="size-4 text-warning-foreground" />,
+        icon: Database,
+        iconClass: 'text-warning-foreground',
+        bgClass: 'bg-warning/10',
         items: [
-            { label: 'Engine', value: 'PostgreSQL' },
-            { label: 'ORM', value: 'SQLAlchemy + Alembic' },
-            { label: 'Migrations', value: 'Up to date', badge: 'border-success/30 bg-success/10 text-success' },
-            { label: 'Multi-tenant', value: 'Yes — Organization isolation' },
+            { label: 'Engine',      value: 'PostgreSQL' },
+            { label: 'ORM',         value: 'SQLAlchemy + Alembic' },
+            { label: 'Migrations',  value: 'Up to date', badge: 'border-success/30 bg-success/10 text-success' },
+            { label: 'Multi-tenant', value: 'Organization isolation' },
         ],
     },
     {
         section: 'Security',
-        icon: <Lock className="size-4 text-destructive" />,
+        icon: Lock,
+        iconClass: 'text-destructive',
+        bgClass: 'bg-destructive/10',
         items: [
-            { label: 'Token Storage', value: 'HTTP-only cookie (pos_token)' },
-            { label: 'Role System', value: 'SUPERADMIN → ADMIN → MANAGER → ATTENDANT' },
-            { label: 'Token Revocation', value: 'Supported' },
-            { label: 'Rate Limiting', value: 'Not configured', badge: 'border-warning/30 bg-warning/10 text-warning-foreground' },
+            { label: 'Token Storage',   value: 'HTTP-only cookie' },
+            { label: 'Role System',     value: 'SUPERADMIN → ADMIN → MANAGER → ATTENDANT' },
+            { label: 'Token Revocation', value: 'Supported', badge: 'border-success/30 bg-success/10 text-success' },
+            { label: 'Rate Limiting',   value: 'Configured', badge: 'border-success/30 bg-success/10 text-success' },
         ],
     },
 ];
 
 const planLimits = [
-    { plan: 'FREE', users: 5, shops: 2, badge: 'bg-muted text-muted-foreground border' },
-    { plan: 'BASIC', users: 15, shops: 8, badge: 'border-info/30 bg-info/10 text-info' },
-    { plan: 'PRO', users: 25, shops: 15, badge: 'border-primary/30 bg-primary/10 text-primary' },
-    { plan: 'ENTERPRISE', users: 50, shops: 20, badge: 'border-success/30 bg-success/10 text-success' },
+    { plan: 'FREE',       users: 5,  shops: 2,  badge: 'border-border bg-muted text-muted-foreground',         userBar: 10,  shopBar: 10 },
+    { plan: 'BASIC',      users: 15, shops: 8,  badge: 'border-info/30 bg-info/10 text-info',                  userBar: 30,  shopBar: 40 },
+    { plan: 'PRO',        users: 25, shops: 15, badge: 'border-primary/30 bg-primary/10 text-primary',          userBar: 50,  shopBar: 75 },
+    { plan: 'ENTERPRISE', users: 50, shops: 20, badge: 'border-warning/30 bg-warning/10 text-warning-foreground', userBar: 100, shopBar: 100 },
+];
+
+const infraNotes = [
+    { ok: true,  text: 'Multi-tenant architecture — each organization\'s data is logically isolated by organization_id.' },
+    { ok: true,  text: 'Reports generated server-side as PDF, Excel, CSV, or JSON via /reports/ endpoints.' },
+    { ok: true,  text: 'Daily closures workflow: open → submit → verify → close.' },
+    { ok: false, text: 'No background job scheduler configured. All operations are synchronous.' },
+    { ok: true,  text: 'Email delivery configured via Gmail SMTP (password reset, order notifications, low stock alerts).' },
 ];
 
 export default function SystemSettingsPage() {
@@ -74,9 +85,7 @@ export default function SystemSettingsPage() {
     const router = useRouter();
 
     useEffect(() => {
-        if (user && user.role !== 'superadmin') {
-            router.replace('/dashboard');
-        }
+        if (user && user.role !== 'superadmin') router.replace('/dashboard');
     }, [user, router]);
 
     if (!user || user.role !== 'superadmin') {
@@ -94,112 +103,130 @@ export default function SystemSettingsPage() {
                 description="Platform configuration, infrastructure details, and subscription plan limits."
             />
 
-            {/* Notice banner */}
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-warning/10 border border-warning/30">
+            {/* ── Notice banner ──────────────────────────────────────────────── */}
+            <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4">
                 <AlertTriangle className="size-4 text-warning-foreground mt-0.5 shrink-0" />
                 <p className="text-sm text-warning-foreground">
                     System configuration is managed via environment variables and backend settings.
-                    This page displays a read-only overview of the current configuration.
+                    This page is a <strong>read-only overview</strong> of the current configuration.
                 </p>
             </div>
 
-            {/* System info cards */}
+            {/* ── System info grid ───────────────────────────────────────────── */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {systemInfo.map((section) => (
-                    <Card key={section.section} className="p-5 rounded-2xl">
-                        <div className="flex items-center gap-2 mb-4 pb-3 border-b">
-                            <div className="size-7 rounded-lg bg-muted flex items-center justify-center">
-                                {section.icon}
-                            </div>
-                            <p className="font-semibold text-foreground text-sm">{section.section}</p>
-                        </div>
-                        <dl className="space-y-2.5">
-                            {section.items.map((item) => (
-                                <div key={item.label} className="flex items-center justify-between gap-3 text-sm">
-                                    <dt className="text-muted-foreground shrink-0">{item.label}</dt>
-                                    <dd className="text-right">
-                                        {item.badge ? (
-                                            <Badge className={`text-xs font-medium border ${item.badge}`}>
-                                                {item.value}
-                                            </Badge>
-                                        ) : (
-                                            <span className="text-foreground font-medium">{item.value}</span>
-                                        )}
-                                    </dd>
+                {systemInfo.map((section) => {
+                    const Icon = section.icon;
+                    return (
+                        <Card key={section.section} className="gap-0 p-0">
+                            <CardHeader className="border-b px-5 py-4">
+                                <div className="flex items-center gap-2.5">
+                                    <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0", section.bgClass)}>
+                                        <Icon className={cn("size-4", section.iconClass)} />
+                                    </div>
+                                    <CardTitle className="text-sm font-semibold">{section.section}</CardTitle>
                                 </div>
-                            ))}
-                        </dl>
-                    </Card>
-                ))}
+                            </CardHeader>
+                            <CardContent className="px-5 py-4">
+                                <dl className="space-y-3">
+                                    {section.items.map(item => (
+                                        <div key={item.label} className="flex items-center justify-between gap-3 text-sm">
+                                            <dt className="text-muted-foreground shrink-0 text-xs">{item.label}</dt>
+                                            <dd className="text-right">
+                                                {item.badge ? (
+                                                    <Badge variant="outline" className={cn('text-xs font-medium rounded-full', item.badge)}>
+                                                        {item.value}
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-foreground font-medium text-xs text-right">{item.value}</span>
+                                                )}
+                                            </dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
 
-            {/* Plan limits */}
-            <Card className="p-6 rounded-2xl">
-                <div className="flex items-center gap-2 mb-5">
-                    <Cpu className="size-4 text-muted-foreground" />
-                    <p className="font-semibold text-foreground">Subscription Plan Limits</p>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b">
-                                <th className="text-left py-2 pr-6 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Plan</th>
-                                <th className="text-center py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Max Users</th>
-                                <th className="text-center py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Max Shops</th>
-                                <th className="text-center py-2 pl-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/50">
-                            {planLimits.map((p) => (
-                                <tr key={p.plan}>
-                                    <td className="py-3 pr-6">
-                                        <Badge className={`font-semibold text-xs ${p.badge}`}>
-                                            {p.plan}
-                                        </Badge>
-                                    </td>
-                                    <td className="py-3 px-4 text-center font-medium text-foreground">{p.users}</td>
-                                    <td className="py-3 px-4 text-center font-medium text-foreground">{p.shops}</td>
-                                    <td className="py-3 pl-4 text-center">
-                                        <span className="inline-flex items-center gap-1 text-xs text-success">
-                                            <CheckCircle2 className="size-3" />
-                                            Active
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+            {/* ── Plan limits ────────────────────────────────────────────────── */}
+            <Card className="gap-0 p-0">
+                <CardHeader className="border-b px-5 py-4">
+                    <div className="flex items-center gap-2.5">
+                        <div className="size-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <Cpu className="size-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-sm font-semibold">Subscription Plan Limits</CardTitle>
+                            <p className="text-xs text-muted-foreground mt-0.5">Maximum capacity per plan tier</p>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="px-5 py-5">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {planLimits.map(p => (
+                            <div key={p.plan} className="rounded-xl border p-4 space-y-3">
+                                <Badge variant="outline" className={cn('text-xs font-semibold rounded-full', p.badge)}>
+                                    {p.plan}
+                                </Badge>
+                                <div className="space-y-2">
+                                    <div>
+                                        <div className="flex items-center justify-between text-xs mb-1">
+                                            <span className="text-muted-foreground flex items-center gap-1">
+                                                <Users className="size-3" /> Users
+                                            </span>
+                                            <span className="font-semibold text-foreground">{p.users}</span>
+                                        </div>
+                                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                                            <div className="h-full rounded-full bg-primary/60 transition-all" style={{ width: `${p.userBar}%` }} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center justify-between text-xs mb-1">
+                                            <span className="text-muted-foreground flex items-center gap-1">
+                                                <Store className="size-3" /> Shops
+                                            </span>
+                                            <span className="font-semibold text-foreground">{p.shops}</span>
+                                        </div>
+                                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                                            <div className="h-full rounded-full bg-info/60 transition-all" style={{ width: `${p.shopBar}%` }} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 text-success text-xs font-medium">
+                                    <Zap className="size-3" /> Active
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
             </Card>
 
-            {/* Infrastructure notes */}
-            <Card className="p-5 rounded-2xl">
-                <div className="flex items-center gap-2 mb-4">
-                    <HardDrive className="size-4 text-muted-foreground" />
-                    <p className="font-semibold text-foreground text-sm">Infrastructure Notes</p>
-                </div>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                        <CheckCircle2 className="size-3.5 text-success mt-0.5 shrink-0" />
-                        Multi-tenant architecture — each organization&apos;s data is logically isolated by <code className="text-xs bg-muted px-1 rounded">organization_id</code>.
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <CheckCircle2 className="size-3.5 text-success mt-0.5 shrink-0" />
-                        Reports are generated server-side as PDF, Excel, CSV, or JSON via <code className="text-xs bg-muted px-1 rounded">/reports/</code> endpoints.
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <CheckCircle2 className="size-3.5 text-success mt-0.5 shrink-0" />
-                        Daily closures workflow: <code className="text-xs bg-muted px-1 rounded">open → submit → verify → close</code>.
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <AlertTriangle className="size-3.5 text-warning-foreground mt-0.5 shrink-0" />
-                        No background job scheduler configured. All operations are synchronous.
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <AlertTriangle className="size-3.5 text-warning-foreground mt-0.5 shrink-0" />
-                        Email delivery not yet configured (password reset, order notifications).
-                    </li>
-                </ul>
+            {/* ── Infrastructure notes ───────────────────────────────────────── */}
+            <Card className="gap-0 p-0">
+                <CardHeader className="border-b px-5 py-4">
+                    <div className="flex items-center gap-2.5">
+                        <div className="size-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <HardDrive className="size-4 text-muted-foreground" />
+                        </div>
+                        <CardTitle className="text-sm font-semibold">Infrastructure Notes</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent className="px-5 py-4">
+                    <ul className="space-y-3">
+                        {infraNotes.map((note, i) => (
+                            <li key={i} className="flex items-start gap-2.5 text-sm">
+                                {note.ok
+                                    ? <CheckCircle2 className="size-4 text-success mt-0.5 shrink-0" />
+                                    : <AlertTriangle className="size-4 text-warning-foreground mt-0.5 shrink-0" />
+                                }
+                                <span className={note.ok ? 'text-muted-foreground' : 'text-warning-foreground'}>
+                                    {note.text}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </CardContent>
             </Card>
         </div>
     );

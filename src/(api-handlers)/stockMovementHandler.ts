@@ -1,17 +1,14 @@
 import { StockMovementResponse, StockMovementSummary } from "@/interfaces/StockMovements";
-import { getAPIHeaders } from "@/lib/getToken";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 
 
 export const GetStockMovement = async (
     skip = 0,
     limit = 50
 ): Promise<{ items: StockMovementResponse[]; total: number }> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/stock-movements/`, {
+        const response = await apiClient.get(`/stock-movements/`, {
             params: { skip, limit },
-            headers: getAPIHeaders(),
         })
         return response.data
     } catch (error: unknown) {
@@ -20,11 +17,8 @@ export const GetStockMovement = async (
 }
 
 export const GetStockMovementSummary = async (): Promise<StockMovementSummary> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/stock-movements/summary`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/stock-movements/summary`)
         return response.data
     } catch (error: unknown) {
         throw error;

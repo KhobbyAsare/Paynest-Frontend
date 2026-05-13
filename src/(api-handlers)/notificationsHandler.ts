@@ -1,5 +1,4 @@
-import axios from "axios";
-import { getAPIHeaders } from "@/lib/getToken";
+import apiClient from "@/lib/apiClient";
 
 const BASE_URL = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
 
@@ -21,24 +20,19 @@ export interface NotificationSummary {
 }
 
 export const getNotifications = async (limit = 15, offset = 0): Promise<NotificationSummary> => {
-    const res = await axios.get(`${BASE_URL}/notifications/me`, {
-        headers: getAPIHeaders(),
+    const res = await apiClient.get(`/notifications/me`, {
         params: { limit, offset },
     });
     return res.data;
 };
 
 export const markNotificationRead = async (id: number): Promise<AppNotification> => {
-    const res = await axios.put(`${BASE_URL}/notifications/${id}/read`, {}, {
-        headers: getAPIHeaders(),
-    });
+    const res = await apiClient.put(`/notifications/${id}/read`, {});
     return res.data;
 };
 
 export const markAllNotificationsRead = async (): Promise<void> => {
-    await axios.put(`${BASE_URL}/notifications/me/read-all`, {}, {
-        headers: getAPIHeaders(),
-    });
+    await apiClient.put(`/notifications/me/read-all`, {});
 };
 
 /**

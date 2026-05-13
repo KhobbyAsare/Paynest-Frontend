@@ -1,13 +1,9 @@
 import { ProductCategoriesRequest, ProductCategoriesResponse } from "@/interfaces/productCategories";
-import { getAPIHeaders } from "@/lib/getToken";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 
 export const CreateProductCategory = async (category_data: ProductCategoriesRequest): Promise<ProductCategoriesResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.post(`${url}/categories/`, category_data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.post(`/categories/`, category_data)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -15,12 +11,9 @@ export const CreateProductCategory = async (category_data: ProductCategoriesRequ
 }
 
 
-export const GetProductCategories = async (): Promise<ProductCategoriesResponse[]> =>{
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+export const GetProductCategories = async (): Promise<ProductCategoriesResponse[]> => {
     try {
-        const response = await axios.get(`${url}/categories/`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/categories/`)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -28,12 +21,9 @@ export const GetProductCategories = async (): Promise<ProductCategoriesResponse[
 }
 
 
-export const UpdateProductCategory = async (category_id:number, category_data: ProductCategoriesRequest): Promise<ProductCategoriesResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+export const UpdateProductCategory = async (category_id: number, category_data: ProductCategoriesRequest): Promise<ProductCategoriesResponse> => {
     try {
-        const response = await axios.put(`${url}/categories/${category_id}`, category_data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.put(`/categories/${category_id}`, category_data)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -41,12 +31,9 @@ export const UpdateProductCategory = async (category_id:number, category_data: P
 }
 
 
-export const DeleteProductCategory = async (category_id:number) => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+export const DeleteProductCategory = async (category_id: number) => {
     try {
-        const response = await axios.delete(`${url}/categories/${category_id}`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.delete(`/categories/${category_id}`)
         return response.data
     } catch (error: unknown) {
         throw error;

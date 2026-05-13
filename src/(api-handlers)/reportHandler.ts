@@ -1,4 +1,5 @@
 import { ApproveReportRequest, ReportRequest, ReportResponse, UpdateReportRequest } from "@/interfaces/report";
+import apiClient from "@/lib/apiClient";
 
 export interface ReportPreviewData {
     title: string;
@@ -7,15 +8,10 @@ export interface ReportPreviewData {
     rows: (string | number)[][];
     summary: Record<string, string | number>;
 }
-import { getAPIHeaders } from "@/lib/getToken";
-import axios from "axios";
 
 export const createReport = async (report_data: ReportRequest): Promise<ReportResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.post(`${url}/reports/`, report_data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.post(`/reports/`, report_data)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -23,11 +19,8 @@ export const createReport = async (report_data: ReportRequest): Promise<ReportRe
 }
 
 export const getAllReports = async (): Promise<ReportResponse[]> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/reports/`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/reports/`)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -35,11 +28,8 @@ export const getAllReports = async (): Promise<ReportResponse[]> => {
 }
 
 export const getMyResports = async (): Promise<ReportResponse[]> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/reports/my-reports`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/reports/my-reports`)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -47,11 +37,8 @@ export const getMyResports = async (): Promise<ReportResponse[]> => {
 }
 
 export const getReportByID = async (report_id: number): Promise<ReportResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/reports/${report_id}/`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/reports/${report_id}/`)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -59,11 +46,8 @@ export const getReportByID = async (report_id: number): Promise<ReportResponse> 
 }
 
 export const updateReport = async (report_id: number, report_data: UpdateReportRequest): Promise<ReportResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.put(`${url}/reports/${report_id}/`, report_data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.put(`/reports/${report_id}/`, report_data)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -71,11 +55,8 @@ export const updateReport = async (report_id: number, report_data: UpdateReportR
 }
 
 export const getPendingReports = async (): Promise<ReportResponse[]> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/reports/pending`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/reports/pending`)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -83,11 +64,8 @@ export const getPendingReports = async (): Promise<ReportResponse[]> => {
 }
 
 export const getApprovedReports = async (report_id: number, report_data: ApproveReportRequest): Promise<ReportResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.patch(`${url}/reports/${report_id}/approve`, report_data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.patch(`/reports/${report_id}/approve`, report_data)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -95,11 +73,8 @@ export const getApprovedReports = async (report_id: number, report_data: Approve
 }
 
 export const getReportPreview = async (report_id: number): Promise<ReportPreviewData> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/reports/${report_id}/preview`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/reports/${report_id}/preview`)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -107,14 +82,11 @@ export const getReportPreview = async (report_id: number): Promise<ReportPreview
 }
 
 export const downloadReport = async (report_id: number, fileName: string): Promise<void> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/reports/${report_id}/download`, {
-            headers: getAPIHeaders(),
+        const response = await apiClient.get(`/reports/${report_id}/download`, {
             responseType: 'blob'
         });
 
-        // Create a local URL for the binary data
         const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = blobUrl;
@@ -122,7 +94,6 @@ export const downloadReport = async (report_id: number, fileName: string): Promi
         document.body.appendChild(link);
         link.click();
 
-        // Clean up
         link.parentNode?.removeChild(link);
         window.URL.revokeObjectURL(blobUrl);
     } catch (error: unknown) {

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/(zustand-store)/authStore";
 import { AdminView } from "./views/AdminView";
+import { SuperAdminView } from "./views/SuperAdminView";
 import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
@@ -20,6 +21,7 @@ export default function Dashboard() {
     const renderView = () => {
         switch (user?.role) {
             case 'superadmin':
+                return <SuperAdminView />;
             case 'admin':
                 return <AdminView />;
             default:

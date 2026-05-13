@@ -293,7 +293,7 @@ export default function ResourcePage() {
 
 ## Known Gaps / TODO
 
-- [ ] Email notifications — backend SMTP credentials not configured yet (infrastructure is ready)
+- [x] Email notifications — Gmail SMTP configured; password reset, order notifications, low stock alerts, report ready, daily closure reminders all active
 - [x] Receipt printer hardware integration — WebUSB ESC/POS (`src/lib/escpos.ts` + `src/lib/printerService.ts`); settings at `/settings/printer`; POS modal auto-selects hardware over browser print
 - [ ] SMS notifications (no provider integrated)
 

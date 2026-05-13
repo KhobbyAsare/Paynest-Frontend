@@ -1,13 +1,9 @@
 import { CreateCustomerRequest, CustomerResponse } from "@/interfaces/customers";
-import { getAPIHeaders } from "@/lib/getToken";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 
 export const CreateCustomer = async (inventory_data: CreateCustomerRequest): Promise<CustomerResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.post(`${url}/customers/`, inventory_data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.post(`/customers/`, inventory_data)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -19,11 +15,9 @@ export const GetAllCustomers = async (
     skip = 0,
     limit = 20,
 ): Promise<{ items: CustomerResponse[]; total: number }> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/customers/`, {
+        const response = await apiClient.get(`/customers/`, {
             params: { shop_id: shopId, skip, limit },
-            headers: getAPIHeaders(),
         })
         return response.data
     } catch (error: unknown) {
@@ -32,11 +26,8 @@ export const GetAllCustomers = async (
 }
 
 export const GetCustomerByID = async (id: number): Promise<CustomerResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/customers/${id}/`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/customers/${id}/`)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -44,11 +35,8 @@ export const GetCustomerByID = async (id: number): Promise<CustomerResponse> => 
 }
 
 export const UpdateCustomer = async (id: number, inventory_data: CreateCustomerRequest): Promise<CustomerResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.put(`${url}/customers/${id}/`, inventory_data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.put(`/customers/${id}/`, inventory_data)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -56,11 +44,8 @@ export const UpdateCustomer = async (id: number, inventory_data: CreateCustomerR
 }
 
 export const DeleteCustomer = async (id: number): Promise<CustomerResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.delete(`${url}/customers/${id}/`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.delete(`/customers/${id}/`)
         return response.data
     } catch (error: unknown) {
         throw error;

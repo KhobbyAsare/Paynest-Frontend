@@ -1,15 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { UserResponse } from "@/interfaces/loginInterface"
-import { getAPIHeaders } from "@/lib/getToken"
-import axios from "axios";
+import apiClient from "@/lib/apiClient"
 
 
 export const getAllUsers = async (): Promise<UserResponse[]> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/user/all`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/user/all`)
         return response.data.items
     } catch (error: any) {
         throw error;
@@ -17,11 +13,8 @@ export const getAllUsers = async (): Promise<UserResponse[]> => {
 }
 
 export const getUserData = async (): Promise<UserResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/user/me`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/user/me`)
         return response.data
     } catch (error: any) {
         throw error;
@@ -31,11 +24,8 @@ export const getUserData = async (): Promise<UserResponse> => {
 
 // Administrator
 export const getOrganizationUsers = async (): Promise<UserResponse[]> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/user/users/organization`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/user/users/organization`)
         return response.data.items
     } catch (error: any) {
         throw error;
@@ -43,11 +33,8 @@ export const getOrganizationUsers = async (): Promise<UserResponse[]> => {
 }
 
 export const getUserByID = async (id: string | number): Promise<UserResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/user/${id}`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/user/${id}`)
         return response.data
     } catch (error: any) {
         throw error;
@@ -55,11 +42,8 @@ export const getUserByID = async (id: string | number): Promise<UserResponse> =>
 }
 
 export const updateUserProfile = async (data: { first_name?: string; last_name?: string; phone_number?: string; username?: string }): Promise<UserResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.put(`${url}/user/me`, data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.put(`/user/me`, data)
         return response.data
     } catch (error: any) {
         throw error;
@@ -83,11 +67,8 @@ export interface NotificationPreferences {
 }
 
 export const getNotificationPreferences = async (): Promise<NotificationPreferences> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/user/me/notification-preferences`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/user/me/notification-preferences`)
         return response.data
     } catch (error: any) {
         throw error;
@@ -95,11 +76,8 @@ export const getNotificationPreferences = async (): Promise<NotificationPreferen
 }
 
 export const updateNotificationPreferences = async (data: Partial<NotificationPreferences>): Promise<NotificationPreferences> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.put(`${url}/user/me/notification-preferences`, data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.put(`/user/me/notification-preferences`, data)
         return response.data
     } catch (error: any) {
         throw error;
@@ -107,11 +85,8 @@ export const updateNotificationPreferences = async (data: Partial<NotificationPr
 }
 
 export const changePassword = async (data: { current_password: string; new_password: string }): Promise<{ message: string }> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.post(`${url}/user/me/change-password`, data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.post(`/user/me/change-password`, data)
         return response.data
     } catch (error: any) {
         throw error;

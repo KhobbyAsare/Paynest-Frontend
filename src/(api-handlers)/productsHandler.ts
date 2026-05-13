@@ -1,14 +1,10 @@
 import { ProductRequest, ProductResponse } from "@/interfaces/products";
-import { getAPIHeaders } from "@/lib/getToken";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 
 
 export const CreateProduct = async (product_data: ProductRequest): Promise<ProductResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.post(`${url}/products/`, product_data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.post(`/products/`, product_data)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -17,11 +13,9 @@ export const CreateProduct = async (product_data: ProductRequest): Promise<Produ
 
 
 export const GetProducts = async (shopId?: number): Promise<ProductResponse[]> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/products/`, {
+        const response = await apiClient.get(`/products/`, {
             params: { shop_id: shopId },
-            headers: getAPIHeaders(),
         })
         return response.data.items
     } catch (error: unknown) {
@@ -30,11 +24,8 @@ export const GetProducts = async (shopId?: number): Promise<ProductResponse[]> =
 }
 
 export const GetProductByID = async (product_id: number): Promise<ProductResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/products/${product_id}`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/products/${product_id}`)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -42,11 +33,8 @@ export const GetProductByID = async (product_id: number): Promise<ProductRespons
 }
 
 export const UpdateProdctDetails = async (product_id: number, product_data: ProductRequest): Promise<ProductResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.put(`${url}/products/${product_id}`, product_data, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.put(`/products/${product_id}`, product_data)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -54,22 +42,16 @@ export const UpdateProdctDetails = async (product_id: number, product_data: Prod
 }
 
 export const DeleteProduct = async (product_id: number): Promise<void> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        await axios.delete(`${url}/products/${product_id}`, {
-            headers: getAPIHeaders(),
-        })
+        await apiClient.delete(`/products/${product_id}`)
     } catch (error: unknown) {
         throw error;
     }
 }
 
 export const GetProductByBarcode = async (barcode: string): Promise<ProductResponse> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/products/barcode/${encodeURIComponent(barcode)}`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/products/barcode/${encodeURIComponent(barcode)}`)
         return response.data
     } catch (error: unknown) {
         throw error;
@@ -77,11 +59,8 @@ export const GetProductByBarcode = async (barcode: string): Promise<ProductRespo
 }
 
 export const GetProductsByCategory = async (category_id: number): Promise<ProductResponse[]> => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
     try {
-        const response = await axios.get(`${url}/products/category/${category_id}`, {
-            headers: getAPIHeaders(),
-        })
+        const response = await apiClient.get(`/products/category/${category_id}`)
         return response.data
     } catch (error: unknown) {
         throw error;
