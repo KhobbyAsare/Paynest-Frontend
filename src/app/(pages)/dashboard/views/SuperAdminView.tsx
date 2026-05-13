@@ -48,14 +48,14 @@ const RANGES = [
     { label: '90D', days: 90 },
 ];
 
-const CHART_PRIMARY = 'hsl(var(--primary))';
-const CHART_INFO    = 'hsl(var(--info))';
+const CHART_PRIMARY = 'var(--primary)';
+const CHART_INFO    = 'var(--info)';
 
 const PIE_PALETTE = [
-    'hsl(var(--muted-foreground))',
-    'hsl(var(--info))',
-    'hsl(var(--primary))',
-    'hsl(var(--warning))',
+    'var(--muted-foreground)',
+    'var(--info)',
+    'var(--primary)',
+    'var(--warning)',
 ];
 
 const PLAN_ORDER = ['free', 'basic', 'pro', 'enterprise'];
@@ -74,7 +74,7 @@ const fmtShort = (n: number) => {
     return fmt(n);
 };
 
-const axisStyle = { fontSize: 10 };
+const axisStyle = { fontSize: 10, fill: 'var(--muted-foreground)' };
 
 // ─── Pie Tooltip ─────────────────────────────────────────────────────────────
 function PieTooltip({ active, payload }: {

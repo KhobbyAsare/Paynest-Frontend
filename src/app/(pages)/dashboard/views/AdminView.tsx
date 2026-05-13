@@ -186,7 +186,7 @@ export const AdminView = () => {
         profit: Number(sh.profit.toFixed(2)),
     }));
 
-    const axisStyle = { fontSize: 10 };
+    const axisStyle = { fontSize: 10, fill: 'var(--muted-foreground)' };
 
     return (
         <div className="flex flex-col gap-8">
@@ -431,7 +431,7 @@ export const AdminView = () => {
                                 </Pie>
                                 <Tooltip
                                     formatter={(v: unknown) => [fmt(Number(v ?? 0)), 'Revenue']}
-                                    contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', fontSize: 12 }}
+                                    contentStyle={{ borderRadius: '12px', border: '1px solid var(--border)', fontSize: 12, backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }}
                                 />
                                 <Legend
                                     iconType="circle"
