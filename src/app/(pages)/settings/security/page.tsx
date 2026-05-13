@@ -16,34 +16,34 @@ import { cn } from '@/lib/utils';
 function getStrength(pwd: string): { score: number; label: string; color: string } {
     if (!pwd) return { score: 0, label: '', color: '' };
     let score = 0;
-    if (pwd.length >= 8)  score++;
+    if (pwd.length >= 8) score++;
     if (pwd.length >= 12) score++;
     if (/[A-Z]/.test(pwd)) score++;
     if (/[0-9]/.test(pwd)) score++;
     if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    if (score <= 1) return { score, label: 'Weak',   color: 'bg-destructive' };
-    if (score <= 2) return { score, label: 'Fair',   color: 'bg-warning' };
-    if (score <= 3) return { score, label: 'Good',   color: 'bg-info' };
+    if (score <= 1) return { score, label: 'Weak', color: 'bg-destructive' };
+    if (score <= 2) return { score, label: 'Fair', color: 'bg-warning' };
+    if (score <= 3) return { score, label: 'Good', color: 'bg-info' };
     return { score, label: 'Strong', color: 'bg-success' };
 }
 
 const requirements = [
     { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
-    { label: 'Uppercase letter (A–Z)',  test: (p: string) => /[A-Z]/.test(p) },
-    { label: 'Number (0–9)',           test: (p: string) => /[0-9]/.test(p) },
-    { label: 'Special character',      test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+    { label: 'Uppercase letter (A–Z)', test: (p: string) => /[A-Z]/.test(p) },
+    { label: 'Number (0–9)', test: (p: string) => /[0-9]/.test(p) },
+    { label: 'Special character', test: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ];
 
 export default function SecuritySettingsPage() {
     const [saving, setSaving] = useState(false);
     const [showCurrent, setShowCurrent] = useState(false);
-    const [showNew, setShowNew]         = useState(false);
+    const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [form, setForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
 
-    const strength    = getStrength(form.new_password);
-    const mismatch    = !!form.confirm_password && form.confirm_password !== form.new_password;
-    const canSubmit   = form.current_password && form.new_password.length >= 8 && !mismatch;
+    const strength = getStrength(form.new_password);
+    const mismatch = !!form.confirm_password && form.confirm_password !== form.new_password;
+    const canSubmit = form.current_password && form.new_password.length >= 8 && !mismatch;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -128,15 +128,15 @@ export default function SecuritySettingsPage() {
                                 {form.new_password && (
                                     <div className="space-y-1.5 pt-1">
                                         <div className="flex gap-1">
-                                            {[1,2,3,4,5].map(i => (
+                                            {[1, 2, 3, 4, 5].map(i => (
                                                 <div key={i} className={cn("h-1 flex-1 rounded-full transition-colors",
                                                     i <= strength.score ? strength.color : 'bg-muted')} />
                                             ))}
                                         </div>
                                         <p className={cn("text-xs font-medium",
                                             strength.score <= 1 ? 'text-destructive' :
-                                            strength.score <= 2 ? 'text-warning-foreground' :
-                                            strength.score <= 3 ? 'text-info' : 'text-success'
+                                                strength.score <= 2 ? 'text-warning-foreground' :
+                                                    strength.score <= 3 ? 'text-info' : 'text-success'
                                         )}>
                                             {strength.label}
                                         </p>
@@ -201,7 +201,7 @@ export default function SecuritySettingsPage() {
 
                     <Card className="p-0 border-warning/30 bg-warning/5">
                         <CardContent className="px-5 py-4 space-y-2 text-xs text-warning-foreground">
-                            <p className="font-semibold">Security Tips</p>
+                            <p className="font-semibold dark:text-white">Security Tips</p>
                             <ul className="space-y-1.5 text-muted-foreground">
                                 <li>• Never share your password with anyone.</li>
                                 <li>• Use a password manager for unique credentials.</li>

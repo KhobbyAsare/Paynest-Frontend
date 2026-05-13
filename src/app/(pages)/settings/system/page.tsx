@@ -21,10 +21,10 @@ const systemInfo = [
         iconClass: 'text-info',
         bgClass: 'bg-info/10',
         items: [
-            { label: 'Version',     value: '1.0.0' },
+            { label: 'Version', value: '1.0.0' },
             { label: 'Environment', value: 'Production', badge: 'border-success/30 bg-success/10 text-success' },
-            { label: 'Framework',   value: 'Next.js 16 (App Router)' },
-            { label: 'API Base',    value: process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL || 'http://127.0.0.1:8000' },
+            { label: 'Framework', value: 'Next.js 16 (App Router)' },
+            { label: 'API Base', value: process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL || 'http://127.0.0.1:8000' },
         ],
     },
     {
@@ -33,21 +33,21 @@ const systemInfo = [
         iconClass: 'text-primary',
         bgClass: 'bg-primary/10',
         items: [
-            { label: 'Runtime',          value: 'FastAPI (Python 3.11+)' },
-            { label: 'Auth',             value: 'JWT Bearer Tokens' },
+            { label: 'Runtime', value: 'FastAPI (Python 3.11+)' },
+            { label: 'Auth', value: 'JWT Bearer Tokens' },
             { label: 'Password Hashing', value: 'bcrypt' },
-            { label: 'CORS',             value: 'Configured', badge: 'border-success/30 bg-success/10 text-success' },
+            { label: 'CORS', value: 'Configured', badge: 'border-success/30 bg-success/10 text-success' },
         ],
     },
     {
         section: 'Database',
         icon: Database,
-        iconClass: 'text-warning-foreground',
+        iconClass: 'text-warning-foreground dark:text-white',
         bgClass: 'bg-warning/10',
         items: [
-            { label: 'Engine',      value: 'PostgreSQL' },
-            { label: 'ORM',         value: 'SQLAlchemy + Alembic' },
-            { label: 'Migrations',  value: 'Up to date', badge: 'border-success/30 bg-success/10 text-success' },
+            { label: 'Engine', value: 'PostgreSQL' },
+            { label: 'ORM', value: 'SQLAlchemy + Alembic' },
+            { label: 'Migrations', value: 'Up to date', badge: 'border-success/30 bg-success/10 text-success' },
             { label: 'Multi-tenant', value: 'Organization isolation' },
         ],
     },
@@ -57,27 +57,27 @@ const systemInfo = [
         iconClass: 'text-destructive',
         bgClass: 'bg-destructive/10',
         items: [
-            { label: 'Token Storage',   value: 'HTTP-only cookie' },
-            { label: 'Role System',     value: 'SUPERADMIN → ADMIN → MANAGER → ATTENDANT' },
+            { label: 'Token Storage', value: 'HTTP-only cookie' },
+            { label: 'Role System', value: 'SUPERADMIN → ADMIN → MANAGER → ATTENDANT' },
             { label: 'Token Revocation', value: 'Supported', badge: 'border-success/30 bg-success/10 text-success' },
-            { label: 'Rate Limiting',   value: 'Configured', badge: 'border-success/30 bg-success/10 text-success' },
+            { label: 'Rate Limiting', value: 'Configured', badge: 'border-success/30 bg-success/10 text-success' },
         ],
     },
 ];
 
 const planLimits = [
-    { plan: 'FREE',       users: 5,  shops: 2,  badge: 'border-border bg-muted text-muted-foreground',         userBar: 10,  shopBar: 10 },
-    { plan: 'BASIC',      users: 15, shops: 8,  badge: 'border-info/30 bg-info/10 text-info',                  userBar: 30,  shopBar: 40 },
-    { plan: 'PRO',        users: 25, shops: 15, badge: 'border-primary/30 bg-primary/10 text-primary',          userBar: 50,  shopBar: 75 },
-    { plan: 'ENTERPRISE', users: 50, shops: 20, badge: 'border-warning/30 bg-warning/10 text-warning-foreground', userBar: 100, shopBar: 100 },
+    { plan: 'FREE', users: 5, shops: 2, badge: 'border-border bg-muted text-muted-foreground', userBar: 10, shopBar: 10 },
+    { plan: 'BASIC', users: 15, shops: 8, badge: 'border-info/30 bg-info/10 text-info', userBar: 30, shopBar: 40 },
+    { plan: 'PRO', users: 25, shops: 15, badge: 'border-primary/30 bg-primary/10 text-primary', userBar: 50, shopBar: 75 },
+    { plan: 'ENTERPRISE', users: 50, shops: 20, badge: 'border-warning/30 bg-warning/10 text-warning-foreground dark:text-white', userBar: 100, shopBar: 100 },
 ];
 
 const infraNotes = [
-    { ok: true,  text: 'Multi-tenant architecture — each organization\'s data is logically isolated by organization_id.' },
-    { ok: true,  text: 'Reports generated server-side as PDF, Excel, CSV, or JSON via /reports/ endpoints.' },
-    { ok: true,  text: 'Daily closures workflow: open → submit → verify → close.' },
+    { ok: true, text: 'Multi-tenant architecture — each organization\'s data is logically isolated by organization_id.' },
+    { ok: true, text: 'Reports generated server-side as PDF, Excel, CSV, or JSON via /reports/ endpoints.' },
+    { ok: true, text: 'Daily closures workflow: open → submit → verify → close.' },
     { ok: false, text: 'No background job scheduler configured. All operations are synchronous.' },
-    { ok: true,  text: 'Email delivery configured via Gmail SMTP (password reset, order notifications, low stock alerts).' },
+    { ok: true, text: 'Email delivery configured via Gmail SMTP (password reset, order notifications, low stock alerts).' },
 ];
 
 export default function SystemSettingsPage() {
@@ -104,9 +104,9 @@ export default function SystemSettingsPage() {
             />
 
             {/* ── Notice banner ──────────────────────────────────────────────── */}
-            <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4">
-                <AlertTriangle className="size-4 text-warning-foreground mt-0.5 shrink-0" />
-                <p className="text-sm text-warning-foreground">
+            <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4 dark:bg-warning/10 dark:border-warning/30">
+                <AlertTriangle className="size-4 text-warning-foreground mt-0.5 shrink-0 dark:text-white" />
+                <p className="text-sm text-warning-foreground dark:text-white">
                     System configuration is managed via environment variables and backend settings.
                     This page is a <strong>read-only overview</strong> of the current configuration.
                 </p>
@@ -218,9 +218,9 @@ export default function SystemSettingsPage() {
                             <li key={i} className="flex items-start gap-2.5 text-sm">
                                 {note.ok
                                     ? <CheckCircle2 className="size-4 text-success mt-0.5 shrink-0" />
-                                    : <AlertTriangle className="size-4 text-warning-foreground mt-0.5 shrink-0" />
+                                    : <AlertTriangle className="size-4 text-warning-foreground mt-0.5 shrink-0 dark:text-red-500" />
                                 }
-                                <span className={note.ok ? 'text-muted-foreground' : 'text-warning-foreground'}>
+                                <span className={note.ok ? 'text-muted-foreground' : 'text-warning-foreground dark:text-red-500'}>
                                     {note.text}
                                 </span>
                             </li>

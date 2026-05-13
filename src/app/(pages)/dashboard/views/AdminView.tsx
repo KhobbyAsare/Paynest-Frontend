@@ -47,17 +47,17 @@ const RANGES = [
     { label: '90D', days: 90 },
 ];
 
-// Brand palette for charts — maps to CSS variables at runtime
-const CHART_PRIMARY = 'hsl(var(--primary))';
-const CHART_INFO    = 'hsl(var(--info))';
+// Brand palette for charts — CSS vars are oklch values, use var() directly
+const CHART_PRIMARY = 'var(--primary)';
+const CHART_INFO    = 'var(--info)';
 const PIE_COLORS = [
-    'hsl(var(--primary))',
-    'hsl(var(--info))',
-    'hsl(var(--success))',
-    'hsl(var(--warning))',
-    'hsl(var(--destructive))',
-    '#8b5cf6',
-    '#ec4899',
+    'var(--primary)',
+    'var(--info)',
+    'var(--success)',
+    'var(--warning)',
+    'var(--destructive)',
+    'oklch(0.627 0.265 303.9)',
+    'oklch(0.645 0.246 16.439)',
 ];
 
 // ─── Custom chart tooltip ─────────────────────────────────────────────────────

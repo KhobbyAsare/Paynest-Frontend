@@ -17,17 +17,17 @@ import { User, Mail, Phone, AtSign, ShieldCheck, CheckCircle2, Calendar } from '
 import { cn } from '@/lib/utils';
 
 const ROLE_BADGE: Record<string, string> = {
-    superadmin: 'border-destructive/30 bg-destructive/10 text-destructive',
-    admin:      'border-info/30 bg-info/10 text-info',
-    manager:    'border-success/30 bg-success/10 text-success',
-    attendant:  'border-primary/30 bg-primary/10 text-primary',
+    superadmin: 'border-[#6f23de]/30 bg-[#6f23de]/10 text-[#6f23de]',
+    admin: 'border-info/30 bg-info/10 text-info',
+    manager: 'border-success/30 bg-success/10 text-success',
+    attendant: 'border-primary/30 bg-primary/10 text-primary',
 };
 
 const ROLE_AVATAR: Record<string, string> = {
-    superadmin: 'bg-destructive/10 text-destructive',
-    admin:      'bg-info/10 text-info',
-    manager:    'bg-success/10 text-success',
-    attendant:  'bg-primary/10 text-primary',
+    superadmin: 'bg-[#6f23de]/10 text-[#6f23de]',
+    admin: 'bg-info/10 text-info',
+    manager: 'bg-success/10 text-success',
+    attendant: 'bg-primary/10 text-primary',
 };
 
 function getInitials(first?: string, last?: string) {
@@ -49,10 +49,10 @@ export default function ProfileSettingsPage() {
         getUserData()
             .then(data => {
                 setForm({
-                    first_name:   data.first_name || '',
-                    last_name:    data.last_name || '',
+                    first_name: data.first_name || '',
+                    last_name: data.last_name || '',
                     phone_number: data.phone_number || '',
-                    username:     data.username || '',
+                    username: data.username || '',
                 });
             })
             .catch(err => handleErrorMessage(err))
