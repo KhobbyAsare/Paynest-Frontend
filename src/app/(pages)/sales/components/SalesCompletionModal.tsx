@@ -42,12 +42,14 @@ import {
     MapPin,
     Printer,
     Usb,
+    Download,
     X,
 } from "lucide-react";
 import { handleErrorMessage } from "@/lib/handleErrorMessage";
 import { printerService } from "@/lib/printerService";
 import { useCurrency, useOrgCurrency } from "@/hooks/useCurrency";
 import { formatCurrencyAscii } from "@/lib/currency";
+import { jsPDF } from "jspdf";
 
 interface SalesCompletionModalProps {
     isOpen: boolean;
@@ -244,131 +246,106 @@ export function SalesCompletionModal({
         [orgCurrency],
     );
 
-    const browserPrint = useCallback(() => {
+    const downloadPDF = useCallback(() => {
         if (!completedSale) return;
 
-        const printWindow = window.open("", "_blank");
-        if (!printWindow) {
-            toast.error("Please allow popups to print the receipt");
-            return;
+        const doc = new jsPDF({ unit: "mm", format: [80, 297], orientation: "portrait" });
+        const W = 80;
+        const margin = 6;
+        const col2 = W - margin;
+        let y = margin;
+
+        const line = (thickness = 0.2) => {
+            doc.setLineWidth(thickness);
+            doc.line(margin, y, col2, y);
+            y += 3;
+        };
+
+        const dashedLine = () => {
+            doc.setLineDashPattern([1, 1], 0);
+            doc.setLineWidth(0.2);
+            doc.line(margin, y, col2, y);
+            doc.setLineDashPattern([], 0);
+            y += 3;
+        };
+
+        const row = (left: string, right: string, bold = false, size = 8) => {
+            doc.setFontSize(size);
+            doc.setFont("helvetica", bold ? "bold" : "normal");
+            doc.text(left, margin, y);
+            doc.text(right, col2, y, { align: "right" });
+            y += size * 0.45;
+        };
+
+        const centered = (text: string, size = 9, bold = false) => {
+            doc.setFontSize(size);
+            doc.setFont("helvetica", bold ? "bold" : "normal");
+            doc.text(text, W / 2, y, { align: "center" });
+            y += size * 0.45;
+        };
+
+        // Header
+        y += 2;
+        centered(completedSale.orgName, 12, true);
+        y += 1;
+        centered(completedSale.isOrder ? "Order Receipt" : "Payment Receipt", 8);
+        y += 3;
+        dashedLine();
+
+        // Date / time
+        const dateStr = completedSale.timestamp.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+        const timeStr = completedSale.timestamp.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        row(dateStr, timeStr, false, 7);
+        y += 2;
+        dashedLine();
+
+        // Items
+        for (const item of completedSale.items) {
+            const label = `${item.name} x${item.quantity}`;
+            const wrapped = doc.splitTextToSize(label, col2 - margin - 20);
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "normal");
+            doc.text(wrapped, margin, y);
+            doc.text(fmt(item.lineTotal), col2, y, { align: "right" });
+            y += wrapped.length * 3.6 + 0.5;
         }
 
-        const itemsHtml = completedSale.items
-            .map(
-                (item) => `
-                    <div class="row">
-                        <span class="item-name">${item.name} <span class="muted">×${item.quantity}</span></span>
-                        <span class="item-price">${fmt(item.lineTotal)}</span>
-                    </div>`,
-            )
-            .join("");
+        y += 1;
+        dashedLine();
 
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Receipt — ${completedSale.orgName}</title>
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body {
-                        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-                        padding: 20px;
-                        background: white;
-                        color: #0f172a;
-                    }
-                    .receipt { max-width: 360px; margin: 0 auto; }
-                    .header { text-align: center; padding: 16px 0 20px; border-bottom: 2px dashed #cbd5e1; }
-                    .org { font-size: 16px; font-weight: 700; }
-                    .title { font-size: 13px; color: #64748b; margin-top: 4px; }
-                    .meta { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; padding: 12px 0; }
-                    .items { padding: 8px 0 12px; border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; }
-                    .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
-                    .item-name { flex: 1; padding-right: 8px; }
-                    .item-price { font-variant-numeric: tabular-nums; font-weight: 500; }
-                    .muted { color: #94a3b8; }
-                    .totals { padding: 10px 0; font-size: 13px; }
-                    .totals .row { color: #64748b; }
-                    .totals .discount { color: #059669; }
-                    .grand {
-                        display: flex; justify-content: space-between;
-                        padding-top: 10px; margin-top: 8px;
-                        border-top: 1px solid #e2e8f0;
-                        font-size: 15px; font-weight: 700;
-                    }
-                    .grand .amount { font-variant-numeric: tabular-nums; }
-                    .payment {
-                        margin-top: 16px; padding: 10px;
-                        background: #f8fafc; border-radius: 8px;
-                        text-align: center; font-size: 12px; color: #475569;
-                    }
-                    .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 16px; }
-                </style>
-            </head>
-            <body>
-                <div class="receipt">
-                    <div class="header">
-                        <div class="org">${completedSale.orgName}</div>
-                        <div class="title">${
-                            completedSale.isOrder
-                                ? "Order Receipt"
-                                : "Payment Receipt"
-                        }</div>
-                    </div>
-                    <div class="meta">
-                        <span>${completedSale.timestamp.toLocaleDateString(
-                            "en-GB",
-                            {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                            },
-                        )}</span>
-                        <span>${completedSale.timestamp.toLocaleTimeString(
-                            "en-GB",
-                            { hour: "2-digit", minute: "2-digit" },
-                        )}</span>
-                    </div>
-                    <div class="items">${itemsHtml}</div>
-                    <div class="totals">
-                        <div class="row">
-                            <span>Subtotal</span>
-                            <span>${fmt(completedSale.subtotal)}</span>
-                        </div>
-                        <div class="row">
-                            <span>Tax</span>
-                            <span>${fmt(completedSale.tax)}</span>
-                        </div>
-                        ${
-                            completedSale.discount > 0
-                                ? `<div class="row discount"><span>Discount</span><span>−${fmt(
-                                      completedSale.discount,
-                                  )}</span></div>`
-                                : ""
-                        }
-                    </div>
-                    <div class="grand">
-                        <span>Total Paid</span>
-                        <span class="amount">${fmt(completedSale.total)}</span>
-                    </div>
-                    <div class="payment">
-                        Paid via ${
-                            paymentLabel[completedSale.paymentMethod] ||
-                            completedSale.paymentMethod
-                        }
-                    </div>
-                    <div class="footer">Thank you for your purchase!</div>
-                </div>
-                <script>
-                    window.onload = () => {
-                        window.print();
-                        window.onafterprint = () => window.close();
-                    };
-                <\/script>
-            </body>
-            </html>
-        `);
+        // Totals
+        row("Subtotal", fmt(completedSale.subtotal), false, 8);
+        y += 0.5;
+        row("Tax", fmt(completedSale.tax), false, 8);
+        if (completedSale.discount > 0) {
+            y += 0.5;
+            row("Discount", `-${fmt(completedSale.discount)}`, false, 8);
+        }
+        y += 2;
+        line(0.4);
+        row("Total Paid", fmt(completedSale.total), true, 10);
+        y += 3;
 
-        printWindow.document.close();
+        // Payment method
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80, 80, 80);
+        centered(`Paid via ${paymentLabel[completedSale.paymentMethod] || completedSale.paymentMethod}`, 8);
+        y += 4;
+        centered("Thank you for your purchase!", 7);
+
+        doc.setTextColor(0, 0, 0);
+
+        const filename = `receipt-${completedSale.timestamp.toISOString().slice(0, 10)}.pdf`;
+        const blob = doc.output("blob");
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }, [completedSale, fmt]);
 
     const handlePrint = useCallback(async () => {
@@ -405,13 +382,13 @@ export function SalesCompletionModal({
                 });
                 toast.success("Receipt sent to printer");
             } catch {
-                toast.error("Hardware print failed — using browser print");
-                browserPrint();
+                toast.error("Hardware print failed — downloading PDF instead");
+                downloadPDF();
             }
         } else {
-            browserPrint();
+            downloadPDF();
         }
-    }, [completedSale, fmtEsc, browserPrint]);
+    }, [completedSale, fmtEsc, downloadPDF]);
 
     const handleCloseReceipt = () => {
         setCompletedSale(null);
@@ -547,8 +524,10 @@ export function SalesCompletionModal({
                                 Close
                             </Button>
                             <Button className="flex-1" onClick={handlePrint}>
-                                <Printer data-icon="inline-start" />
-                                Print Receipt
+                                {printerConnected
+                                    ? <Printer data-icon="inline-start" />
+                                    : <Download data-icon="inline-start" />}
+                                {printerConnected ? "Print Receipt" : "Download PDF"}
                             </Button>
                         </div>
                         {/* Printer status hint */}
@@ -556,7 +535,7 @@ export function SalesCompletionModal({
                             <Usb className="size-3" />
                             {printerConnected
                                 ? <span className="text-success font-medium">Hardware printer connected</span>
-                                : <span>No printer connected — will use browser print</span>}
+                                : <span>No printer — receipt saved as PDF</span>}
                         </div>
                     </div>
                 </DialogContent>
