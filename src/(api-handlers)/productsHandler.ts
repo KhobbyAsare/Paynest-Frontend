@@ -58,6 +58,15 @@ export const GetProductByBarcode = async (barcode: string): Promise<ProductRespo
     }
 }
 
+export const uploadProductImage = async (file: File): Promise<{ image_url: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post('/products/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+};
+
 export const GetProductsByCategory = async (category_id: number): Promise<ProductResponse[]> => {
     try {
         const response = await apiClient.get(`/products/category/${category_id}`)

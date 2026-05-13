@@ -25,7 +25,6 @@ import {
     Printer,
     ReceiptText,
     Settings,
-    ShieldCheck,
     ShoppingCart,
     UserPlus,
     Users,
@@ -193,7 +192,6 @@ const NAV_GROUPS: NavGroup[] = [
                 subItems: [
                     { name: "All Users", href: "/users", icon: Users, roles: ["superadmin", "admin"] },
                     { name: "Setup Employee Profile", href: "/users/setup-employee-profile", icon: CircleUser, roles: ["admin"] },
-                    { name: "Roles & Permissions", href: "/users/roles", icon: ShieldCheck, roles: ["superadmin"] },
                 ],
             },
             { name: "Audit Logs", href: "/audit-log", icon: FileText, roles: ["superadmin"] },

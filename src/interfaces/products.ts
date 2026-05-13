@@ -12,7 +12,8 @@ export interface ProductRequest {
     markup_percentage: number,
     tax_rate: number,
     is_taxable: boolean,
-    is_active: boolean
+    is_active: boolean,
+    image_url?: string,
 }
 
 export interface ProductResponse {

@@ -8,9 +8,10 @@ import {
     Barcode, Package, Tag, Layers, FilterX, DollarSign,
     Percent, CheckCircle, XCircle, TrendingUp, TrendingDown,
     Eye, Calendar, Clock, Building2, AlertTriangle,
+    ImagePlus, X, Loader2, ImageOff,
 } from 'lucide-react';
 import {
-    GetProducts, CreateProduct, UpdateProdctDetails, DeleteProduct,
+    GetProducts, CreateProduct, UpdateProdctDetails, DeleteProduct, uploadProductImage,
 } from '@/(api-handlers)/productsHandler';
 import { GetProductCategories } from '@/(api-handlers)/productCategoriesHandler';
 import { getOrganizationShops } from '@/(api-handlers)/organizationShopsHandler';
@@ -91,6 +92,9 @@ export default function ProductsPage() {
     const [viewingProduct, setViewingProduct] = useState<ProductResponse | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<ProductResponse | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [imageUrl, setImageUrl] = useState<string>('');
+    const [imageUploading, setImageUploading] = useState(false);
+    const [imageDragOver, setImageDragOver] = useState(false);
 
     const { user } = useAuthStore();
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
@@ -127,6 +131,7 @@ export default function ProductsPage() {
 
     const openModal = (product: ProductResponse | null = null) => {
         setEditingProduct(product);
+        setImageUrl(product?.image_url ?? '');
         if (product) {
             reset({
                 name: product.name,
@@ -150,7 +155,28 @@ export default function ProductsPage() {
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingProduct(null);
+        setImageUrl('');
         reset();
+    };
+
+    const handleImageFile = async (file: File) => {
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please select an image file');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Image must be smaller than 5 MB');
+            return;
+        }
+        setImageUploading(true);
+        try {
+            const { image_url } = await uploadProductImage(file);
+            setImageUrl(image_url);
+        } catch {
+            toast.error('Image upload failed — please try again');
+        } finally {
+            setImageUploading(false);
+        }
     };
 
     const onSubmit = async (values: ProductFormValues) => {
@@ -169,6 +195,7 @@ export default function ProductsPage() {
                 tax_rate: Number(values.tax_rate || 0),
                 is_taxable: values.is_taxable,
                 is_active: values.is_active,
+                image_url: imageUrl || undefined,
             };
             if (editingProduct) {
                 await UpdateProdctDetails(editingProduct.id, productData);
@@ -285,18 +312,25 @@ export default function ProductsPage() {
 
             {/* Product grid */}
             {loading ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="bg-card rounded-xl border p-4 space-y-3">
-                            <Skeleton className="h-8 w-8 rounded-lg" />
-                            <Skeleton className="h-5 w-3/4 rounded" />
-                            <Skeleton className="h-4 w-1/2 rounded" />
-                            <Skeleton className="h-8 w-full rounded" />
+                        <div key={i} className="bg-card rounded-2xl border overflow-hidden">
+                            <Skeleton className="h-44 w-full rounded-none" />
+                            <div className="p-4 space-y-3">
+                                <Skeleton className="h-4 w-3/4" />
+                                <Skeleton className="h-3 w-1/2" />
+                                <Skeleton className="h-6 w-1/3" />
+                                <Skeleton className="h-1.5 w-full rounded-full" />
+                                <div className="flex gap-2 pt-1">
+                                    <Skeleton className="h-8 flex-1 rounded-lg" />
+                                    <Skeleton className="h-8 flex-1 rounded-lg" />
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>
             ) : filtered.length === 0 ? (
-                <div className="bg-card flex flex-col items-center justify-center rounded-xl border py-24">
+                <div className="bg-card flex flex-col items-center justify-center rounded-2xl border py-24">
                     <div className="bg-muted mb-6 flex size-16 items-center justify-center rounded-full">
                         <Package className="text-muted-foreground size-8" />
                     </div>
@@ -307,35 +341,74 @@ export default function ProductsPage() {
                     </Button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filtered.map(product => {
                         const mp = product.markup_percentage ?? 0;
                         const profit = product.selling_price - product.cost_price;
+                        const initial = product.name.charAt(0).toUpperCase();
                         return (
                             <div
                                 key={product.id}
-                                className="bg-card group rounded-xl border transition-shadow hover:shadow-md"
+                                className="bg-card group rounded-2xl border overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
                             >
-                                <div className="p-4">
-                                    {/* Header */}
-                                    <div className="mb-3 flex items-start justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className={cn(
-                                                'flex size-8 items-center justify-center rounded-lg',
-                                                product.is_active ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+                                {/* ── Image / placeholder hero ── */}
+                                <div className="relative h-44 w-full overflow-hidden">
+                                    {product.image_url ? (
+                                        <>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={product.image_url}
+                                                alt={product.name}
+                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            />
+                                            {/* Bottom gradient so text is legible */}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                                        </>
+                                    ) : (
+                                        <div className={cn(
+                                            'h-full w-full flex flex-col items-center justify-center gap-2',
+                                            product.is_active
+                                                ? 'bg-gradient-to-br from-primary/15 to-primary/5'
+                                                : 'bg-gradient-to-br from-muted to-muted/60',
+                                        )}>
+                                            <span className={cn(
+                                                'text-4xl font-black select-none',
+                                                product.is_active ? 'text-primary/25' : 'text-muted-foreground/20',
                                             )}>
-                                                <Package className="size-4" />
-                                            </div>
-                                            <div>
-                                                <p className="text-foreground text-sm font-semibold leading-tight line-clamp-1">{product.name}</p>
-                                                <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[10px]">
-                                                    <Tag className="size-3" /> {getCategoryName(product.category_id)}
-                                                </p>
-                                            </div>
+                                                {initial}
+                                            </span>
+                                            <Package className={cn(
+                                                'size-5',
+                                                product.is_active ? 'text-primary/20' : 'text-muted-foreground/20',
+                                            )} />
                                         </div>
+                                    )}
+
+                                    {/* Status badge — top left */}
+                                    <div className="absolute top-2.5 left-2.5">
+                                        <Badge
+                                            variant="outline"
+                                            className={cn(
+                                                'rounded-full text-[10px] font-semibold backdrop-blur-sm',
+                                                product.is_active
+                                                    ? 'border-success/40 bg-success/20 text-success'
+                                                    : 'border-border/60 bg-background/60 text-muted-foreground',
+                                            )}
+                                        >
+                                            {product.is_active ? 'Active' : 'Archived'}
+                                        </Badge>
+                                    </div>
+
+                                    {/* Actions menu — top right */}
+                                    <div className="absolute top-2 right-2">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="size-6 rounded-lg" aria-label="Product actions">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-7 rounded-lg bg-background/70 backdrop-blur-sm hover:bg-background/90 border border-border/40"
+                                                    aria-label="Product actions"
+                                                >
                                                     <MoreHorizontal className="size-3.5" />
                                                 </Button>
                                             </DropdownMenuTrigger>
@@ -354,76 +427,112 @@ export default function ProductsPage() {
                                         </DropdownMenu>
                                     </div>
 
-                                    {/* Active badge */}
-                                    <Badge
-                                        variant="outline"
-                                        className={cn(
-                                            'mb-3 rounded-full text-[10px] font-medium',
-                                            product.is_active
-                                                ? 'border-success/30 bg-success/10 text-success'
-                                                : 'border-border bg-muted text-muted-foreground',
-                                        )}
-                                    >
-                                        {product.is_active ? 'Active' : 'Archived'}
-                                    </Badge>
+                                    {/* Name + category overlay at bottom (only on image cards) */}
+                                    {product.image_url && (
+                                        <div className="absolute bottom-0 left-0 right-0 px-3.5 pb-3 pt-4">
+                                            <p className="text-white text-sm font-semibold leading-tight line-clamp-1 drop-shadow">{product.name}</p>
+                                            <p className="text-white/70 mt-0.5 flex items-center gap-1 text-[10px]">
+                                                <Tag className="size-3" /> {getCategoryName(product.category_id)}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
 
-                                    {/* SKU / Barcode */}
-                                    <div className="mb-3 flex items-center justify-between text-[10px]">
-                                        <span className="text-muted-foreground font-mono truncate max-w-[80px]" title={product.sku}>{product.sku || '—'}</span>
-                                        <span className="text-muted-foreground flex items-center gap-1">
+                                {/* ── Card body ── */}
+                                <div className="p-4 space-y-3.5">
+                                    {/* Name + category (only when no image) */}
+                                    {!product.image_url && (
+                                        <div>
+                                            <p className="text-foreground text-sm font-semibold leading-tight line-clamp-1">{product.name}</p>
+                                            <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[10px]">
+                                                <Tag className="size-3" /> {getCategoryName(product.category_id)}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* SKU row */}
+                                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                        <span className="font-mono truncate max-w-[90px]" title={product.sku}>{product.sku || 'No SKU'}</span>
+                                        <span className="flex items-center gap-1">
                                             <Barcode className="size-3" />
-                                            <span className="truncate max-w-[60px]">{product.barcode || 'No barcode'}</span>
+                                            <span className="truncate max-w-[70px]">{product.barcode || '—'}</span>
                                         </span>
                                     </div>
 
                                     {/* Prices */}
-                                    <div className="mb-2 flex items-end justify-between">
+                                    <div className="flex items-end justify-between">
                                         <div>
-                                            <p className="text-muted-foreground text-[10px]">Selling</p>
-                                            <p className="text-foreground num-tabular text-base font-bold">
+                                            <p className="text-[10px] text-muted-foreground mb-0.5">Selling price</p>
+                                            <p className="text-foreground num-tabular text-lg font-bold leading-none">
                                                 {fmt(product.selling_price)}
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-muted-foreground text-[10px]">Cost</p>
-                                            <p className="text-muted-foreground num-tabular text-sm font-medium">
+                                            <p className="text-[10px] text-muted-foreground mb-0.5">Cost</p>
+                                            <p className="text-muted-foreground num-tabular text-xs font-medium">
                                                 {fmt(product.cost_price)}
                                             </p>
                                         </div>
                                     </div>
 
-                                    {/* Margin + profit */}
-                                    <div className="mb-2 flex items-center justify-between">
-                                        <span className={cn('text-xs font-medium', marginColor(mp))}>
-                                            {mp.toFixed(1)}% margin
-                                        </span>
-                                        <span className={cn('flex items-center gap-1 text-xs font-medium', profit >= 0 ? 'text-success' : 'text-destructive')}>
-                                            {profit >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-                                            {fmt(Math.abs(profit))}
-                                        </span>
-                                    </div>
-
-                                    <div className="bg-muted mb-3 h-1.5 overflow-hidden rounded-full">
-                                        <div
-                                            className={cn('h-full transition-all duration-500', marginBarClass(mp))}
-                                            style={{ width: `${Math.min(mp, 100)}%` }}
-                                        />
-                                    </div>
-
-                                    {product.is_taxable && (
-                                        <div className="bg-warning/10 text-warning-foreground mb-3 flex items-center gap-1 rounded-lg px-2 py-1 text-[10px]">
-                                            <Percent className="size-3" /> Tax {product.tax_rate}%
+                                    {/* Margin bar */}
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center justify-between text-[11px]">
+                                            <span className={cn('font-semibold', marginColor(mp))}>
+                                                {mp.toFixed(1)}% margin
+                                            </span>
+                                            <span className={cn('flex items-center gap-1 font-medium', profit >= 0 ? 'text-success' : 'text-destructive')}>
+                                                {profit >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+                                                {fmt(Math.abs(profit))} profit
+                                            </span>
                                         </div>
-                                    )}
+                                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                                            <div
+                                                className={cn('h-full rounded-full transition-all duration-500', marginBarClass(mp))}
+                                                style={{ width: `${Math.min(mp, 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
 
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-8 w-full text-xs"
-                                        onClick={() => setViewingProduct(product)}
-                                    >
-                                        <Eye className="mr-1.5 size-3.5" /> View Details
-                                    </Button>
+                                    {/* Stock + tax chips */}
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className={cn(
+                                            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                                            (product.stock_quantity ?? 0) === 0
+                                                ? 'bg-destructive/10 text-destructive'
+                                                : (product.stock_quantity ?? 0) <= 5
+                                                    ? 'bg-warning/10 text-warning-foreground'
+                                                    : 'bg-muted text-muted-foreground',
+                                        )}>
+                                            <Package className="size-2.5" />
+                                            {(product.stock_quantity ?? 0) === 0 ? 'Out of stock' : `${product.stock_quantity} in stock`}
+                                        </span>
+                                        {product.is_taxable && (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground">
+                                                <Percent className="size-2.5" /> {product.tax_rate}% tax
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex gap-2 pt-0.5">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 flex-1 text-xs"
+                                            onClick={() => setViewingProduct(product)}
+                                        >
+                                            <Eye className="size-3.5" /> Details
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 flex-1 text-xs"
+                                            onClick={() => openModal(product)}
+                                        >
+                                            <Pencil className="size-3.5" /> Edit
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         );
@@ -442,6 +551,64 @@ export default function ProductsPage() {
                     </DialogHeader>
 
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-2">
+
+                        {/* Image upload */}
+                        <div className="space-y-2">
+                            <p className="text-muted-foreground flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
+                                <ImagePlus className="size-3.5" /> Product image
+                            </p>
+                            {imageUrl ? (
+                                <div className="relative w-full h-44 rounded-xl overflow-hidden border group">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <label className="cursor-pointer rounded-lg bg-white/90 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-white transition-colors">
+                                            Change image
+                                            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only"
+                                                onChange={e => e.target.files?.[0] && handleImageFile(e.target.files[0])} />
+                                        </label>
+                                        <button type="button" onClick={() => setImageUrl('')}
+                                            className="rounded-lg bg-destructive/90 p-1.5 text-white hover:bg-destructive transition-colors" aria-label="Remove image">
+                                            <X className="size-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <label
+                                    className={cn(
+                                        'flex h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-colors',
+                                        imageDragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/30',
+                                        imageUploading && 'pointer-events-none opacity-60',
+                                    )}
+                                    onDragOver={e => { e.preventDefault(); setImageDragOver(true); }}
+                                    onDragLeave={() => setImageDragOver(false)}
+                                    onDrop={e => {
+                                        e.preventDefault();
+                                        setImageDragOver(false);
+                                        const file = e.dataTransfer.files[0];
+                                        if (file) handleImageFile(file);
+                                    }}
+                                >
+                                    <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only"
+                                        onChange={e => e.target.files?.[0] && handleImageFile(e.target.files[0])} />
+                                    {imageUploading ? (
+                                        <>
+                                            <Loader2 className="size-6 text-primary animate-spin" />
+                                            <p className="text-xs text-muted-foreground">Uploading…</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="size-10 rounded-xl bg-muted flex items-center justify-center">
+                                                <ImagePlus className="size-5 text-muted-foreground" />
+                                            </div>
+                                            <p className="text-sm font-medium text-foreground">Drop image here or click to browse</p>
+                                            <p className="text-xs text-muted-foreground">JPEG, PNG or WebP · max 5 MB</p>
+                                        </>
+                                    )}
+                                </label>
+                            )}
+                        </div>
+
                         {/* Basic info */}
                         <div className="space-y-4">
                             <p className="text-muted-foreground flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
@@ -629,6 +796,21 @@ export default function ProductsPage() {
                             </DialogHeader>
 
                             <div className="space-y-5 pt-2">
+                                {/* Product image */}
+                                {viewingProduct.image_url ? (
+                                    <div className="h-52 w-full rounded-xl overflow-hidden border bg-muted">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={viewingProduct.image_url} alt={viewingProduct.name} className="h-full w-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="h-32 w-full rounded-xl bg-muted/50 border flex items-center justify-center">
+                                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                            <ImageOff className="size-8" />
+                                            <p className="text-xs">No image uploaded</p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Price stats */}
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
