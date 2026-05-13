@@ -13,6 +13,7 @@ import {
     AlertTriangle, CheckCircle2, Zap, Users, Store,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { API_BASE } from '@/lib/apiClient';
 
 const systemInfo = [
     {
@@ -24,7 +25,7 @@ const systemInfo = [
             { label: 'Version', value: '1.0.0' },
             { label: 'Environment', value: 'Production', badge: 'border-success/30 bg-success/10 text-success' },
             { label: 'Framework', value: 'Next.js 16 (App Router)' },
-            { label: 'API Base', value: process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL || 'http://127.0.0.1:8000' },
+            { label: 'API Base', value: API_BASE },
         ],
     },
     {

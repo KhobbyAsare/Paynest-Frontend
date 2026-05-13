@@ -1,7 +1,8 @@
 import axios from "axios";
 import { RegisterInterface } from "../interfaces/registerInterface";
+import { API_BASE } from "@/lib/apiClient";
 
-const BASE_URL = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+const BASE_URL = API_BASE;
 
 export const registrationHandler = async (data: RegisterInterface) => {
     const response = await axios.post(`${BASE_URL}/auth/register`, data);

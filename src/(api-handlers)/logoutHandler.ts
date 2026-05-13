@@ -1,8 +1,9 @@
 import { LogoutInterface } from "@/interfaces/logout";
 import axios from "axios";
+import { API_BASE } from "@/lib/apiClient";
 
 export const LogoutHandler = async (req: LogoutInterface) => {
-    const url = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+    const url = API_BASE;
     try {
         const response = await axios.post(`${url}/auth/logout`, req);
         return response.data;

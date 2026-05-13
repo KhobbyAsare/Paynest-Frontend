@@ -2,8 +2,10 @@ import axios from "axios";
 import { useAuthStore } from "@/(zustand-store)/authStore";
 import { toast } from "sonner";
 
+export const API_BASE = `${process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL}/api/v1`;
+
 const apiClient = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL,
+    baseURL: API_BASE,
 });
 
 // Inject JWT token on every request

@@ -1,6 +1,6 @@
-import apiClient from "@/lib/apiClient";
+import apiClient, { API_BASE } from "@/lib/apiClient";
 
-const BASE_URL = process.env.NEXT_PUBLIC_AXIOS_API_BASE_URL;
+const BASE_URL = API_BASE;
 
 export interface AppNotification {
     id: number;
