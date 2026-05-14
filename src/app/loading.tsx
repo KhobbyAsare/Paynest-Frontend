@@ -4,9 +4,8 @@ import { Wallet } from "lucide-react";
 
 const Loading = () => {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center">
-        {/* Animated Logo */}
         <div className="flex items-center justify-center gap-3 mb-6">
           <div className="animate-bounce">
             <Wallet size={32} className="text-primary" />
@@ -16,8 +15,7 @@ const Loading = () => {
           </span>
         </div>
 
-        {/* Loading Text */}
-        <p className="text-gray-600 mb-8">Loading your POS system...</p>
+        <p className="text-muted-foreground mb-8">Loading your POS system...</p>
 
         {/* Animated Dots */}
         <div className="flex justify-center space-x-2">
