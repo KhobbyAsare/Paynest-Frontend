@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -47,7 +47,7 @@ export default function CreateOrganization() {
         register, handleSubmit, setValue, watch,
         formState: { errors },
     } = useForm<FormValues>({
-        resolver: zodResolver(schema),
+        resolver: zodResolver(schema) as Resolver<FormValues>,
         defaultValues: {
             currency: 'GHS',
             plan_type: 'starter',
@@ -59,7 +59,7 @@ export default function CreateOrganization() {
     const onSubmit = async (values: FormValues) => {
         setLoading(true);
         try {
-            await onboardOrganizationAndAdmin({ ...values, is_active: true });
+            await onboardOrganizationAndAdmin({ ...values, description: values.description ?? '', is_active: true });
             toast.success('Organization and Admin onboarded successfully');
             router.push('/organizations');
         } catch (error: unknown) {

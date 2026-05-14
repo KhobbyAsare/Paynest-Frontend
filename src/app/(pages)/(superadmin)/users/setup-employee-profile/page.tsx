@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -65,7 +65,7 @@ export default function SetUpEmployeeProfile() {
         register, handleSubmit, control, setValue, watch,
         formState: { errors, isSubmitting },
     } = useForm<FormValues>({
-        resolver: zodResolver(schema),
+        resolver: zodResolver(schema) as Resolver<FormValues>,
         defaultValues: {
             employment_type:   'full_time',
             employment_status: 'active',

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, use } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -69,7 +69,7 @@ export default function EditEmployeeProfile({ params }: EditEmployeeProfileProps
     const {
         register, handleSubmit, control, setValue, reset,
         formState: { errors, isSubmitting },
-    } = useForm<FormValues>({ resolver: zodResolver(schema) });
+    } = useForm<FormValues>({ resolver: zodResolver(schema) as Resolver<FormValues> });
 
     useEffect(() => {
         const fetchData = async () => {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Wallet, Eye, EyeOff, Loader2, CheckCircle2, XCircle } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
     const [error, setError] = useState("");
 
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
-        resolver: zodResolver(schema),
+        resolver: zodResolver(schema) as Resolver<FormData>,
     });
 
     if (!token) {

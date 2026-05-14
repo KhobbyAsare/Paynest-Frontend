@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, Mail, Phone, MapPin, Save, Info, Loader2 } from 'lucide-react';
@@ -39,7 +39,7 @@ export default function OrganizationProfile() {
 
     const {
         register, handleSubmit, reset, formState: { errors, isDirty },
-    } = useForm<FormValues>({ resolver: zodResolver(schema) });
+    } = useForm<FormValues>({ resolver: zodResolver(schema) as Resolver<FormValues> });
 
     const fetchProfile = useCallback(async () => {
         if (!organizationId) { setLoading(false); return; }

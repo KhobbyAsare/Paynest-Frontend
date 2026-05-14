@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Store, MapPin, Phone, RefreshCcw } from 'lucide-react';
@@ -37,7 +37,7 @@ export default function OrganizationShops() {
     const {
         register, handleSubmit, reset,
         formState: { errors, isSubmitting },
-    } = useForm<FormValues>({ resolver: zodResolver(schema) });
+    } = useForm<FormValues>({ resolver: zodResolver(schema) as Resolver<FormValues> });
 
     const fetchShops = async () => {
         setLoading(true);

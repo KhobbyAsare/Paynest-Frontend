@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Wallet, Loader2, Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { loginSchema, LoginFormData } from "@/utils/zod/loginSchemas";
 import { toast } from "sonner";
 import { handleErrorMessage } from "@/utils/handleErrorMessage";
@@ -29,7 +29,7 @@ export default function LoginPage() {
     const router = useRouter();
 
     const { register, handleSubmit, formState: { errors }, watch } = useForm<LoginFormData>({
-        resolver: zodResolver(loginSchema),
+        resolver: zodResolver(loginSchema) as Resolver<LoginFormData>,
         defaultValues: { email_or_username: "", password: "", remember_me: false },
     });
 

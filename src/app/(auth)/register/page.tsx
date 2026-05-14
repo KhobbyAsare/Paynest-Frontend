@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Wallet, Loader2, Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { registrationHandler } from "@/(api-handlers)/registrationHandler";
 import { registerSchema, RegisterFormData } from "@/utils/zod/registrationSchemas";
 import { RegisterInterface } from "@/interfaces/registerInterface";
@@ -26,7 +26,7 @@ export default function RegisterPage() {
     const router = useRouter();
 
     const { register, handleSubmit, formState: { errors }, reset } = useForm<RegisterFormData>({
-        resolver: zodResolver(registerSchema),
+        resolver: zodResolver(registerSchema) as Resolver<RegisterFormData>,
         defaultValues: {
             username: "", email: "", password: "", first_name: "",
             last_name: "", phone_number: "", invitation_code: "", confirm_password: "",

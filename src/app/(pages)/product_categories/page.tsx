@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -55,7 +55,7 @@ export default function ProductCategoryPage() {
     const [submitting, setSubmitting]       = useState(false);
 
     const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormValues>({
-        resolver: zodResolver(schema),
+        resolver: zodResolver(schema) as Resolver<FormValues>,
         defaultValues: { name: '', description: '', is_active: true },
     });
 
