@@ -17,14 +17,14 @@ import { User, Mail, Phone, AtSign, ShieldCheck, CheckCircle2, Calendar } from '
 import { cn } from '@/lib/utils';
 
 const ROLE_BADGE: Record<string, string> = {
-    superadmin: 'border-[#6f23de]/30 bg-[#6f23de]/10 text-[#6f23de]',
+    superadmin: 'border-purple-500/30 bg-purple-500/10 text-purple-500',
     admin: 'border-info/30 bg-info/10 text-info',
     manager: 'border-success/30 bg-success/10 text-success',
     attendant: 'border-primary/30 bg-primary/10 text-primary',
 };
 
 const ROLE_AVATAR: Record<string, string> = {
-    superadmin: 'bg-[#6f23de]/10 text-[#6f23de]',
+    superadmin: 'bg-purple-500/10 text-purple-500',
     admin: 'bg-info/10 text-info',
     manager: 'bg-success/10 text-success',
     attendant: 'bg-primary/10 text-primary',
@@ -171,7 +171,7 @@ export default function ProfileSettingsPage() {
                                         <User className="size-3.5" /> First Name
                                     </Label>
                                     <Input
-                                        className="bg-white"
+                                        className="bg-background"
                                         value={form.first_name}
                                         onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
                                         placeholder="First name"
@@ -183,7 +183,7 @@ export default function ProfileSettingsPage() {
                                         <User className="size-3.5" /> Last Name
                                     </Label>
                                     <Input
-                                        className="bg-white"
+                                        className="bg-background"
                                         value={form.last_name}
                                         onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
                                         placeholder="Last name"
@@ -197,7 +197,7 @@ export default function ProfileSettingsPage() {
                                     <AtSign className="size-3.5" /> Username
                                 </Label>
                                 <Input
-                                    className="bg-white"
+                                    className="bg-background"
                                     value={form.username}
                                     onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
                                     placeholder="Username"
@@ -222,7 +222,7 @@ export default function ProfileSettingsPage() {
                                     <Phone className="size-3.5" /> Phone Number
                                 </Label>
                                 <Input
-                                    className="bg-white"
+                                    className="bg-background"
                                     value={form.phone_number}
                                     onChange={e => setForm(f => ({ ...f, phone_number: e.target.value }))}
                                     placeholder="e.g. +233 20 000 0000"

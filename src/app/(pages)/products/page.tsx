@@ -567,7 +567,7 @@ export default function ProductsPage() {
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                        <label className="cursor-pointer rounded-lg bg-white/90 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-white transition-colors">
+                                        <label className="cursor-pointer rounded-lg bg-background/90 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-background transition-colors">
                                             Change image
                                             <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only"
                                                 onChange={e => e.target.files?.[0] && handleImageFile(e.target.files[0])} />

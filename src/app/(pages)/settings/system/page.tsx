@@ -43,7 +43,7 @@ const systemInfo = [
     {
         section: 'Database',
         icon: Database,
-        iconClass: 'text-warning-foreground dark:text-white',
+        iconClass: 'text-warning-foreground dark:text-foreground',
         bgClass: 'bg-warning/10',
         items: [
             { label: 'Engine', value: 'PostgreSQL' },
@@ -70,7 +70,7 @@ const planLimits = [
     { plan: 'FREE', users: 5, shops: 2, badge: 'border-border bg-muted text-muted-foreground', userBar: 10, shopBar: 10 },
     { plan: 'BASIC', users: 15, shops: 8, badge: 'border-info/30 bg-info/10 text-info', userBar: 30, shopBar: 40 },
     { plan: 'PRO', users: 25, shops: 15, badge: 'border-primary/30 bg-primary/10 text-primary', userBar: 50, shopBar: 75 },
-    { plan: 'ENTERPRISE', users: 50, shops: 20, badge: 'border-warning/30 bg-warning/10 text-warning-foreground dark:text-white', userBar: 100, shopBar: 100 },
+    { plan: 'ENTERPRISE', users: 50, shops: 20, badge: 'border-warning/30 bg-warning/10 text-warning-foreground dark:text-foreground', userBar: 100, shopBar: 100 },
 ];
 
 const infraNotes = [
@@ -107,7 +107,7 @@ export default function SystemSettingsPage() {
             {/* ── Notice banner ──────────────────────────────────────────────── */}
             <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4 dark:bg-warning/10 dark:border-warning/30">
                 <AlertTriangle className="size-4 text-warning-foreground mt-0.5 shrink-0 dark:text-white" />
-                <p className="text-sm text-warning-foreground dark:text-white">
+                <p className="text-sm text-warning-foreground dark:text-foreground">
                     System configuration is managed via environment variables and backend settings.
                     This page is a <strong>read-only overview</strong> of the current configuration.
                 </p>

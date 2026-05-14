@@ -91,7 +91,7 @@ export default function SecuritySettingsPage() {
                                 </Label>
                                 <div className="relative">
                                     <Input
-                                        className="bg-white pr-10"
+                                        className="bg-background pr-10"
                                         type={showCurrent ? 'text' : 'password'}
                                         value={form.current_password}
                                         onChange={e => setForm(f => ({ ...f, current_password: e.target.value }))}
@@ -112,7 +112,7 @@ export default function SecuritySettingsPage() {
                                 </Label>
                                 <div className="relative">
                                     <Input
-                                        className="bg-white pr-10"
+                                        className="bg-background pr-10"
                                         type={showNew ? 'text' : 'password'}
                                         value={form.new_password}
                                         onChange={e => setForm(f => ({ ...f, new_password: e.target.value }))}
@@ -151,7 +151,7 @@ export default function SecuritySettingsPage() {
                                 </Label>
                                 <div className="relative">
                                     <Input
-                                        className={cn('bg-white pr-10', mismatch && 'border-destructive focus-visible:ring-destructive/30')}
+                                        className={cn('bg-background pr-10', mismatch && 'border-destructive focus-visible:ring-destructive/30')}
                                         type={showConfirm ? 'text' : 'password'}
                                         value={form.confirm_password}
                                         onChange={e => setForm(f => ({ ...f, confirm_password: e.target.value }))}

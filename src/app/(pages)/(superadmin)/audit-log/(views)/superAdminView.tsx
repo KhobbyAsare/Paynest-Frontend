@@ -130,7 +130,7 @@ export default function SuperAdminView() {
                             <div className="relative">
                                 <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
                                 <Input
-                                    className="h-9 pl-8 bg-white text-sm"
+                                    className="h-9 pl-8 bg-background text-sm"
                                     placeholder="e.g. create_user"
                                     value={pending.action}
                                     onChange={e => setPending(p => ({ ...p, action: e.target.value }))}
@@ -141,7 +141,7 @@ export default function SuperAdminView() {
                         <div className="min-w-[160px] flex-1 space-y-1.5">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Entity Type</p>
                             <Input
-                                className="h-9 bg-white text-sm"
+                                className="h-9 bg-background text-sm"
                                 placeholder="e.g. Organization"
                                 value={pending.entityType}
                                 onChange={e => setPending(p => ({ ...p, entityType: e.target.value }))}
@@ -151,7 +151,7 @@ export default function SuperAdminView() {
                         <div className="min-w-[120px] w-36 space-y-1.5">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Entity ID</p>
                             <Input
-                                className="h-9 bg-white text-sm"
+                                className="h-9 bg-background text-sm"
                                 placeholder="Enter ID"
                                 value={pending.entityId}
                                 onChange={e => setPending(p => ({ ...p, entityId: e.target.value }))}

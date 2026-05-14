@@ -136,7 +136,7 @@ export default function SuperAdminPage() {
                     <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                     <Input
                         placeholder="Search by name, email or username…"
-                        className="h-9 pl-9 bg-white"
+                        className="h-9 pl-9 bg-background"
                         value={searchText}
                         onChange={e => setSearchText(e.target.value)}
                     />

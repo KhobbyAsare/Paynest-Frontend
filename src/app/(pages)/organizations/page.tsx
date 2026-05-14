@@ -178,7 +178,7 @@ export default function OrganizationsPage() {
                     <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                     <Input
                         placeholder="Search organizations…"
-                        className="h-9 pl-9 bg-white"
+                        className="h-9 pl-9 bg-background"
                         value={searchText}
                         onChange={e => setSearchText(e.target.value)}
                     />
@@ -202,7 +202,7 @@ export default function OrganizationsPage() {
                 </div>
 
                 <Select value={planFilter} onValueChange={setPlanFilter}>
-                    <SelectTrigger className="h-9 w-36 bg-white text-xs">
+                    <SelectTrigger className="h-9 w-36 bg-background text-xs">
                         <SelectValue placeholder="All plans" />
                     </SelectTrigger>
                     <SelectContent>
