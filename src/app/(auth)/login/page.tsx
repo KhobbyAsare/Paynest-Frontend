@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Wallet, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Wallet } from "lucide-react";
+import AuthLeftPanel from "@/components/(shared-components)/AuthLeftPanel";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type Resolver } from "react-hook-form";
 import { loginSchema, LoginFormData } from "@/utils/zod/loginSchemas";
@@ -20,8 +21,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-
-const chips = ["Barcode scanning", "Multi-location", "Live inventory", "Sales analytics", "Role-based access"];
 
 export default function LoginPage() {
     const [isLoading, setIsLoading]       = useState(false);
@@ -72,91 +71,10 @@ export default function LoginPage() {
         <div className="flex h-screen overflow-hidden">
 
             {/* ═══ LEFT PANEL ═══ */}
-            <div className="hidden lg:flex lg:w-[580px] xl:w-[660px] flex-shrink-0 h-full relative overflow-hidden bg-[var(--brand-800)] text-white">
-
-                {/* Animations */}
-                <style>{`
-                    @keyframes pn-blob-a {
-                        0%,100% { transform: translate(0,0) scale(1); }
-                        50%      { transform: translate(50px,-65px) scale(1.15); }
-                    }
-                    @keyframes pn-blob-b {
-                        0%,100% { transform: translate(0,0) scale(1); }
-                        50%      { transform: translate(-40px,55px) scale(0.88); }
-                    }
-                    @keyframes pn-blob-c {
-                        0%,100% { transform: translate(0,0) scale(1); }
-                        33%      { transform: translate(35px,30px) scale(1.1); }
-                        66%      { transform: translate(-25px,-35px) scale(0.93); }
-                    }
-                    @keyframes pn-sweep {
-                        0%   { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
-                        8%   { opacity: 1; }
-                        92%  { opacity: 1; }
-                        100% { transform: translateX(320%) skewX(-18deg); opacity: 0; }
-                    }
-                    .pn-ba    { animation: pn-blob-a 14s ease-in-out infinite; }
-                    .pn-bb    { animation: pn-blob-b 18s ease-in-out infinite; }
-                    .pn-bc    { animation: pn-blob-c 22s ease-in-out infinite; }
-                    .pn-sweep { animation: pn-sweep 7s ease-in-out infinite; animation-delay: 1.5s; }
-                `}</style>
-
-                {/* Blobs — higher opacity + less blur so they're actually visible */}
-                <div className="pn-ba absolute top-[-60px] left-[-60px] size-[380px] rounded-full bg-white/25 blur-[55px]" />
-                <div className="pn-bb absolute bottom-[-60px] right-[-40px] size-[420px] rounded-full bg-white/20 blur-[65px]" />
-                <div className="pn-bc absolute top-[38%] left-[30%] size-[260px] rounded-full bg-white/[0.16] blur-[45px]" />
-
-                {/* Light-sweep shimmer */}
-                <div className="pn-sweep absolute inset-y-0 w-32 bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
-
-                {/* Grid */}
-                <div
-                    className="absolute inset-0 opacity-[0.055]"
-                    style={{
-                        backgroundImage: "linear-gradient(white 1px,transparent 1px),linear-gradient(90deg,white 1px,transparent 1px)",
-                        backgroundSize: "44px 44px",
-                    }}
-                />
-
-                {/* Content */}
-                <div className="relative flex flex-col h-full w-full p-10 xl:p-14">
-
-                    {/* Logo */}
-                    <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-xl bg-white/15 border border-white/20">
-                            <Wallet className="size-[18px]" />
-                        </div>
-                        <span className="text-[22px] font-extrabold tracking-tight">Paynest</span>
-                    </div>
-
-                    {/* Centre text */}
-                    <div className="flex flex-1 flex-col justify-center">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/40 mb-4">
-                            Point of Sale Platform
-                        </p>
-                        <h1 className="text-[44px] xl:text-[52px] font-black leading-[1.06] tracking-tight">
-                            Sell faster.<br />Grow bigger.
-                        </h1>
-                        <p className="mt-5 text-white/55 text-[15px] leading-relaxed max-w-[300px]">
-                            The complete POS platform built for modern retail and hospitality businesses.
-                        </p>
-
-                        {/* Feature chips */}
-                        <div className="mt-10 flex flex-wrap gap-2">
-                            {chips.map(chip => (
-                                <span
-                                    key={chip}
-                                    className="rounded-full border border-white/[0.16] bg-white/[0.09] px-3 py-1.5 text-[11px] font-medium text-white/65"
-                                >
-                                    {chip}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-
-                    <p className="text-[11px] text-white/30">© 2025 Paynest. All rights reserved.</p>
-                </div>
-            </div>
+            <AuthLeftPanel
+                title={<>Sell faster.<br />Grow bigger.</>}
+                description="The complete POS platform built for modern retail and hospitality businesses."
+            />
 
             {/* ═══ RIGHT PANEL ═══ */}
             <div className="flex flex-1 flex-col items-center justify-center bg-background px-6 py-14 overflow-y-auto">

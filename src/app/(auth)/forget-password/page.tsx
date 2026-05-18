@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Wallet, ArrowLeft, Mail, Loader2 } from "lucide-react";
+import AuthLeftPanel from "@/components/(shared-components)/AuthLeftPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,87 +33,10 @@ export default function ForgetPasswordPage() {
         <div className="flex h-screen overflow-hidden">
 
             {/* ═══ LEFT PANEL ═══ */}
-            <div className="hidden lg:flex lg:w-[580px] xl:w-[660px] flex-shrink-0 h-full relative overflow-hidden bg-[var(--brand-800)] text-white">
-
-                {/* Animations */}
-                <style>{`
-                    @keyframes pn-fp-blob-a {
-                        0%,100% { transform: translate(0,0) scale(1); }
-                        50%      { transform: translate(45px,-55px) scale(1.13); }
-                    }
-                    @keyframes pn-fp-blob-b {
-                        0%,100% { transform: translate(0,0) scale(1); }
-                        50%      { transform: translate(-38px,50px) scale(0.89); }
-                    }
-                    @keyframes pn-fp-blob-c {
-                        0%,100% { transform: translate(0,0) scale(1); }
-                        33%      { transform: translate(30px,28px) scale(1.09); }
-                        66%      { transform: translate(-22px,-30px) scale(0.94); }
-                    }
-                    @keyframes pn-fp-sweep {
-                        0%   { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
-                        8%   { opacity: 1; }
-                        92%  { opacity: 1; }
-                        100% { transform: translateX(320%) skewX(-18deg); opacity: 0; }
-                    }
-                    .pn-fp-ba    { animation: pn-fp-blob-a 15s ease-in-out infinite; }
-                    .pn-fp-bb    { animation: pn-fp-blob-b 19s ease-in-out infinite; }
-                    .pn-fp-bc    { animation: pn-fp-blob-c 23s ease-in-out infinite; }
-                    .pn-fp-sweep { animation: pn-fp-sweep 7s ease-in-out infinite; animation-delay: 2s; }
-                `}</style>
-
-                {/* Blobs */}
-                <div className="pn-fp-ba absolute top-[-60px] left-[-60px] size-[380px] rounded-full bg-white/25 blur-[55px]" />
-                <div className="pn-fp-bb absolute bottom-[-60px] right-[-40px] size-[420px] rounded-full bg-white/20 blur-[65px]" />
-                <div className="pn-fp-bc absolute top-[38%] left-[30%] size-[260px] rounded-full bg-white/[0.15] blur-[45px]" />
-
-                {/* Sweep shimmer */}
-                <div className="pn-fp-sweep absolute inset-y-0 w-32 bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
-
-                {/* Grid */}
-                <div
-                    className="absolute inset-0 opacity-[0.055]"
-                    style={{
-                        backgroundImage: "linear-gradient(white 1px,transparent 1px),linear-gradient(90deg,white 1px,transparent 1px)",
-                        backgroundSize: "44px 44px",
-                    }}
-                />
-
-                {/* Content */}
-                <div className="relative flex flex-col h-full w-full p-10 xl:p-14">
-                    <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-xl bg-white/15 border border-white/20">
-                            <Wallet className="size-[18px]" />
-                        </div>
-                        <span className="text-[22px] font-extrabold tracking-tight">Paynest</span>
-                    </div>
-
-                    <div className="flex flex-1 flex-col justify-center">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/40 mb-4">
-                            Account Recovery
-                        </p>
-                        <h1 className="text-[44px] xl:text-[52px] font-black leading-[1.06] tracking-tight">
-                            Forgot your<br />password?
-                        </h1>
-                        <p className="mt-5 text-white/55 text-[15px] leading-relaxed max-w-[300px]">
-                            No worries. Enter your email and we&apos;ll send you a secure link to get back in.
-                        </p>
-
-                        <div className="mt-10 flex flex-wrap gap-2">
-                            {["Secure reset link", "Email verification", "Quick recovery"].map(chip => (
-                                <span
-                                    key={chip}
-                                    className="rounded-full border border-white/[0.16] bg-white/[0.09] px-3 py-1.5 text-[11px] font-medium text-white/65"
-                                >
-                                    {chip}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-
-                    <p className="text-[11px] text-white/30">© 2025 Paynest. All rights reserved.</p>
-                </div>
-            </div>
+            <AuthLeftPanel
+                title={<>Forgot your<br />password?</>}
+                description="No worries. Enter your email and we'll send you a secure link to get back in."
+            />
 
             {/* ═══ RIGHT PANEL ═══ */}
             <div className="flex flex-1 flex-col items-center justify-center bg-background px-6 py-14 h-full overflow-y-auto">
