@@ -3,17 +3,27 @@
 import { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { getSuperAdminDashboard } from '@/(api-handlers)/superadminHandler';
+import {
+    getSuperAdminDashboard,
+    getSuperAdminSystemHealth,
+    getSuperAdminTopProducts,
+    getSuperAdminUsersWithoutProfile,
+} from '@/(api-handlers)/superadminHandler';
 import {
     SuperAdminDashboardResponse,
     OrgMetrics,
     PlatformTrend,
+    SystemHealth,
+    TopProduct,
+    UserWithoutProfile,
 } from '@/interfaces/superadminDashboard';
 import {
     Building2, Users, ShoppingCart, DollarSign,
     Store, TrendingUp, Activity, RefreshCcw,
     ArrowUpRight, UserPlus, BadgeCheck, CheckCircle2,
-    XCircle, Medal,
+    XCircle, Medal, Server, Database, Clock, Wifi,
+    Package, AlertCircle, UserX, AlertTriangle,
+    BarChart2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -215,12 +225,354 @@ function TopOrgsList({
     );
 }
 
+// ─── Status helpers ───────────────────────────────────────────────────────────
+const STATUS_STYLES = {
+    healthy:  { dot: 'bg-success',     text: 'text-success',     label: 'Healthy' },
+    degraded: { dot: 'bg-warning',     text: 'text-warning-foreground', label: 'Degraded' },
+    down:     { dot: 'bg-destructive', text: 'text-destructive', label: 'Down' },
+};
+
+// ─── System Health card ───────────────────────────────────────────────────────
+function SystemHealthCard({ health, loading }: { health: SystemHealth | null; loading: boolean }) {
+    const apiSt  = health ? STATUS_STYLES[health.api_status] : null;
+    const dbSt   = health ? STATUS_STYLES[health.db_status]  : null;
+
+    const metrics = health ? [
+        { icon: Wifi,     label: 'API',              value: health.api_status,     style: apiSt!,  isStatus: true },
+        { icon: Database, label: 'Database',          value: health.db_status,      style: dbSt!,   isStatus: true },
+        { icon: Clock,    label: 'Avg Response',      value: `${health.avg_response_time_ms} ms`, style: null, isStatus: false },
+        { icon: Activity, label: 'Uptime',            value: `${health.uptime_percent.toFixed(2)}%`, style: null, isStatus: false },
+        { icon: BarChart2,label: 'Requests Today',    value: health.total_requests_today.toLocaleString(), style: null, isStatus: false },
+        { icon: AlertTriangle, label: 'Error Rate',   value: `${health.error_rate_percent.toFixed(2)}%`, style: health.error_rate_percent > 5 ? STATUS_STYLES.degraded : health.error_rate_percent > 15 ? STATUS_STYLES.down : STATUS_STYLES.healthy, isStatus: true },
+    ] : [];
+
+    return (
+        <Card className="gap-0 overflow-hidden p-0">
+            <CardHeader className="border-b px-6 py-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                        <div className="size-7 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
+                            <Server className="size-3.5 text-info" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-sm font-semibold">System Health</CardTitle>
+                            <CardDescription className="text-xs">
+                                {health ? `Last checked ${new Date(health.last_checked).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Live status'}
+                            </CardDescription>
+                        </div>
+                    </div>
+                    {health && (
+                        <Badge
+                            variant="outline"
+                            className={cn(
+                                'text-xs font-medium',
+                                health.api_status === 'healthy' && health.db_status === 'healthy'
+                                    ? 'border-success/30 bg-success/10 text-success'
+                                    : 'border-warning/30 bg-warning/10 text-warning-foreground',
+                            )}
+                        >
+                            <span className={cn('size-1.5 rounded-full mr-1.5 inline-block',
+                                health.api_status === 'healthy' && health.db_status === 'healthy'
+                                    ? 'bg-success animate-pulse' : 'bg-warning')}
+                            />
+                            {health.api_status === 'healthy' && health.db_status === 'healthy' ? 'All Systems Operational' : 'Issues Detected'}
+                        </Badge>
+                    )}
+                </div>
+            </CardHeader>
+            <CardContent className="px-6 py-5">
+                {loading ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="space-y-2">
+                                <Skeleton className="h-3 w-20" />
+                                <Skeleton className="h-5 w-16" />
+                            </div>
+                        ))}
+                    </div>
+                ) : !health ? (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm py-2">
+                        <AlertCircle className="size-4 shrink-0" />
+                        Health endpoint unavailable — check backend connectivity
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-4 divide-x-0 lg:divide-x lg:divide-border/50">
+                        {metrics.map((m, i) => {
+                            const Icon = m.icon;
+                            return (
+                                <div key={i} className="flex flex-col gap-1.5 lg:px-4 first:pl-0 last:pr-0">
+                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Icon className="size-3.5 shrink-0" />
+                                        {m.label}
+                                    </div>
+                                    {m.isStatus && m.style ? (
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={cn('size-2 rounded-full shrink-0 animate-pulse', m.style.dot)} />
+                                            <span className={cn('text-sm font-semibold capitalize', m.style.text)}>
+                                                {m.style.label}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-sm font-semibold text-foreground">{m.value}</span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+// ─── Top Products card ────────────────────────────────────────────────────────
+function TopProductsCard({ products, loading }: { products: TopProduct[]; loading: boolean }) {
+    const maxQty = Math.max(...products.map(p => p.total_quantity_sold), 1);
+
+    return (
+        <Card className="gap-0 overflow-hidden p-0 flex flex-col">
+            <CardHeader className="border-b px-5 py-4 shrink-0">
+                <div className="flex items-center gap-2">
+                    <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <Package className="size-3.5 text-primary" />
+                    </div>
+                    <div>
+                        <CardTitle className="text-sm font-semibold">Top Products</CardTitle>
+                        <CardDescription className="text-xs">Most purchased across all organizations</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="px-0 py-0 flex-1">
+                {loading ? (
+                    <div className="space-y-0 divide-y divide-border/50">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                                <Skeleton className="size-6 rounded-md shrink-0" />
+                                <div className="flex-1 space-y-1.5">
+                                    <Skeleton className="h-3 w-40" />
+                                    <Skeleton className="h-2 w-full rounded-full" />
+                                </div>
+                                <Skeleton className="h-3 w-16 shrink-0" />
+                            </div>
+                        ))}
+                    </div>
+                ) : products.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground">
+                        <Package className="size-8 opacity-30" />
+                        <p className="text-sm">No product data for this period</p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-border/50">
+                        {products.map((p, i) => (
+                            <div key={p.product_id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
+                                <span className={cn(
+                                    'size-6 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
+                                    i === 0 ? 'bg-warning/10 text-warning-foreground' :
+                                    i === 1 ? 'bg-muted-foreground/10 text-muted-foreground' :
+                                    i === 2 ? 'bg-primary/10 text-primary' :
+                                    'bg-muted text-muted-foreground',
+                                )}>
+                                    {i + 1}
+                                </span>
+                                <div className="flex-1 min-w-0 space-y-1.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-sm font-medium text-foreground truncate">{p.product_name}</span>
+                                        <span className="text-xs text-muted-foreground shrink-0">{p.total_quantity_sold.toLocaleString()} units</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                            <div
+                                                className={cn(
+                                                    'h-full rounded-full transition-all duration-700',
+                                                    i === 0 ? 'bg-warning/70' : i === 1 ? 'bg-muted-foreground/50' : i === 2 ? 'bg-primary/60' : 'bg-primary/35',
+                                                )}
+                                                style={{ width: `${(p.total_quantity_sold / maxQty) * 100}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-[11px] text-muted-foreground shrink-0 w-24 text-right">{fmtShort(p.total_revenue)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+// ─── Advanced metrics mini-cards ──────────────────────────────────────────────
+function AdvancedMetrics({ data, loading }: { data: SuperAdminDashboardResponse | null; loading: boolean }) {
+    const s = data?.summary;
+
+    const metrics = s ? [
+        {
+            label: 'Avg Revenue / Org',
+            value: s.active_organizations > 0 ? fmtShort(s.total_revenue / s.active_organizations) : '—',
+            sub: 'Active orgs only',
+            icon: TrendingUp,
+            color: 'text-success',
+            bg: 'bg-success/10',
+        },
+        {
+            label: 'Avg Shops / Org',
+            value: s.total_organizations > 0 ? (s.total_shops / s.total_organizations).toFixed(1) : '—',
+            sub: 'All organizations',
+            icon: Store,
+            color: 'text-info',
+            bg: 'bg-info/10',
+        },
+        {
+            label: 'Avg Users / Org',
+            value: s.total_organizations > 0 ? (s.total_users / s.total_organizations).toFixed(1) : '—',
+            sub: 'All organizations',
+            icon: Users,
+            color: 'text-primary',
+            bg: 'bg-primary/10',
+        },
+        {
+            label: 'New Orgs (Period)',
+            value: s.new_orgs_in_period.toLocaleString(),
+            sub: `of ${s.total_organizations} total`,
+            icon: Building2,
+            color: 'text-warning-foreground',
+            bg: 'bg-warning/10',
+        },
+    ] : [];
+
+    return (
+        <div className="grid grid-cols-2 gap-4">
+            {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                    <Card key={i} className="p-4">
+                        <Skeleton className="h-3 w-24 mb-3" />
+                        <Skeleton className="h-6 w-20 mb-1" />
+                        <Skeleton className="h-2.5 w-16" />
+                    </Card>
+                ))
+            ) : metrics.map((m, i) => {
+                const Icon = m.icon;
+                return (
+                    <Card key={i} className="p-4 gap-0">
+                        <div className={cn('size-7 rounded-lg flex items-center justify-center mb-3', m.bg)}>
+                            <Icon className={cn('size-3.5', m.color)} />
+                        </div>
+                        <p className="text-[18px] font-bold text-foreground leading-none mb-1">{m.value}</p>
+                        <p className="text-xs font-medium text-foreground/80 mb-0.5">{m.label}</p>
+                        <p className="text-[11px] text-muted-foreground">{m.sub}</p>
+                    </Card>
+                );
+            })}
+        </div>
+    );
+}
+
+// ─── Users Without Profile table ──────────────────────────────────────────────
+function UsersWithoutProfileCard({ users, loading }: { users: UserWithoutProfile[]; loading: boolean }) {
+    return (
+        <Card className="gap-0 overflow-hidden p-0">
+            <CardHeader className="border-b px-6 py-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                        <div className="size-7 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                            <UserX className="size-3.5 text-warning-foreground" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-sm font-semibold">Users Without Employee Profile</CardTitle>
+                            <CardDescription className="text-xs">
+                                Registered users who haven&apos;t set up an employee profile yet
+                            </CardDescription>
+                        </div>
+                    </div>
+                    {!loading && users.length > 0 && (
+                        <Badge variant="outline" className="border-warning/30 bg-warning/10 text-warning-foreground text-xs">
+                            {users.length} {users.length === 1 ? 'user' : 'users'} pending
+                        </Badge>
+                    )}
+                </div>
+            </CardHeader>
+            {loading ? (
+                <div className="p-6 space-y-3">
+                    {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}
+                </div>
+            ) : users.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-14 gap-2 text-muted-foreground">
+                    <div className="size-12 rounded-full bg-success/10 flex items-center justify-center mb-1">
+                        <CheckCircle2 className="size-6 text-success" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">All users have employee profiles</p>
+                    <p className="text-xs">No action required</p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>User</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead>Organization</TableHead>
+                                <TableHead>Registered</TableHead>
+                                <TableHead className="text-right">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {users.map(u => (
+                                <TableRow key={u.user_id} className="hover:bg-muted/40 transition-colors">
+                                    <TableCell>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="size-8 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
+                                                <UserX className="size-3.5 text-warning-foreground" />
+                                            </div>
+                                            <span className="font-medium text-sm text-foreground">{u.full_name}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className={cn('capitalize text-xs', PLAN_BADGE[u.role.toLowerCase()] ?? 'border-border bg-muted text-muted-foreground')}>
+                                            {u.role.toLowerCase()}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-1.5 text-sm text-foreground">
+                                            <Building2 className="size-3.5 text-muted-foreground shrink-0" />
+                                            {u.org_name}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">
+                                        {new Date(u.registered_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Link
+                                            href={`/users/setup-employee-profile?user_id=${u.user_id}`}
+                                            className="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-xs font-medium transition-colors"
+                                        >
+                                            Set up profile <ArrowUpRight className="size-3" />
+                                        </Link>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
+        </Card>
+    );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export const SuperAdminView = () => {
     const [data, setData]             = useState<SuperAdminDashboardResponse | null>(null);
     const [loading, setLoading]       = useState(true);
     const [range, setRange]           = useState(30);
     const [customDates, setCustomDates] = useState<[Dayjs, Dayjs] | null>(null);
+
+    const [health, setHealth]                   = useState<SystemHealth | null>(null);
+    const [healthLoading, setHealthLoading]     = useState(true);
+    const [topProducts, setTopProducts]         = useState<TopProduct[]>([]);
+    const [productsLoading, setProductsLoading] = useState(true);
+    const [usersNoProfile, setUsersNoProfile]   = useState<UserWithoutProfile[]>([]);
+    const [usersLoading, setUsersLoading]       = useState(true);
 
     const load = useCallback(async (days: number, custom?: [Dayjs, Dayjs]) => {
         setLoading(true);
@@ -236,11 +588,18 @@ export const SuperAdminView = () => {
                 startStr = start.toISOString().split('T')[0];
                 endStr   = end.toISOString().split('T')[0];
             }
-            setData(await getSuperAdminDashboard(startStr, endStr));
+            const [dashboardData, productsData] = await Promise.allSettled([
+                getSuperAdminDashboard(startStr, endStr),
+                getSuperAdminTopProducts(startStr, endStr, 10),
+            ]);
+            if (dashboardData.status === 'fulfilled') setData(dashboardData.value);
+            if (productsData.status === 'fulfilled') setTopProducts(productsData.value);
+            else setTopProducts([]);
         } catch {
             // silent — dashboard is best-effort
         } finally {
             setLoading(false);
+            setProductsLoading(false);
         }
     }, []);
 
@@ -248,6 +607,22 @@ export const SuperAdminView = () => {
         if (customDates) load(0, customDates);
         else load(range);
     }, [load, range, customDates]);
+
+    useEffect(() => {
+        setHealthLoading(true);
+        getSuperAdminSystemHealth()
+            .then(setHealth)
+            .catch(() => setHealth(null))
+            .finally(() => setHealthLoading(false));
+    }, []);
+
+    useEffect(() => {
+        setUsersLoading(true);
+        getSuperAdminUsersWithoutProfile()
+            .then(setUsersNoProfile)
+            .catch(() => setUsersNoProfile([]))
+            .finally(() => setUsersLoading(false));
+    }, []);
 
     const s = data?.summary;
 
@@ -346,7 +721,13 @@ export const SuperAdminView = () => {
                             variant="outline"
                             size="icon"
                             className="size-9"
-                            onClick={() => customDates ? load(0, customDates) : load(range)}
+                            onClick={() => {
+                                if (customDates) load(0, customDates); else load(range);
+                                setHealthLoading(true);
+                                getSuperAdminSystemHealth().then(setHealth).catch(() => setHealth(null)).finally(() => setHealthLoading(false));
+                                setUsersLoading(true);
+                                getSuperAdminUsersWithoutProfile().then(setUsersNoProfile).catch(() => setUsersNoProfile([])).finally(() => setUsersLoading(false));
+                            }}
                             aria-label="Refresh dashboard"
                         >
                             <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
@@ -570,6 +951,20 @@ export const SuperAdminView = () => {
                 {/* Top orgs ranked list */}
                 <TopOrgsList orgs={topOrgs} loading={loading} />
             </div>
+
+            {/* ── System Health ───────────────────────────────────────────────── */}
+            <SystemHealthCard health={health} loading={healthLoading} />
+
+            {/* ── Top Products + Advanced Metrics ─────────────────────────────── */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <TopProductsCard products={topProducts} loading={productsLoading} />
+                </div>
+                <AdvancedMetrics data={data} loading={loading} />
+            </div>
+
+            {/* ── Users Without Employee Profile ───────────────────────────────── */}
+            <UsersWithoutProfileCard users={usersNoProfile} loading={usersLoading} />
 
             {/* ── Organization Leaderboard ────────────────────────────────────── */}
             {!loading && (data?.org_metrics ?? []).length > 0 && (
