@@ -15,7 +15,7 @@ export default function AuthLeftPanel({ title, description, narrow }: AuthLeftPa
 
   return (
     <div className={`hidden lg:flex ${width} flex-shrink-0 h-full relative overflow-hidden text-white select-none`}
-         style={{ background: "linear-gradient(160deg, oklch(0.292 0.053 275) 0%, oklch(0.360 0.075 271) 50%, oklch(0.412 0.110 270) 100%)" }}>
+      style={{ background: "linear-gradient(160deg, oklch(0.292 0.053 275) 0%, oklch(0.360 0.075 271) 50%, oklch(0.412 0.110 270) 100%)" }}>
 
       <style>{`
         @keyframes pn-af { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
@@ -32,7 +32,7 @@ export default function AuthLeftPanel({ title, description, narrow }: AuthLeftPa
 
       {/* Dot grid — bottom left */}
       <div className="absolute bottom-10 left-10 grid gap-[7px]"
-           style={{ gridTemplateColumns: "repeat(6,1fr)" }}>
+        style={{ gridTemplateColumns: "repeat(6,1fr)" }}>
         {Array.from({ length: 36 }).map((_, i) => (
           <div key={i} className="w-[3px] h-[3px] rounded-full bg-white/20" />
         ))}
@@ -66,9 +66,9 @@ export default function AuthLeftPanel({ title, description, narrow }: AuthLeftPa
 
           {/* Revenue card */}
           <div className="pn-card-a absolute rounded-2xl bg-white ring-1 ring-black/[0.06] p-5 text-gray-900"
-               style={{ width: 272, top: "11%", left: "5%", boxShadow: "0 12px 56px rgba(0,0,0,0.45)" }}>
+            style={{ width: 272, top: "11%", left: "5%", boxShadow: "0 12px 56px rgba(0,0,0,0.45)" }}>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">
-              Today's Revenue
+              Today&apos;s Revenue
             </p>
             <p className="text-[24px] font-bold tracking-tight leading-none text-gray-900">
               GHS 24,850
@@ -99,11 +99,11 @@ export default function AuthLeftPanel({ title, description, narrow }: AuthLeftPa
 
           {/* Payment received notification */}
           <div className="pn-card-b absolute rounded-2xl bg-white ring-1 ring-black/[0.06] px-4 py-3.5 flex items-center gap-3"
-               style={{ width: 196, top: "4%", right: "4%", boxShadow: "0 10px 48px rgba(0,0,0,0.40)" }}>
+            style={{ width: 196, top: "4%", right: "4%", boxShadow: "0 10px 48px rgba(0,0,0,0.40)" }}>
             <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
               <svg viewBox="0 0 16 16" className="w-[15px] h-[15px]"
-                   fill="none" stroke="#059669" strokeWidth="2.5"
-                   strokeLinecap="round" strokeLinejoin="round">
+                fill="none" stroke="#059669" strokeWidth="2.5"
+                strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="2,8 6,12 14,4" />
               </svg>
             </div>
@@ -115,17 +115,17 @@ export default function AuthLeftPanel({ title, description, narrow }: AuthLeftPa
 
           {/* Recent sales list */}
           <div className="pn-card-c absolute rounded-2xl bg-white ring-1 ring-black/[0.06] p-4"
-               style={{ width: 212, bottom: "11%", right: "2%", boxShadow: "0 10px 48px rgba(0,0,0,0.40)" }}>
+            style={{ width: 212, bottom: "11%", right: "2%", boxShadow: "0 10px 48px rgba(0,0,0,0.40)" }}>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2.5">
               Recent Sales
             </p>
             {[
-              { name: "Laptop Stand",   amt: "120.00" },
-              { name: "USB-C Hub",      amt: "45.00"  },
-              { name: "Wireless Mouse", amt: "85.00"  },
+              { name: "Laptop Stand", amt: "120.00" },
+              { name: "USB-C Hub", amt: "45.00" },
+              { name: "Wireless Mouse", amt: "85.00" },
             ].map((row, i) => (
               <div key={i}
-                   className={`flex items-center justify-between py-[7px] ${i < 2 ? "border-b border-gray-100" : ""}`}>
+                className={`flex items-center justify-between py-[7px] ${i < 2 ? "border-b border-gray-100" : ""}`}>
                 <span className="text-[12px] text-gray-600">{row.name}</span>
                 <span className="text-[12px] font-semibold text-gray-900">GHS {row.amt}</span>
               </div>
