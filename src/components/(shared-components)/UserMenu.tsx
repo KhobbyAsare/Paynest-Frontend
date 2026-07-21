@@ -1,10 +1,8 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronsUpDown, KeyRound, LogOut, Settings, User } from "lucide-react";
-import { ThemeToggle } from "./ThemeToggle";
 import { toast } from "sonner";
 import { useAuthStore } from "@/(zustand-store)/authStore";
 import { LogoutHandler } from "@/(api-handlers)/logoutHandler";
@@ -150,15 +148,6 @@ export function UserMenu({
                         </Link>
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                    onSelect={(e) => e.preventDefault()}
-                    className="cursor-default focus:bg-transparent"
-                >
-                    <ThemeToggle />
-                </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
 
