@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import StatsGrid from '@/components/(shared-components)/StatsGrid';
@@ -220,9 +221,12 @@ export default function SuperAdminPage() {
                                     {/* Identity */}
                                     <TableCell className="pl-6">
                                         <div className="flex items-center gap-3">
-                                            <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold", ROLE_AVATAR[u.role] ?? 'bg-muted text-muted-foreground')}>
-                                                {getInitials(u.first_name, u.last_name)}
-                                            </div>
+                                            <Avatar className="size-9 shrink-0 rounded-lg">
+                                                <AvatarImage src={u.profile_pic ?? undefined} alt={`${u.first_name} ${u.last_name}`} className="object-cover" />
+                                                <AvatarFallback className={cn("rounded-lg text-xs font-bold", ROLE_AVATAR[u.role] ?? 'bg-muted text-muted-foreground')}>
+                                                    {getInitials(u.first_name, u.last_name)}
+                                                </AvatarFallback>
+                                            </Avatar>
                                             <div className="min-w-0">
                                                 <p className="text-foreground truncate font-semibold text-sm leading-tight">
                                                     {u.first_name} {u.last_name}

@@ -17,6 +17,7 @@ import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -243,12 +244,12 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
                 <div className="flex flex-col gap-5 mt-4 md:flex-row md:items-center md:justify-between">
                     {/* Avatar + identity */}
                     <div className="flex items-center gap-4">
-                        <div className={cn(
-                            "flex size-16 shrink-0 items-center justify-center rounded-full text-xl font-bold",
-                            cfg.avatar
-                        )}>
-                            {initials || <Users className="size-7" />}
-                        </div>
+                        <Avatar className="size-16 shrink-0 rounded-full border-4 border-background shadow-sm">
+                            <AvatarImage src={userData.profile_pic ?? undefined} alt={fullName} className="object-cover" />
+                            <AvatarFallback className={cn("rounded-full text-xl font-bold", cfg.avatar)}>
+                                {initials || <Users className="size-7" />}
+                            </AvatarFallback>
+                        </Avatar>
                         <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                                 <h1 className="text-2xl font-bold text-foreground leading-tight">{fullName}</h1>

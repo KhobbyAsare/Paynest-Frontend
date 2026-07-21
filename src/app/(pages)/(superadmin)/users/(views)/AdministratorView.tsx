@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/(zustand-store)/authStore';
@@ -37,6 +38,10 @@ const ROLE_BADGE: Record<string, string> = {
     manager:    'border-success/30 bg-success/10 text-success',
     attendant:  'border-border bg-muted text-muted-foreground',
 };
+
+function getInitials(first?: string, last?: string) {
+    return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase() || '?';
+}
 
 export default function UsersAdministratorView() {
     const { user } = useAuthStore();
@@ -167,7 +172,17 @@ export default function UsersAdministratorView() {
                                 </TableRow>
                             ) : currentUsers.map(u => (
                                 <TableRow key={u.id}>
-                                    <TableCell className="pl-6 font-medium">{u.first_name} {u.last_name}</TableCell>
+                                    <TableCell className="pl-6">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="size-9 shrink-0 rounded-lg">
+                                                <AvatarImage src={u.profile_pic ?? undefined} alt={`${u.first_name} ${u.last_name}`} className="object-cover" />
+                                                <AvatarFallback className="rounded-lg bg-muted text-xs font-bold text-muted-foreground">
+                                                    {getInitials(u.first_name, u.last_name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <span className="truncate text-sm font-semibold text-foreground">{u.first_name} {u.last_name}</span>
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-muted-foreground">{u.username}</TableCell>
                                     <TableCell className="text-muted-foreground text-sm">{u.email}</TableCell>
                                     <TableCell>
