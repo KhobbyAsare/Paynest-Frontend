@@ -1,4 +1,4 @@
-import { DailyClosureRequest, SubmitClosureRequest, VerifyClosureRequest } from "@/interfaces/dailyClosure";
+import { DailyClosureRequest, DailyClosureResponse, SubmitClosureRequest, VerifyClosureRequest } from "@/interfaces/dailyClosure";
 import apiClient from "@/lib/apiClient";
 
 export const CreateDailyClosure = async (data: DailyClosureRequest) => {
@@ -28,7 +28,8 @@ export const GetAllClosures = async (shop_id?: number, startDate?: string, endDa
                 end_date: endDate
             },
         })
-        return response.data.items
+        const items: DailyClosureResponse[] = response.data.items ?? []
+        return items.filter((item) => item?.id != null)
     } catch (error: unknown) {
         throw error;
     }

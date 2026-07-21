@@ -29,7 +29,11 @@ interface EmptyStateProps {
 function isComponent(
     icon: EmptyStateProps["icon"],
 ): icon is React.ComponentType<{ className?: string }> {
-    return typeof icon === "function";
+    // Lucide icons (and forwardRef/memo components generally) are objects,
+    // not functions — only a rendered element should be passed through as-is.
+    if (icon == null) return false;
+    if (typeof icon === "function") return true;
+    return typeof icon === "object" && !React.isValidElement(icon);
 }
 
 export default function EmptyState({

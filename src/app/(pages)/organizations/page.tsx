@@ -28,13 +28,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import StatsGrid from "@/components/(shared-components)/StatsGrid";
 import {
     Search, Plus, MoreHorizontal, Pencil, Trash2, Building2, RefreshCcw,
-    CheckCircle2, XCircle, Users, Store, BadgeCheck, Phone, Mail,
+    CheckCircle2, XCircle, BadgeCheck, Eye,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -51,18 +53,6 @@ const PLAN_BADGE: Record<string, string> = {
 
 function getInitials(name: string) {
     return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
-}
-
-function StatChip({ label, value, sub }: { label: string; value: number; sub?: string }) {
-    return (
-        <Card className="p-0">
-            <CardContent className="px-5 py-4">
-                <p className="text-muted-foreground text-xs font-medium">{label}</p>
-                <p className="text-foreground text-2xl font-bold mt-0.5">{value}</p>
-                {sub && <p className="text-muted-foreground text-xs mt-0.5">{sub}</p>}
-            </CardContent>
-        </Card>
-    );
 }
 
 type StatusFilter = 'all' | 'active' | 'inactive';
@@ -165,12 +155,14 @@ export default function OrganizationsPage() {
             />
 
             {/* ── Summary stat chips ──────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <StatChip label="Total" value={stats.total} sub="organizations" />
-                <StatChip label="Active" value={stats.active} sub={`${stats.inactive} inactive`} />
-                <StatChip label="Pro" value={stats.pro} sub="on pro plan" />
-                <StatChip label="Enterprise" value={stats.enterprise} sub="on enterprise plan" />
-            </div>
+            <StatsGrid
+                stats={[
+                    { name: 'Total', value: stats.total, change: 'organizations', changeType: 'neutral' },
+                    { name: 'Active', value: stats.active, change: `${stats.inactive} inactive`, changeType: 'neutral' },
+                    { name: 'Pro', value: stats.pro, change: 'on pro plan', changeType: 'neutral' },
+                    { name: 'Enterprise', value: stats.enterprise, change: 'on enterprise plan', changeType: 'neutral' },
+                ]}
+            />
 
             {/* ── Filters toolbar ─────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-center gap-3">
@@ -228,27 +220,25 @@ export default function OrganizationsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="pl-6 w-[260px]">Organization</TableHead>
-                                <TableHead>Contact</TableHead>
+                                <TableHead className="pl-6 w-[280px]">Organization</TableHead>
                                 <TableHead>Plan</TableHead>
-                                <TableHead>Capacity</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Joined</TableHead>
-                                <TableHead className="pr-6 w-[60px] text-right">Actions</TableHead>
+                                <TableHead className="pr-6 w-[140px] text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 Array.from({ length: 6 }).map((_, i) => (
                                     <TableRow key={i}>
-                                        {Array.from({ length: 7 }).map((_, j) => (
+                                        {Array.from({ length: 5 }).map((_, j) => (
                                             <TableCell key={j}><Skeleton className="h-5 w-full rounded" /></TableCell>
                                         ))}
                                     </TableRow>
                                 ))
                             ) : current.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="py-20 text-center">
+                                    <TableCell colSpan={5} className="py-20 text-center">
                                         <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
                                             <Building2 className="text-muted-foreground size-7" />
                                         </div>
@@ -268,23 +258,8 @@ export default function OrganizationsPage() {
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-foreground truncate font-semibold text-sm leading-tight">{org.name}</p>
-                                                {org.description && (
-                                                    <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">{org.description}</p>
-                                                )}
+                                                <p className="text-muted-foreground mt-0.5 truncate text-xs">{org.email}</p>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    {/* Contact */}
-                                    <TableCell>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-                                                <Mail className="size-3 shrink-0" /> {org.email}
-                                            </span>
-                                            {org.phone_number && (
-                                                <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-                                                    <Phone className="size-3 shrink-0" /> {org.phone_number}
-                                                </span>
-                                            )}
                                         </div>
                                     </TableCell>
                                     {/* Plan */}
@@ -296,17 +271,6 @@ export default function OrganizationsPage() {
                                             {org.plan_type === 'enterprise' && <BadgeCheck className="mr-1 size-3" />}
                                             {org.plan_type}
                                         </Badge>
-                                    </TableCell>
-                                    {/* Capacity */}
-                                    <TableCell>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-                                                <Store className="size-3 shrink-0" /> {org.max_shops} shops
-                                            </span>
-                                            <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-                                                <Users className="size-3 shrink-0" /> {org.max_users} users
-                                            </span>
-                                        </div>
                                     </TableCell>
                                     {/* Status */}
                                     <TableCell>
@@ -326,29 +290,34 @@ export default function OrganizationsPage() {
                                     </TableCell>
                                     {/* Actions */}
                                     <TableCell className="pr-6 text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="size-8" aria-label="Organization actions">
-                                                    <MoreHorizontal className="size-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => {
-                                                    setSelectedOrg(org);
-                                                    setNewPlan(org.plan_type);
-                                                    setIsChangePlanOpen(true);
-                                                }}>
-                                                    <Pencil className="mr-2 size-4" /> Change Plan
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem
-                                                    className="text-destructive focus:text-destructive"
-                                                    onClick={() => { setSelectedOrg(org); setIsDeleteOpen(true); }}
-                                                >
-                                                    <Trash2 className="mr-2 size-4" /> Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        <div className="flex items-center justify-end gap-1">
+                                            <Button variant="ghost" size="sm" className="h-8 px-3 text-xs gap-1.5" asChild>
+                                                <Link href={`/organizations/${org.id}`}><Eye className="size-3.5" /> View</Link>
+                                            </Button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="size-8" aria-label="Organization actions">
+                                                        <MoreHorizontal className="size-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => {
+                                                        setSelectedOrg(org);
+                                                        setNewPlan(org.plan_type);
+                                                        setIsChangePlanOpen(true);
+                                                    }}>
+                                                        <Pencil className="mr-2 size-4" /> Change Plan
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        className="text-destructive focus:text-destructive"
+                                                        onClick={() => { setSelectedOrg(org); setIsDeleteOpen(true); }}
+                                                    >
+                                                        <Trash2 className="mr-2 size-4" /> Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

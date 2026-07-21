@@ -711,7 +711,10 @@ export default function OrderDetailsPage() {
                         </Card>
 
                         {/* Payment */}
-                        <Card className="bg-primary text-primary-foreground gap-0 p-0">
+                        <Card
+                            className="gap-0 overflow-hidden p-0 text-white"
+                            style={{ background: 'linear-gradient(90deg, #2e3c45 0.000%, #2d454e 3.030%, #2f5057 6.061%, #355d61 9.091%, #3c6b6b 12.121%, #477974 15.152%, #54877d 18.182%, #629585 21.212%, #73a28c 24.242%, #84ad91 27.273%, #96b796 30.303%, #a7bf99 33.333%, #b8c59a 36.364%, #c8c89a 39.394%, #d7c999 42.424%, #e3c796 45.455%, #edc391 48.485%, #f4bc8b 51.515%, #f9b484 54.545%, #faa97c 57.576%, #f99d74 60.606%, #f4906a 63.636%, #ed8261 66.667%, #e37457 69.697%, #d6664e 72.727%, #c85845 75.758%, #b74c3d 78.788%, #a64135 81.818%, #95392f 84.848%, #83322a 87.879%, #722d27 90.909%, #622b25 93.939%, #532c25 96.970%, #462f26 100.000%)' }}
+                        >
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -723,7 +726,7 @@ export default function OrderDetailsPage() {
                                     <Badge
                                         variant="outline"
                                         className={cn(
-                                            'rounded-full border-white/30 bg-white/10 text-primary-foreground px-3',
+                                            'rounded-full border-white/30 bg-white/10 text-white px-3',
                                         )}
                                     >
                                         <PaymentStatusIcon className="mr-1 size-3" />
@@ -736,7 +739,7 @@ export default function OrderDetailsPage() {
                                         <p className="text-3xl font-bold mb-1">
                                             {fmt(order.amount_paid)}
                                         </p>
-                                        <p className="text-primary-foreground/60 flex items-center gap-1 text-xs">
+                                        <p className="text-white/60 flex items-center gap-1 text-xs">
                                             <PaymentMethodIcon className="size-3" />
                                             via {order.payment_method?.replace('_', ' ') || 'N/A'}
                                         </p>
@@ -744,7 +747,7 @@ export default function OrderDetailsPage() {
 
                                     {order.amount_due > 0 && (
                                         <div className="rounded-lg bg-white/10 p-3">
-                                            <p className="text-primary-foreground/60 mb-1 text-xs">Amount Due</p>
+                                            <p className="text-white/60 mb-1 text-xs">Amount Due</p>
                                             <p className="text-warning-foreground text-lg font-bold">
                                                 {fmt(order.amount_due)}
                                             </p>
@@ -753,9 +756,9 @@ export default function OrderDetailsPage() {
 
                                     {order.close_at && (
                                         <div className="flex items-center gap-2 rounded-lg bg-white/10 p-3">
-                                            <CalendarClock className="text-primary-foreground/60 size-4" />
+                                            <CalendarClock className="text-white/60 size-4" />
                                             <div>
-                                                <p className="text-primary-foreground/60 text-xs">Closed at</p>
+                                                <p className="text-white/60 text-xs">Closed at</p>
                                                 <p className="text-sm font-medium">
                                                     {format(new Date(order.close_at), 'MMM d, yyyy HH:mm')}
                                                 </p>

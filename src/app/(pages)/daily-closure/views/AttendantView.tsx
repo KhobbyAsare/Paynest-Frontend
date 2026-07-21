@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { format } from "date-fns";
+import { safeFormat } from "@/lib/safeFormat";
 import { cn } from "@/lib/utils";
 import { useCurrency, useOrgCurrency } from "@/hooks/useCurrency";
 
@@ -288,7 +288,7 @@ export default function AttendantView({
                             <div>
                                 <p className="font-bold">Verified &amp; Closed</p>
                                 <p className="text-muted-foreground mt-1 text-sm">
-                                    Reconciled on {format(new Date(closure.closed_at), "PPP")}
+                                    Reconciled on {safeFormat(closure.closed_at, "PPP")}
                                 </p>
                             </div>
                         </Card>
@@ -303,7 +303,7 @@ export default function AttendantView({
                                 </div>
                                 <div>
                                     <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">Opened</p>
-                                    <p className="text-sm font-medium">{format(new Date(closure.opened_at), "PPp")}</p>
+                                    <p className="text-sm font-medium">{safeFormat(closure.opened_at, "PPp")}</p>
                                 </div>
                             </div>
                             <Separator />

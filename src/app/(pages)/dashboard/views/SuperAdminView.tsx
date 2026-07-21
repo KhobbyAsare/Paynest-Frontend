@@ -32,6 +32,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PageHeader from '@/components/(shared-components)/PageHeader';
+import StatsGrid from '@/components/(shared-components)/StatsGrid';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/currency';
 import { DatePicker } from 'antd';
@@ -407,64 +408,42 @@ function AdvancedMetrics({ data, loading }: { data: SuperAdminDashboardResponse 
 
     const metrics = s ? [
         {
-            label: 'Avg Revenue / Org',
+            name: 'Avg Revenue / Org',
             value: s.active_organizations > 0 ? fmtShort(s.total_revenue / s.active_organizations) : '—',
-            sub: 'Active orgs only',
-            icon: TrendingUp,
-            color: 'text-success',
-            bg: 'bg-success/10',
+            change: 'Active orgs only',
         },
         {
-            label: 'Avg Shops / Org',
+            name: 'Avg Shops / Org',
             value: s.total_organizations > 0 ? (s.total_shops / s.total_organizations).toFixed(1) : '—',
-            sub: 'All organizations',
-            icon: Store,
-            color: 'text-info',
-            bg: 'bg-info/10',
+            change: 'All organizations',
         },
         {
-            label: 'Avg Users / Org',
+            name: 'Avg Users / Org',
             value: s.total_organizations > 0 ? (s.total_users / s.total_organizations).toFixed(1) : '—',
-            sub: 'All organizations',
-            icon: Users,
-            color: 'text-primary',
-            bg: 'bg-primary/10',
+            change: 'All organizations',
         },
         {
-            label: 'New Orgs (Period)',
+            name: 'New Orgs (Period)',
             value: s.new_orgs_in_period.toLocaleString(),
-            sub: `of ${s.total_organizations} total`,
-            icon: Building2,
-            color: 'text-warning-foreground',
-            bg: 'bg-warning/10',
+            change: `of ${s.total_organizations} total`,
         },
-    ] : [];
+    ] as const : [];
 
-    return (
-        <div className="grid grid-cols-2 gap-4">
-            {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
+    if (loading) {
+        return (
+            <div className="grid grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
                     <Card key={i} className="p-4">
                         <Skeleton className="h-3 w-24 mb-3" />
                         <Skeleton className="h-6 w-20 mb-1" />
                         <Skeleton className="h-2.5 w-16" />
                     </Card>
-                ))
-            ) : metrics.map((m, i) => {
-                const Icon = m.icon;
-                return (
-                    <Card key={i} className="p-4 gap-0">
-                        <div className={cn('size-7 rounded-lg flex items-center justify-center mb-3', m.bg)}>
-                            <Icon className={cn('size-3.5', m.color)} />
-                        </div>
-                        <p className="text-[18px] font-bold text-foreground leading-none mb-1">{m.value}</p>
-                        <p className="text-xs font-medium text-foreground/80 mb-0.5">{m.label}</p>
-                        <p className="text-[11px] text-muted-foreground">{m.sub}</p>
-                    </Card>
-                );
-            })}
-        </div>
-    );
+                ))}
+            </div>
+        );
+    }
+
+    return <StatsGrid columns={2} stats={metrics.map(m => ({ ...m, changeType: 'neutral' as const }))} />;
 }
 
 // ─── Users Without Profile table ──────────────────────────────────────────────

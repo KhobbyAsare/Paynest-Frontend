@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-    TrendingUp, TrendingDown, DollarSign, ShoppingCart,
-    Briefcase, Calendar, RefreshCcw, Store, PieChart, BarChart3,
+    TrendingUp, TrendingDown, DollarSign,
+    Calendar, RefreshCcw, Store, BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/(zustand-store)/authStore";
 import { useCurrency } from "@/hooks/useCurrency";
 import PageHeader from "@/components/(shared-components)/PageHeader";
+import StatsGrid from "@/components/(shared-components)/StatsGrid";
 import { cn } from "@/lib/utils";
 
 function toISODate(d: Date) {
@@ -100,26 +101,26 @@ export default function FinancePage() {
         {
             name: 'Total Revenue',
             value: fmt(financeData.summary.total_revenue),
-            sub: `${financeData.summary.total_orders} Orders`,
-            icon: <DollarSign className="text-primary size-5" />,
+            change: `${financeData.summary.total_orders} Orders`,
+            changeType: 'neutral' as const,
         },
         {
             name: 'Estimated Profit',
             value: fmt(financeData.summary.net_profit),
-            sub: `${Math.round(financeData.summary.total_revenue > 0 ? (financeData.summary.net_profit / financeData.summary.total_revenue) * 100 : 0)}% Margin`,
-            icon: <Briefcase className="text-success size-5" />,
+            change: `${Math.round(financeData.summary.total_revenue > 0 ? (financeData.summary.net_profit / financeData.summary.total_revenue) * 100 : 0)}% Margin`,
+            changeType: 'positive' as const,
         },
         {
             name: 'Cost of Goods',
             value: fmt(financeData.summary.total_cost),
-            sub: 'Inventory Value',
-            icon: <ShoppingCart className="text-info size-5" />,
+            change: 'Inventory Value',
+            changeType: 'neutral' as const,
         },
         {
             name: 'Tax Collected',
             value: fmt(financeData.summary.total_tax),
-            sub: 'Government Dues',
-            icon: <PieChart className="text-warning-foreground size-5" />,
+            change: 'Government Dues',
+            changeType: 'neutral' as const,
         },
     ] : [];
 
@@ -207,20 +208,9 @@ export default function FinancePage() {
             ) : (
                 <>
                     {/* Stats */}
-                    <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border overflow-hidden rounded-2xl border">
-                        {statsConfig.map(stat => (
-                            <div key={stat.name} className="bg-card flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-8 sm:px-6">
-                                <dt className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
-                                    {stat.icon}
-                                    {stat.name}
-                                </dt>
-                                <dd className="text-muted-foreground text-xs font-semibold">{stat.sub}</dd>
-                                <dd className="text-foreground mt-2 w-full flex-none text-3xl font-bold tracking-tight">
-                                    {loading ? '…' : stat.value}
-                                </dd>
-                            </div>
-                        ))}
-                    </dl>
+                    <StatsGrid
+                        stats={statsConfig.map(stat => ({ ...stat, value: loading ? '…' : stat.value }))}
+                    />
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Main tables */}

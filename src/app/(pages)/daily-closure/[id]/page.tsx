@@ -20,11 +20,11 @@ import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
 import { GetClosureDetails, VerifyDailyClosure } from "@/(api-handlers)/dailyClosureHandler";
 import { DailyClosureDetailResponse } from "@/interfaces/dailyClosure";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import { cn } from "@/lib/utils";
+import { safeFormat } from "@/lib/safeFormat";
 import { useCurrency } from "@/hooks/useCurrency";
 import { toast } from "sonner";
 
@@ -118,7 +118,7 @@ export default function ClosureDetailPage() {
                 </Button>
                 <PageHeader
                     title={`Closure: ${closure.closure_number}`}
-                    description={`Detailed reconciliation for ${format(new Date(closure.closure_date), 'PPP')}`}
+                    description={`Detailed reconciliation for ${safeFormat(closure.closure_date, 'PPP')}`}
                 />
             </div>
 
@@ -152,7 +152,7 @@ export default function ClosureDetailPage() {
                             {closure.status === 'verified'
                                 ? `Verified by ID#${closure.verified_by}`
                                 : closure.closed_at
-                                    ? `Submitted on ${format(new Date(closure.closed_at), 'PPP p')}`
+                                    ? `Submitted on ${safeFormat(closure.closed_at, 'PPP p')}`
                                     : 'Awaiting end-of-day submission'}
                         </p>
                     </div>
@@ -349,8 +349,8 @@ export default function ClosureDetailPage() {
                         <CardContent className="space-y-4 pt-4">
                             {[
                                 { label: 'Reference No.', value: `#${closure.closure_number}`, mono: true },
-                                { label: 'Closure Date',  value: format(new Date(closure.closure_date), 'PP') },
-                                { label: 'Opening Time',  value: format(new Date(closure.opened_at), 'p') },
+                                { label: 'Closure Date',  value: safeFormat(closure.closure_date, 'PP') },
+                                { label: 'Opening Time',  value: safeFormat(closure.opened_at, 'p') },
                             ].map(row => (
                                 <div key={row.label} className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground font-medium">{row.label}</span>

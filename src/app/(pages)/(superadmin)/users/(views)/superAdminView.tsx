@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Pencil, RefreshCcw, Users, Eye, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
+import { Search, Pencil, RefreshCcw, Users, Eye, CheckCircle2, XCircle, Crown } from 'lucide-react';
 import { getAllUsers } from '@/(api-handlers)/userHandler';
 import { UserResponse } from '@/interfaces/loginInterface';
 import PageHeader from '@/components/(shared-components)/PageHeader';
@@ -12,8 +12,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import StatsGrid from '@/components/(shared-components)/StatsGrid';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -24,17 +26,17 @@ type Role = 'all' | 'superadmin' | 'admin' | 'manager' | 'attendant';
 type Status = 'all' | 'active' | 'inactive';
 
 const ROLE_BADGE: Record<string, string> = {
-    superadmin: 'border-destructive/30 bg-destructive/10 text-destructive',
+    superadmin: 'border-primary/30 bg-primary/10 text-primary',
     admin:      'border-info/30 bg-info/10 text-info',
     manager:    'border-success/30 bg-success/10 text-success',
-    attendant:  'border-primary/30 bg-primary/10 text-primary',
+    attendant:  'border-border bg-muted text-muted-foreground',
 };
 
 const ROLE_AVATAR: Record<string, string> = {
-    superadmin: 'bg-destructive/10 text-destructive',
+    superadmin: 'bg-primary/10 text-primary',
     admin:      'bg-info/10 text-info',
     manager:    'bg-success/10 text-success',
-    attendant:  'bg-primary/10 text-primary',
+    attendant:  'bg-muted text-muted-foreground',
 };
 
 function getInitials(first: string, last: string) {
@@ -44,18 +46,6 @@ function getInitials(first: string, last: string) {
 function fmtDate(iso: string) {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function StatChip({ label, value, sub }: { label: string; value: number; sub?: string }) {
-    return (
-        <Card className="p-0">
-            <CardContent className="px-5 py-4">
-                <p className="text-muted-foreground text-xs font-medium">{label}</p>
-                <p className="text-foreground text-2xl font-bold mt-0.5">{value}</p>
-                {sub && <p className="text-muted-foreground text-xs mt-0.5">{sub}</p>}
-            </CardContent>
-        </Card>
-    );
 }
 
 export default function SuperAdminPage() {
@@ -109,6 +99,7 @@ export default function SuperAdminPage() {
     ];
 
     return (
+        <TooltipProvider>
         <div className="flex flex-col gap-6">
             <PageHeader
                 title="User Management"
@@ -121,14 +112,17 @@ export default function SuperAdminPage() {
             />
 
             {/* ── Stats ─────────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-3 gap-4 sm:grid-cols-6">
-                <StatChip label="Total" value={stats.total} sub="users" />
-                <StatChip label="Active" value={stats.active} sub={`${stats.total - stats.active} inactive`} />
-                <StatChip label="Super Admin" value={stats.superadmin} />
-                <StatChip label="Admin" value={stats.admin} />
-                <StatChip label="Manager" value={stats.manager} />
-                <StatChip label="Attendant" value={stats.attendant} />
-            </div>
+            <StatsGrid
+                columns={6}
+                stats={[
+                    { name: 'Total', value: stats.total, change: 'users', changeType: 'neutral' },
+                    { name: 'Active', value: stats.active, change: `${stats.total - stats.active} inactive`, changeType: 'neutral' },
+                    { name: 'Super Admin', value: stats.superadmin },
+                    { name: 'Admin', value: stats.admin },
+                    { name: 'Manager', value: stats.manager },
+                    { name: 'Attendant', value: stats.attendant },
+                ]}
+            />
 
             {/* ── Filters ───────────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-center gap-3">
@@ -197,7 +191,7 @@ export default function SuperAdminPage() {
                                 <TableHead>Status</TableHead>
                                 <TableHead>Verified</TableHead>
                                 <TableHead>Last Login</TableHead>
-                                <TableHead className="pr-6 w-[90px] text-right">Actions</TableHead>
+                                <TableHead className="pr-6 w-[140px] text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -244,7 +238,7 @@ export default function SuperAdminPage() {
                                             variant="outline"
                                             className={cn('capitalize rounded-full text-xs font-medium', ROLE_BADGE[u.role] ?? 'border-border bg-muted text-muted-foreground')}
                                         >
-                                            {u.role === 'superadmin' && <ShieldCheck className="mr-1 size-3" />}
+                                            {u.role === 'superadmin' && <Crown className="mr-1 size-3" />}
                                             {u.role}
                                         </Badge>
                                     </TableCell>
@@ -290,13 +284,18 @@ export default function SuperAdminPage() {
                                     {/* Actions */}
                                     <TableCell className="pr-6 text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                            <Button variant="ghost" size="icon" className="size-8" asChild aria-label="View user">
-                                                <Link href={`/users/${u.id}`}><Eye className="size-4" /></Link>
+                                            <Button variant="ghost" size="sm" className="h-8 px-3 text-xs gap-1.5" asChild>
+                                                <Link href={`/users/${u.id}`}><Eye className="size-3.5" /> View</Link>
                                             </Button>
                                             {u.employee_profile && (
-                                                <Button variant="ghost" size="icon" className="size-8" asChild aria-label="Edit employee profile">
-                                                    <Link href={`/users/edit-employee-profile/${u.id}`}><Pencil className="size-4" /></Link>
-                                                </Button>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="size-8" asChild aria-label="Edit employee profile">
+                                                            <Link href={`/users/edit-employee-profile/${u.id}`}><Pencil className="size-4" /></Link>
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>Edit employee profile</TooltipContent>
+                                                </Tooltip>
                                             )}
                                         </div>
                                     </TableCell>
@@ -319,5 +318,6 @@ export default function SuperAdminPage() {
                 )}
             </Card>
         </div>
+        </TooltipProvider>
     );
 }

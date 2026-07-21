@@ -33,7 +33,7 @@ export default function PageHeader({
     const trailing = actions ?? children;
 
     return (
-        <header className={cn("flex flex-col gap-3 pb-4", className)}>
+        <header className={cn("flex flex-col gap-3", className)}>
             {breadcrumbs && breadcrumbs.length > 0 ? (
                 <nav
                     aria-label="Breadcrumb"

@@ -22,7 +22,7 @@ import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
+import { safeFormat } from "@/lib/safeFormat";
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
 import { cn } from "@/lib/utils";
@@ -286,7 +286,7 @@ export default function AdminView({
                                 <div>
                                     <h4 className="text-foreground text-xl font-extrabold">Verified & Closed</h4>
                                     <p className="text-muted-foreground text-sm">
-                                        Reconciled on {closure.closed_at ? format(new Date(closure.closed_at), 'PPP') : '—'}
+                                        Reconciled on {safeFormat(closure.closed_at, 'PPP')}
                                     </p>
                                 </div>
                             </CardContent>
@@ -321,7 +321,7 @@ export default function AdminView({
                                 <Calendar className="text-muted-foreground mt-0.5 size-5" />
                                 <div>
                                     <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Opening Time</p>
-                                    <p className="text-foreground text-sm font-semibold">{format(new Date(closure.opened_at), 'ppp')}</p>
+                                    <p className="text-foreground text-sm font-semibold">{safeFormat(closure.opened_at, 'ppp')}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
@@ -402,7 +402,7 @@ export default function AdminView({
                                 </TableRow>
                             ) : history.map(rec => (
                                 <TableRow key={rec.id}>
-                                    <TableCell className="pl-6 text-sm">{format(new Date(rec.closure_date), 'MMM d, yyyy')}</TableCell>
+                                    <TableCell className="pl-6 text-sm">{safeFormat(rec.closure_date, 'MMM d, yyyy')}</TableCell>
                                     <TableCell className="text-muted-foreground text-sm font-mono">{rec.closure_number}</TableCell>
                                     <TableCell><StatusBadge status={rec.status} /></TableCell>
                                     <TableCell className="text-sm">{fmt(rec.net_sales)}</TableCell>
@@ -410,9 +410,9 @@ export default function AdminView({
                                     <TableCell>
                                         <span className={cn(
                                             "text-sm font-medium",
-                                            rec.cash_difference < 0 ? "text-destructive" : rec.cash_difference > 0 ? "text-success" : "text-muted-foreground"
+                                            (rec.cash_difference ?? 0) < 0 ? "text-destructive" : (rec.cash_difference ?? 0) > 0 ? "text-success" : "text-muted-foreground"
                                         )}>
-                                            {rec.cash_difference > 0 ? '+' : ''}{rec.cash_difference.toFixed(2)}
+                                            {(rec.cash_difference ?? 0) > 0 ? '+' : ''}{(rec.cash_difference ?? 0).toFixed(2)}
                                         </span>
                                     </TableCell>
                                     <TableCell className="pr-6 text-right">

@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/(zustand-store)/authStore';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import Link from 'next/link';
@@ -29,6 +30,13 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 10;
+
+const ROLE_BADGE: Record<string, string> = {
+    superadmin: 'border-primary/30 bg-primary/10 text-primary',
+    admin:      'border-info/30 bg-info/10 text-info',
+    manager:    'border-success/30 bg-success/10 text-success',
+    attendant:  'border-border bg-muted text-muted-foreground',
+};
 
 export default function UsersAdministratorView() {
     const { user } = useAuthStore();
@@ -92,6 +100,7 @@ export default function UsersAdministratorView() {
     };
 
     return (
+        <TooltipProvider>
         <div className="flex flex-col gap-6">
             <PageHeader
                 title="Users"
@@ -130,7 +139,7 @@ export default function UsersAdministratorView() {
                                 <TableHead>Role</TableHead>
                                 <TableHead>Verified</TableHead>
                                 <TableHead>Employee Profile</TableHead>
-                                <TableHead className="pr-6 w-[80px] text-right">Actions</TableHead>
+                                <TableHead className="pr-6 w-[140px] text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -162,7 +171,7 @@ export default function UsersAdministratorView() {
                                     <TableCell className="text-muted-foreground">{u.username}</TableCell>
                                     <TableCell className="text-muted-foreground text-sm">{u.email}</TableCell>
                                     <TableCell>
-                                        <Badge variant="outline" className="capitalize text-xs rounded-full">
+                                        <Badge variant="outline" className={cn('capitalize text-xs rounded-full font-medium', ROLE_BADGE[u.role] ?? 'border-border bg-muted text-muted-foreground')}>
                                             {u.role}
                                         </Badge>
                                     </TableCell>
@@ -194,13 +203,18 @@ export default function UsersAdministratorView() {
                                     </TableCell>
                                     <TableCell className="pr-6 text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                            <Button variant="ghost" size="icon" className="size-8" asChild>
-                                                <Link href={`/users/${u.id}`}><Eye className="size-4" /></Link>
+                                            <Button variant="ghost" size="sm" className="h-8 px-3 text-xs gap-1.5" asChild>
+                                                <Link href={`/users/${u.id}`}><Eye className="size-3.5" /> View</Link>
                                             </Button>
                                             {u.employee_profile && (
-                                                <Button variant="ghost" size="icon" className="size-8" asChild>
-                                                    <Link href={`/users/edit-employee-profile/${u.id}`}><Pencil className="size-4" /></Link>
-                                                </Button>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="size-8" asChild aria-label="Edit employee profile">
+                                                            <Link href={`/users/edit-employee-profile/${u.id}`}><Pencil className="size-4" /></Link>
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>Edit employee profile</TooltipContent>
+                                                </Tooltip>
                                             )}
                                         </div>
                                     </TableCell>
@@ -253,5 +267,6 @@ export default function UsersAdministratorView() {
                 </DialogContent>
             </Dialog>
         </div>
+        </TooltipProvider>
     );
 }

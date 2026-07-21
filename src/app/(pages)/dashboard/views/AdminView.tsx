@@ -8,9 +8,8 @@ import { GetInventoryStatistics } from '@/(api-handlers)/inventoryHandler';
 import { FinanceOverviewResponse } from '@/interfaces/finance';
 import { InventoryStats } from '@/interfaces/inventory';
 import {
-    TrendingUp, ShoppingCart, DollarSign,
-    Package, AlertTriangle, XCircle, RefreshCcw,
-    Store, ArrowUpRight, Activity, Percent, TrendingDown,
+    RefreshCcw,
+    Store, ArrowUpRight, Activity, TrendingDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { StatCard } from '@/components/(shared-components)/StatCard';
+import StatsGrid from '@/components/(shared-components)/StatsGrid';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import { cn } from '@/lib/utils';
 import { useCurrency, useOrgCurrency } from '@/hooks/useCurrency';
@@ -262,83 +261,67 @@ export const AdminView = () => {
             {/* ── Financial KPIs ─────────────────────────────────────────── */}
             <div>
                 <p className="text-overline text-muted-foreground mb-3">Financial</p>
-                <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-                    <StatCard
-                        label="Total Revenue"
-                        value={s ? fmtShort(s.total_revenue) : fmt(0)}
-                        sub={s ? fmt(s.total_revenue) : undefined}
-                        icon={DollarSign}
-                        trend={{ direction: 'up', label: `${range}d period` }}
-                        loading={loading}
-                    />
-                    <StatCard
-                        label="Gross Profit"
-                        value={s ? fmtShort(s.gross_profit) : fmt(0)}
-                        sub={s ? `Margin ${profitMargin.toFixed(1)}%` : undefined}
-                        icon={TrendingUp}
-                        trend={{ direction: profitMargin > 20 ? 'up' : 'neutral', label: `${profitMargin.toFixed(1)}% margin` }}
-                        loading={loading}
-                    />
-                    <StatCard
-                        label="Total Orders"
-                        value={s ? s.total_orders.toLocaleString() : '0'}
-                        sub={s ? `${fmt(s.total_discounts)} discounts` : undefined}
-                        icon={ShoppingCart}
-                        trend={{ direction: 'neutral', label: 'paid orders' }}
-                        loading={loading}
-                    />
-                    <StatCard
-                        label="Avg Order Value"
-                        value={s && s.total_orders > 0 ? fmtShort(avgOrderValue) : fmt(0)}
-                        sub={s ? `Tax: ${fmtShort(s.total_tax)}` : undefined}
-                        icon={Percent}
-                        trend={{ direction: 'neutral', label: 'per transaction' }}
-                        loading={loading}
-                    />
-                </div>
+                <StatsGrid
+                    stats={[
+                        {
+                            name: 'Total Revenue',
+                            value: s ? fmtShort(s.total_revenue) : fmt(0),
+                            change: s ? fmt(s.total_revenue) : `${range}d period`,
+                            changeType: 'positive',
+                        },
+                        {
+                            name: 'Gross Profit',
+                            value: s ? fmtShort(s.gross_profit) : fmt(0),
+                            change: s ? `Margin ${profitMargin.toFixed(1)}%` : undefined,
+                            changeType: profitMargin > 20 ? 'positive' : 'neutral',
+                        },
+                        {
+                            name: 'Total Orders',
+                            value: s ? s.total_orders.toLocaleString() : '0',
+                            change: s ? `${fmt(s.total_discounts)} discounts` : undefined,
+                            changeType: 'neutral',
+                        },
+                        {
+                            name: 'Avg Order Value',
+                            value: s && s.total_orders > 0 ? fmtShort(avgOrderValue) : fmt(0),
+                            change: s ? `Tax: ${fmtShort(s.total_tax)}` : undefined,
+                            changeType: 'neutral',
+                        },
+                    ]}
+                />
             </div>
 
             {/* ── Inventory KPIs ─────────────────────────────────────────── */}
             <div>
                 <p className="text-overline text-muted-foreground mb-3">Inventory</p>
-                <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-                    <StatCard
-                        label="Total Items"
-                        value={invStats ? invStats.total_items.toLocaleString() : '0'}
-                        icon={Package}
-                        trend={{ direction: 'neutral', label: 'in catalogue' }}
-                        loading={loading}
-                    />
-                    <StatCard
-                        label="Inventory Value"
-                        value={invStats ? fmtShort(invStats.total_inventory_value) : fmt(0)}
-                        sub={invStats ? fmt(invStats.total_inventory_value) : undefined}
-                        icon={DollarSign}
-                        trend={{ direction: 'neutral', label: 'at cost price' }}
-                        loading={loading}
-                    />
-                    <StatCard
-                        label="Low Stock"
-                        value={invStats ? invStats.low_stock_items.toLocaleString() : '0'}
-                        sub={invStats ? `${invStats.needs_reorder_items} need reorder` : undefined}
-                        icon={AlertTriangle}
-                        trend={{
-                            direction: (invStats?.low_stock_items ?? 0) > 0 ? 'down' : 'up',
-                            label: (invStats?.low_stock_items ?? 0) > 0 ? 'action required' : 'healthy',
-                        }}
-                        loading={loading}
-                    />
-                    <StatCard
-                        label="Out of Stock"
-                        value={invStats ? invStats.out_of_stock_items.toLocaleString() : '0'}
-                        icon={XCircle}
-                        trend={{
-                            direction: (invStats?.out_of_stock_items ?? 0) > 0 ? 'down' : 'up',
-                            label: (invStats?.out_of_stock_items ?? 0) > 0 ? 'critical' : 'all stocked',
-                        }}
-                        loading={loading}
-                    />
-                </div>
+                <StatsGrid
+                    stats={[
+                        {
+                            name: 'Total Items',
+                            value: invStats ? invStats.total_items.toLocaleString() : '0',
+                            change: 'in catalogue',
+                            changeType: 'neutral',
+                        },
+                        {
+                            name: 'Inventory Value',
+                            value: invStats ? fmtShort(invStats.total_inventory_value) : fmt(0),
+                            change: invStats ? fmt(invStats.total_inventory_value) : 'at cost price',
+                            changeType: 'neutral',
+                        },
+                        {
+                            name: 'Low Stock',
+                            value: invStats ? invStats.low_stock_items.toLocaleString() : '0',
+                            change: invStats ? `${invStats.needs_reorder_items} need reorder` : undefined,
+                            changeType: (invStats?.low_stock_items ?? 0) > 0 ? 'negative' : 'positive',
+                        },
+                        {
+                            name: 'Out of Stock',
+                            value: invStats ? invStats.out_of_stock_items.toLocaleString() : '0',
+                            change: (invStats?.out_of_stock_items ?? 0) > 0 ? 'critical' : 'all stocked',
+                            changeType: (invStats?.out_of_stock_items ?? 0) > 0 ? 'negative' : 'positive',
+                        },
+                    ]}
+                />
             </div>
 
             {/* ── Revenue trend area chart ────────────────────────────────── */}

@@ -5,8 +5,8 @@ import {
     ArrowLeft, Edit, Building2, MapPin, Fingerprint,
     CheckCircle2, XCircle, Key, Clock, Mail, Phone,
     Calendar, Briefcase, Shield, Hash,
-    BadgeCheck, AlertTriangle, Activity, ShieldCheck,
-    Store, Users, Globe,
+    BadgeCheck, AlertTriangle, Activity, Crown,
+    Store, Users, Globe, Copy, Check, LayoutDashboard,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -14,11 +14,17 @@ import { getUserByID } from '@/(api-handlers)/userHandler';
 import { UserResponse } from '@/interfaces/loginInterface';
 import EmptyState from '@/components/(shared-components)/EmptyState';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+    Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+    BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { cn } from '@/lib/utils';
 
 interface UserDetailsPageProps {
@@ -26,33 +32,29 @@ interface UserDetailsPageProps {
 }
 
 const ROLE_CONFIG: Record<string, {
-    badge: string; avatar: string; banner: string; label: string; icon: React.ElementType;
+    badge: string; avatar: string; label: string; icon: React.ElementType;
 }> = {
     superadmin: {
-        badge:  'border-destructive/30 bg-destructive/10 text-destructive',
-        avatar: 'bg-destructive/15 text-destructive',
-        banner: 'from-destructive/20 to-destructive/5',
+        badge:  'border-primary/30 bg-primary/10 text-primary',
+        avatar: 'bg-primary/15 text-primary',
         label:  'Super Admin',
-        icon:   ShieldCheck,
+        icon:   Crown,
     },
     admin: {
         badge:  'border-info/30 bg-info/10 text-info',
         avatar: 'bg-info/15 text-info',
-        banner: 'from-info/20 to-info/5',
         label:  'Administrator',
         icon:   Shield,
     },
     manager: {
         badge:  'border-success/30 bg-success/10 text-success',
         avatar: 'bg-success/15 text-success',
-        banner: 'from-success/20 to-success/5',
         label:  'Manager',
         icon:   Briefcase,
     },
     attendant: {
-        badge:  'border-primary/30 bg-primary/10 text-primary',
-        avatar: 'bg-primary/15 text-primary',
-        banner: 'from-primary/20 to-primary/5',
+        badge:  'border-border bg-muted text-muted-foreground',
+        avatar: 'bg-muted text-muted-foreground',
         label:  'Attendant',
         icon:   Activity,
     },
@@ -72,6 +74,34 @@ function fmtDate(iso?: string | null, opts?: Intl.DateTimeFormatOptions) {
 function fmtDateTime(iso?: string | null) {
     if (!iso) return 'Never';
     return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function CopyField({ icon: Icon, text, label }: { icon: React.ElementType; text: string; label: string }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        toast.success(`${label} copied to clipboard`);
+        setTimeout(() => setCopied(false), 1500);
+    };
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <button
+                    type="button"
+                    onClick={handleCopy}
+                    aria-label={`Copy ${label.toLowerCase()}`}
+                    className="group inline-flex items-center gap-1 rounded-md px-1 -mx-1 hover:bg-muted hover:text-foreground transition-colors"
+                >
+                    <Icon className="size-3" /> {text}
+                    {copied ? <Check className="size-3 text-success" /> : <Copy className="size-3 opacity-0 group-hover:opacity-100" />}
+                </button>
+            </TooltipTrigger>
+            <TooltipContent>{copied ? 'Copied!' : `Copy ${label.toLowerCase()}`}</TooltipContent>
+        </Tooltip>
+    );
 }
 
 function InfoItem({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
@@ -110,16 +140,16 @@ function LoadingSkeleton() {
     return (
         <div className="flex flex-col gap-6">
             <Skeleton className="h-5 w-40 rounded" />
-            <Card className="gap-0 p-0 overflow-hidden">
-                <Skeleton className="h-32 w-full rounded-none" />
-                <div className="px-6 pb-6 pt-0 -mt-10 flex items-end gap-4">
-                    <Skeleton className="size-20 rounded-2xl shrink-0" />
-                    <div className="space-y-2 pb-1">
-                        <Skeleton className="h-5 w-40" />
+            <div>
+                <Skeleton className="h-32 sm:h-40 w-full rounded-2xl" />
+                <div className="flex items-center gap-4 mt-4">
+                    <Skeleton className="size-16 rounded-full shrink-0" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-6 w-48" />
                         <Skeleton className="h-4 w-56" />
                     </div>
                 </div>
-            </Card>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
             </div>
@@ -173,73 +203,94 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
     const ep         = userData.employee_profile;
 
     return (
+        <TooltipProvider>
         <div className="flex flex-col gap-6">
 
             {/* ── Breadcrumb ──────────────────────────────────────────────────── */}
-            <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Link href="/users" className="hover:text-foreground transition-colors">Users</Link>
-                <span>/</span>
-                <span className="text-foreground font-medium truncate">{fullName}</span>
-            </nav>
+            <Breadcrumb>
+                <BreadcrumbList>
+                    <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/dashboard" className="inline-flex items-center gap-1.5">
+                                <LayoutDashboard className="size-3.5" /> Dashboard
+                            </Link>
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/users">Users</Link>
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage className="truncate max-w-[200px]">{fullName}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
 
-            {/* ── Hero ────────────────────────────────────────────────────────── */}
-            <Card className="gap-0 overflow-hidden p-0">
-                {/* gradient banner */}
-                <div className={cn("h-28 sm:h-36 bg-gradient-to-br", cfg.banner)} />
+            {/* ── Header ──────────────────────────────────────────────────────── */}
+            <div>
+                {/* Cover photo */}
+                <div className="h-32 sm:h-40 w-full overflow-hidden rounded-2xl">
+                    <img
+                        src="https://images.unsplash.com/photo-1784296868202-bf463f3f59bf?q=80&w=848&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                        alt=""
+                        className="h-full w-full object-cover"
+                    />
+                </div>
 
-                <CardContent className="px-6 pb-6 -mt-12 relative">
-                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                        {/* Avatar + identity */}
-                        <div className="flex items-end gap-4">
-                            <div className={cn(
-                                "flex size-20 shrink-0 items-center justify-center rounded-2xl border-4 border-background text-2xl font-bold shadow-md",
-                                cfg.avatar
-                            )}>
-                                {initials || <Users className="size-8" />}
-                            </div>
-                            <div className="pb-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap mb-1">
-                                    <h1 className="text-xl font-bold text-foreground leading-tight">{fullName}</h1>
-                                    <Badge variant="outline" className={cn("rounded-full text-xs font-semibold capitalize gap-1", cfg.badge)}>
-                                        <RoleIcon className="size-3" />
-                                        {cfg.label}
-                                    </Badge>
-                                    <Badge
-                                        variant="outline"
-                                        className={cn("rounded-full text-xs font-semibold",
-                                            userData.is_active
-                                                ? "border-success/30 bg-success/10 text-success"
-                                                : "border-destructive/30 bg-destructive/10 text-destructive"
-                                        )}
-                                    >
-                                        {userData.is_active ? 'Active' : 'Inactive'}
-                                    </Badge>
-                                </div>
-                                <p className="text-muted-foreground text-sm">{userData.email}</p>
-                                <p className="text-muted-foreground text-xs mt-0.5 flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1"><Fingerprint className="size-3" /> ID #{userData.id}</span>
-                                    <span>·</span>
-                                    <span className="inline-flex items-center gap-1"><Hash className="size-3" /> @{userData.username}</span>
-                                </p>
-                            </div>
+                <div className="flex flex-col gap-5 mt-4 md:flex-row md:items-center md:justify-between">
+                    {/* Avatar + identity */}
+                    <div className="flex items-center gap-4">
+                        <div className={cn(
+                            "flex size-16 shrink-0 items-center justify-center rounded-full text-xl font-bold",
+                            cfg.avatar
+                        )}>
+                            {initials || <Users className="size-7" />}
                         </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 sm:pb-1 shrink-0">
-                            <Button variant="outline" size="sm" className="gap-2" onClick={() => router.back()}>
-                                <ArrowLeft className="size-4" /> Back
-                            </Button>
-                            {ep && (
-                                <Button asChild size="sm" className="gap-2">
-                                    <Link href={`/users/edit-employee-profile/${userData.id}`}>
-                                        <Edit className="size-4" /> Edit Profile
-                                    </Link>
-                                </Button>
-                            )}
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h1 className="text-2xl font-bold text-foreground leading-tight">{fullName}</h1>
+                                <Badge variant="outline" className={cn("rounded-full text-xs font-semibold capitalize gap-1", cfg.badge)}>
+                                    <RoleIcon className="size-3" />
+                                    {cfg.label}
+                                </Badge>
+                                <Badge
+                                    variant="outline"
+                                    className={cn("rounded-full text-xs font-semibold",
+                                        userData.is_active
+                                            ? "border-success/30 bg-success/10 text-success"
+                                            : "border-destructive/30 bg-destructive/10 text-destructive"
+                                    )}
+                                >
+                                    {userData.is_active ? 'Active' : 'Inactive'}
+                                </Badge>
+                            </div>
+                            <p className="text-muted-foreground text-sm font-medium mt-1">{userData.email}</p>
+                            <div className="text-muted-foreground text-xs mt-1 flex items-center gap-2">
+                                <CopyField icon={Fingerprint} text={`ID #${userData.id}`} label="User ID" />
+                                <span>·</span>
+                                <CopyField icon={Hash} text={`@${userData.username}`} label="Username" />
+                            </div>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Button variant="outline" size="sm" className="gap-2" onClick={() => router.back()}>
+                            <ArrowLeft className="size-4" /> Back
+                        </Button>
+                        {ep && (
+                            <Button asChild size="sm" className="gap-2">
+                                <Link href={`/users/edit-employee-profile/${userData.id}`}>
+                                    <Edit className="size-4" /> Edit Profile
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            </div>
 
             {/* ── Quick-stat chips ────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -531,5 +582,6 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
                 </div>
             </div>
         </div>
+        </TooltipProvider>
     );
 }

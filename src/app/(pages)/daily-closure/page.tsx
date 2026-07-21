@@ -28,6 +28,7 @@ import {
 import { toast } from 'sonner';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import { format } from 'date-fns';
+import { safeFormat } from '@/lib/safeFormat';
 import AttendantView from './views/AttendantView';
 import AdminView from './views/AdminView';
 import { cn } from '@/lib/utils';
@@ -225,7 +226,7 @@ export default function DailyClosurePage() {
                             <p className="text-foreground font-semibold leading-tight">{closure.closure_number}</p>
                             <p className="text-muted-foreground flex items-center gap-1 text-xs">
                                 <Calendar className="size-3" />
-                                {format(new Date(closure.closure_date), 'MMM d, yyyy')}
+                                {safeFormat(closure.closure_date, 'MMM d, yyyy')}
                             </p>
                         </div>
                     </div>
