@@ -64,7 +64,7 @@ interface ProductFormValues {
 
 function marginColor(pct: number) {
     if (pct >= 30) return 'text-success';
-    if (pct >= 15) return 'text-warning-foreground dark:text-gray-300';
+    if (pct >= 15) return 'text-warning-foreground';
     return 'text-destructive';
 }
 
@@ -493,16 +493,16 @@ export default function ProductsPage() {
                                         <span className={cn(
                                             'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
                                             (product.stock_quantity ?? 0) === 0
-                                                ? 'bg-destructive/10 text-destructive dark:text-gray-300'
+                                                ? 'bg-destructive/10 text-destructive'
                                                 : (product.stock_quantity ?? 0) <= 5
-                                                    ? 'bg-warning/10 text-warning-foreground dark:text-gray-300'
+                                                    ? 'bg-warning/10 text-warning-foreground'
                                                     : 'bg-muted text-muted-foreground',
                                         )}>
                                             <Package className="size-2.5" />
                                             {(product.stock_quantity ?? 0) === 0 ? 'Out of stock' : `${product.stock_quantity} in stock`}
                                         </span>
                                         {product.is_taxable && (
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground dark:text-gray-300">
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground">
                                                 <Percent className="size-2.5" /> {product.tax_rate}% tax
                                             </span>
                                         )}
@@ -892,7 +892,7 @@ export default function ProductsPage() {
                                         <div className="grid grid-cols-4 gap-3">
                                             {[
                                                 { label: 'Current stock', value: `${viewingProduct.inventory.current_stock}`, unit: viewingProduct.inventory.unit_of_measurement || 'units', cls: 'border-success/20 bg-success/10 text-success' },
-                                                { label: 'Min level', value: `${viewingProduct.inventory.minimum_stock}`, cls: 'border-warning/20 bg-warning/10 text-warning-foreground dark:text-gray-300' },
+                                                { label: 'Min level', value: `${viewingProduct.inventory.minimum_stock}`, cls: 'border-warning/20 bg-warning/10 text-warning-foreground' },
                                                 { label: 'Reorder point', value: `${viewingProduct.inventory.reorder_point}`, cls: 'border-info/20 bg-info/10 text-info' },
                                                 { label: 'Max capacity', value: `${viewingProduct.inventory.maximum_stock || '—'}`, cls: 'border-border bg-muted text-muted-foreground' },
                                             ].map(s => (

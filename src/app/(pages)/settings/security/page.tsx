@@ -201,7 +201,7 @@ export default function SecuritySettingsPage() {
 
                     <Card className="p-0 border-warning/30 bg-warning/5">
                         <CardContent className="px-5 py-4 space-y-2 text-xs text-warning-foreground">
-                            <p className="font-semibold dark:text-white">Security Tips</p>
+                            <p className="font-semibold">Security Tips</p>
                             <ul className="space-y-1.5 text-muted-foreground">
                                 <li>• Never share your password with anyone.</li>
                                 <li>• Use a password manager for unique credentials.</li>

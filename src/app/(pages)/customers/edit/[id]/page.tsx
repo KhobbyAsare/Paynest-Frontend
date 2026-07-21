@@ -330,7 +330,7 @@ export default function EditCustomerPage({ params }: EditCustomerPageProps) {
                     <div className="space-y-6">
 
                         {/* Dark accent card — intentional design */}
-                        <Card className="rounded-2xl shadow-sm border-0 bg-slate-900 text-white overflow-hidden relative">
+                        <Card className="rounded-2xl shadow-sm border-0 bg-primary text-primary-foreground overflow-hidden relative">
                             <div className="absolute -top-6 -right-6 size-24 bg-white/5 rounded-full pointer-events-none" />
                             <CardContent className="pt-6 space-y-4">
                                 <p className="font-semibold text-white text-sm tracking-wide">Profile Settings</p>
@@ -342,7 +342,7 @@ export default function EditCustomerPage({ params }: EditCustomerPageProps) {
                                         value={values.customer_code}
                                         onChange={e => set('customer_code', e.target.value)}
                                         className={cn(
-                                            'bg-white/5 border-white/20 text-white placeholder:text-white/30 focus-visible:ring-blue-400',
+                                            'bg-white/5 border-white/20 text-white placeholder:text-white/30 focus-visible:ring-white/40',
                                             errors.customer_code && 'border-destructive'
                                         )}
                                     />

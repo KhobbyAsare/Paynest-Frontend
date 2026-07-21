@@ -56,8 +56,8 @@ const PIE_COLORS = [
     'var(--success)',
     'var(--warning)',
     'var(--destructive)',
-    'oklch(0.627 0.265 303.9)',
-    'oklch(0.645 0.246 16.439)',
+    'var(--chart-4)',
+    'var(--chart-5)',
 ];
 
 // ─── Custom chart tooltip ─────────────────────────────────────────────────────
