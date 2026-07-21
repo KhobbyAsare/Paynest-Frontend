@@ -13,7 +13,7 @@ Paynest is a **multi-tenant cloud POS (Point of Sale)** system. This is the Next
 - **Charts:** Recharts (dashboard analytics)
 - **Animations:** Framer Motion + GSAP
 - **Icons:** lucide-react (primary), @heroicons/react, @ant-design/icons
-- **Notifications:** react-hot-toast
+- **Notifications:** sonner (shadcn toaster, `src/components/ui/sonner.tsx`)
 - **Barcode:** html5-qrcode (camera-based scanner in POS)
 
 ---
@@ -253,7 +253,7 @@ import { useAuthStore } from "@/(zustand-store)/authStore"
 import { GetResource } from "@/(api-handlers)/resourceHandler"
 import PageHeader from "@/components/(shared-components)/PageHeader"
 import { handleErrorMessage } from "@/utils/handleErrorMessage"
-import toast from "react-hot-toast"
+import { toast } from "sonner"
 
 export default function ResourcePage() {
   const { user } = useAuthStore()
