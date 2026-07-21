@@ -23,7 +23,7 @@ import {
     ArrowUpRight, UserPlus, BadgeCheck, CheckCircle2,
     XCircle, Medal, Server, Database, Clock, Wifi,
     Package, AlertCircle, UserX, AlertTriangle,
-    BarChart2,
+    BarChart2, Sparkles, Wallet,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,8 @@ const PIE_PALETTE = [
 ];
 
 const PLAN_ORDER = ['free', 'basic', 'pro', 'enterprise'];
+
+const CTA_GRADIENT = 'linear-gradient(135deg, #a47451 0.000%, #9c9881 16.667%, #73a09d 33.333%, #3b899a 50.000%, #095b79 66.667%, #002847 83.333%, #000116 100.000%)';
 
 const PLAN_BADGE: Record<string, string> = {
     free:       'border-border bg-muted text-muted-foreground',
@@ -153,6 +155,174 @@ function HeroMetric({
                 <p className="text-[11px] text-muted-foreground">{sub}</p>
             )}
             {loading && <Skeleton className="h-3 w-16" />}
+        </div>
+    );
+}
+
+// ─── Platform CTA — hero banner with phone mockup ──────────────────────────────
+function PlatformCTA({
+    revenue, orders, organizations, topOrgName, loading,
+}: {
+    revenue: string;
+    orders: string;
+    organizations: string;
+    topOrgName: string;
+    loading: boolean;
+}) {
+    return (
+        <div className="relative overflow-hidden rounded-[2rem] text-white" style={{ background: CTA_GRADIENT }}>
+            <style>{`
+                @keyframes pcta-a { 0%,100%{transform:translateY(0) rotate(-6deg)} 50%{transform:translateY(-9px) rotate(-6deg)} }
+                @keyframes pcta-b { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+                @keyframes pcta-c { 0%,100%{transform:translateY(0) rotate(7deg)} 50%{transform:translateY(-6px) rotate(7deg)} }
+                .pcta-card-a { animation: pcta-a 6s ease-in-out infinite; }
+                .pcta-card-b { animation: pcta-b 5s ease-in-out infinite; animation-delay: .8s; }
+                .pcta-card-c { animation: pcta-c 7s ease-in-out infinite; animation-delay: 1.4s; }
+            `}</style>
+
+            {/* Ambient glow */}
+            <div className="pointer-events-none absolute -top-16 -right-10 size-72 rounded-full bg-white/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-16 left-10 size-56 rounded-full bg-black/20 blur-3xl" />
+
+            <div className="relative flex flex-col items-center gap-10 px-8 py-12 md:flex-row md:justify-between md:px-14 md:py-14">
+                {/* ── Left: copy + CTA ─────────────────────────────────── */}
+                <div className="max-w-md text-center md:text-left">
+                    <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold tracking-wide text-white/80 uppercase">
+                        <span className="relative flex size-1.5">
+                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex size-1.5 rounded-full bg-emerald-400" />
+                        </span>
+                        Live Platform Insights
+                    </div>
+                    <h2 className="text-3xl leading-[1.1] font-bold tracking-tight md:text-[2.5rem]">
+                        Every organization.<br />One clear view.
+                    </h2>
+                    <p className="mt-4 text-sm leading-relaxed text-white/60 md:text-[15px]">
+                        Track revenue, orders, and organization health across your entire
+                        network — all from a single command center, updated in real time.
+                    </p>
+                    <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row md:justify-start">
+                        <Link
+                            href="/organizations"
+                            className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-neutral-900 transition hover:bg-white/90"
+                        >
+                            View Organizations
+                            <ArrowUpRight className="size-4" />
+                        </Link>
+                        <Link
+                            href="/users"
+                            className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                        >
+                            Check out users
+                        </Link>
+                    </div>
+                </div>
+
+                {/* ── Right: phone mockup + floating cards ────────────────── */}
+                <div className="relative h-[300px] w-[260px] shrink-0 sm:h-[340px] sm:w-[300px]">
+                    {/* Dark org card — peeking out behind the phone */}
+                    <div
+                        className="pcta-card-c absolute right-0 bottom-8 z-0 w-44 rounded-2xl border border-white/10 bg-neutral-900/90 p-4 shadow-2xl backdrop-blur-sm"
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold tracking-wide text-white/70">PAYNEST</span>
+                            <Wallet className="size-3.5 text-white/50" />
+                        </div>
+                        <p className="mt-5 truncate text-sm font-semibold text-white">
+                            {loading ? '—' : topOrgName}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-white/40">Top performing org</p>
+                    </div>
+
+                    {/* Phone mockup — grounding shadow */}
+                    <div className="absolute top-[300px] right-6 z-0 h-6 w-[110px] rounded-full bg-black/50 blur-xl sm:top-[340px] sm:w-[125px]" />
+
+                    {/* Phone mockup — titanium frame */}
+                    <div
+                        className="absolute top-2 right-6 z-10 h-[290px] w-[148px] rotate-[7deg] rounded-[2.75rem] p-[3px] shadow-2xl sm:h-[330px] sm:w-[168px]"
+                        style={{
+                            background: 'linear-gradient(155deg, #6b6b6e 0%, #2b2b2d 22%, #131314 55%, #3a3a3c 78%, #101011 100%)',
+                            boxShadow: '0 30px 60px -15px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.08)',
+                        }}
+                    >
+                        {/* Side controls */}
+                        <div className="absolute top-14 -left-[2px] h-4 w-[3px] rounded-l-sm bg-neutral-600/90" />
+                        <div className="absolute top-20 -left-[2px] h-8 w-[3px] rounded-l-sm bg-neutral-600/90" />
+                        <div className="absolute top-[7.5rem] -left-[2px] h-8 w-[3px] rounded-l-sm bg-neutral-600/90" />
+                        <div className="absolute top-24 -right-[2px] h-11 w-[3px] rounded-r-sm bg-neutral-600/90" />
+
+                        <div className="relative h-full w-full overflow-hidden rounded-[2.5rem] bg-black p-1.5">
+                            <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[2.1rem] bg-neutral-950 px-3.5 pt-7 pb-3">
+                                {/* Dynamic island */}
+                                <div className="absolute top-2 left-1/2 z-30 h-[15px] w-[62px] -translate-x-1/2 rounded-full bg-black" />
+
+                                <p className="text-[9px] text-white/40">Welcome back</p>
+                                <p className="text-[11px] font-semibold text-white">SuperAdmin</p>
+
+                                <p className="mt-4 text-[9px] text-white/40">Platform Revenue</p>
+                                <p className="text-[17px] leading-tight font-bold text-white">
+                                    {loading ? '—' : revenue}
+                                </p>
+
+                                <svg className="mt-2 w-full" height="28" viewBox="0 0 140 28" fill="none">
+                                    <path
+                                        d="M0 22 Q15 22 24 16 Q36 10 48 14 Q63 18 75 9 Q86 2 100 6 Q114 10 124 4 Q132 0 140 3"
+                                        stroke="white" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.55"
+                                    />
+                                    <circle cx="124" cy="4" r="2.5" fill="white" opacity="0.8" />
+                                </svg>
+
+                                <div className="mt-3 space-y-1.5 border-t border-white/10 pt-2.5">
+                                    {[
+                                        { label: 'Orders', value: orders },
+                                        { label: 'Organizations', value: organizations },
+                                    ].map(row => (
+                                        <div key={row.label} className="flex items-center justify-between">
+                                            <span className="text-[9px] text-white/40">{row.label}</span>
+                                            <span className="text-[10px] font-semibold text-white">
+                                                {loading ? '—' : row.value}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Glass glare */}
+                                <div className="pointer-events-none absolute inset-0 rounded-[2.1rem] bg-gradient-to-br from-white/[0.08] via-transparent to-transparent" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Floating revenue card */}
+                    <div
+                        className="pcta-card-a absolute top-3 -left-2 z-20 w-36 rounded-2xl bg-white p-3.5 text-neutral-900 shadow-2xl sm:w-40"
+                    >
+                        <p className="text-[9px] font-semibold tracking-widest text-neutral-400 uppercase">
+                            Total Revenue
+                        </p>
+                        <p className="mt-1 text-[17px] leading-none font-bold">
+                            {loading ? '—' : revenue}
+                        </p>
+                        <div className="mt-2 flex items-center gap-1.5">
+                            <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600">
+                                <TrendingUp className="-mt-0.5 inline size-2.5" /> live
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Floating orders badge */}
+                    <div
+                        className="pcta-card-b absolute bottom-2 -left-4 z-20 flex items-center gap-2 rounded-full bg-white py-2 pr-3.5 pl-2 text-neutral-900 shadow-xl"
+                    >
+                        <span className="flex size-6 items-center justify-center rounded-full bg-neutral-900 text-white">
+                            <Sparkles className="size-3" />
+                        </span>
+                        <div className="leading-none">
+                            <p className="text-[12px] font-bold">{loading ? '—' : orders}</p>
+                            <p className="text-[9px] text-neutral-400">orders total</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
@@ -713,6 +883,15 @@ export const SuperAdminView = () => {
                         </Button>
                     </div>
                 }
+            />
+
+            {/* ── CTA banner ─────────────────────────────────────────────────── */}
+            <PlatformCTA
+                revenue={s ? fmtShort(s.total_revenue) : '—'}
+                orders={s ? s.total_orders.toLocaleString() : '—'}
+                organizations={s ? s.total_organizations.toLocaleString() : '—'}
+                topOrgName={topOrgs[0]?.name ?? 'No data yet'}
+                loading={loading}
             />
 
             {/* ── Hero stats strip ───────────────────────────────────────────── */}
