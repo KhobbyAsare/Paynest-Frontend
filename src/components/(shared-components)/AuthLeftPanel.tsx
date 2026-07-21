@@ -15,7 +15,7 @@ export default function AuthLeftPanel({ title, description, narrow }: AuthLeftPa
 
   return (
     <div className={`hidden lg:flex ${width} flex-shrink-0 h-full relative overflow-hidden text-white select-none`}
-      style={{ background: "linear-gradient(160deg, oklch(0.292 0.053 275) 0%, oklch(0.360 0.075 271) 50%, oklch(0.412 0.110 270) 100%)" }}>
+      style={{ background: "linear-gradient(90deg, #a47451 0.000%, #9c9881 16.667%, #73a09d 33.333%, #3b899a 50.000%, #095b79 66.667%, #002847 83.333%, #000116 100.000%)" }}>
 
       <style>{`
         @keyframes pn-af { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
@@ -27,8 +27,8 @@ export default function AuthLeftPanel({ title, description, narrow }: AuthLeftPa
       `}</style>
 
       {/* Ambient glow orbs */}
-      <div className="absolute pointer-events-none" style={{ top: "-10%", right: "-5%", width: 440, height: 440, background: "radial-gradient(circle, oklch(0.498 0.134 270 / 0.35) 0%, transparent 65%)", filter: "blur(48px)" }} />
-      <div className="absolute pointer-events-none" style={{ bottom: "-5%", left: "-8%", width: 380, height: 380, background: "radial-gradient(circle, oklch(0.807 0.055 261 / 0.18) 0%, transparent 65%)", filter: "blur(48px)" }} />
+      <div className="absolute pointer-events-none" style={{ top: "-10%", right: "-5%", width: 440, height: 440, background: "radial-gradient(circle, oklch(0.9685 0.2061 109.7 / 0.16) 0%, transparent 65%)", filter: "blur(48px)" }} />
+      <div className="absolute pointer-events-none" style={{ bottom: "-5%", left: "-8%", width: 380, height: 380, background: "radial-gradient(circle, oklch(0.75 0 0 / 0.18) 0%, transparent 65%)", filter: "blur(48px)" }} />
 
       {/* Dot grid — bottom left */}
       <div className="absolute bottom-10 left-10 grid gap-[7px]"
@@ -79,14 +79,14 @@ export default function AuthLeftPanel({ title, description, narrow }: AuthLeftPa
             <svg className="w-full mt-3 mb-3" height="40" viewBox="0 0 240 40" fill="none">
               <path
                 d="M0 34 Q25 34 42 26 Q62 17 82 22 Q108 29 128 15 Q148 5 172 11 Q196 17 212 7 Q226 2 240 5"
-                stroke="oklch(0.580 0.120 268)"
+                stroke="oklch(0.2 0 0)"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 fill="none"
                 opacity="0.7"
               />
-              <circle cx="212" cy="7" r="4" fill="oklch(0.580 0.120 268)" opacity="0.85" />
-              <circle cx="212" cy="7" r="9" fill="oklch(0.580 0.120 268)" opacity="0.10" />
+              <circle cx="212" cy="7" r="4" fill="oklch(0.2 0 0)" opacity="0.85" />
+              <circle cx="212" cy="7" r="9" fill="oklch(0.2 0 0)" opacity="0.10" />
             </svg>
 
             <div className="flex items-center gap-2">

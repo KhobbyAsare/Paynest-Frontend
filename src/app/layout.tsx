@@ -1,20 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { PT_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "next-themes";
 
-const inter = Inter({
-  variable: "--font-inter",
+const ptSans = PT_Sans({
+  variable: "--font-pt-sans",
   subsets: ["latin"],
+  weight: ["400", "700"],
   display: "swap",
 });
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#10295E" },
-    { media: "(prefers-color-scheme: dark)", color: "#0D1F47" },
-  ],
+  themeColor: "#10295E",
   width: "device-width",
   initialScale: 1,
   minimumScale: 1,
@@ -45,14 +42,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body
-        className={`${inter.variable} antialiased`}
+        className={`${ptSans.variable} antialiased`}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
-          <Toaster position="bottom-center" richColors closeButton />
-        </ThemeProvider>
+        {children}
+        <Toaster position="bottom-center" richColors closeButton />
       </body>
     </html>
   );
