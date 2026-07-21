@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
                     </div>
                     <h1 className="text-[24px] font-extrabold tracking-tight text-foreground">Invalid link</h1>
                     <p className="mt-2 text-sm text-muted-foreground">This reset link is missing a token. Please request a new one.</p>
-                    <Button asChild className="mt-8 w-full h-11 font-semibold text-sm">
+                    <Button asChild className="mt-8 w-full h-12 rounded-full font-semibold text-sm">
                         <Link href="/forget-password">Request new link</Link>
                     </Button>
                 </div>
@@ -99,13 +99,13 @@ export default function ResetPasswordPage() {
                             <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                                 Your password has been reset successfully. All previous sessions have been revoked.
                             </p>
-                            <Button className="mt-8 w-full h-11 font-semibold text-sm" onClick={() => router.push("/login")}>
+                            <Button className="mt-8 w-full h-12 rounded-full font-semibold text-sm" onClick={() => router.push("/login")}>
                                 Continue to sign in
                             </Button>
                         </div>
                     ) : (
                         <>
-                            <div className="mb-8">
+                            <div className="mb-8 text-center">
                                 <h2 className="text-[28px] font-extrabold tracking-tight text-foreground">Set new password</h2>
                                 <p className="mt-1.5 text-[14px] text-muted-foreground">Must be at least 8 characters.</p>
                             </div>
@@ -128,12 +128,12 @@ export default function ResetPasswordPage() {
                                             type={showPwd ? "text" : "password"}
                                             disabled={isSubmitting}
                                             placeholder="Create a strong password"
-                                            className={cn("h-11 pr-10", errors.new_password && "border-destructive")}
+                                            className={cn("h-12 rounded-full px-5 pr-11", errors.new_password && "border-destructive")}
                                             {...register("new_password")}
                                         />
                                         <button type="button" tabIndex={-1} onClick={() => setShowPwd(p => !p)}
                                             aria-label={showPwd ? "Hide password" : "Show password"}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                                             {showPwd ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                         </button>
                                     </div>
@@ -150,19 +150,19 @@ export default function ResetPasswordPage() {
                                             type={showConfirm ? "text" : "password"}
                                             disabled={isSubmitting}
                                             placeholder="Confirm your new password"
-                                            className={cn("h-11 pr-10", errors.confirm_password && "border-destructive")}
+                                            className={cn("h-12 rounded-full px-5 pr-11", errors.confirm_password && "border-destructive")}
                                             {...register("confirm_password")}
                                         />
                                         <button type="button" tabIndex={-1} onClick={() => setShowConfirm(p => !p)}
                                             aria-label={showConfirm ? "Hide password" : "Show password"}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                                             {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                         </button>
                                     </div>
                                     {errors.confirm_password && <p className="text-xs text-destructive">{errors.confirm_password.message}</p>}
                                 </div>
 
-                                <Button type="submit" disabled={isSubmitting} className="w-full h-11 font-semibold text-sm">
+                                <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-full font-semibold text-sm">
                                     {isSubmitting
                                         ? <><Loader2 className="mr-2 size-4 animate-spin" />Resetting…</>
                                         : "Reset password"}

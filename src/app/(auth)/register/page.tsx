@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Wallet, Loader2, Eye, EyeOff } from "lucide-react";
+import { Wallet, Loader2, Eye, EyeOff, User, Mail, Phone, AtSign, Ticket, Lock } from "lucide-react";
 import AuthLeftPanel from "@/components/(shared-components)/AuthLeftPanel";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type Resolver } from "react-hook-form";
@@ -17,6 +17,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+
+function SectionLabel({ text }: { text: string }) {
+    return (
+        <div className="flex items-center gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground whitespace-nowrap">
+                {text}
+            </p>
+            <div className="h-px flex-1 bg-border" />
+        </div>
+    );
+}
 
 export default function RegisterPage() {
     const [isLoading, setIsLoading]   = useState(false);
@@ -61,7 +72,7 @@ export default function RegisterPage() {
             />
 
             {/* ═══ RIGHT PANEL ═══ */}
-            <div className="flex flex-1 flex-col items-center justify-center bg-background px-6 py-12 h-full overflow-y-auto">
+            <div className="flex flex-1 flex-col items-center justify-center bg-background px-6 py-10 h-full overflow-y-auto">
 
                 {/* Mobile logo */}
                 <div className="lg:hidden mb-10 flex items-center gap-2.5">
@@ -71,55 +82,65 @@ export default function RegisterPage() {
                     <span className="text-[22px] font-extrabold text-foreground">Paynest</span>
                 </div>
 
-                <div className="w-full max-w-[580px]">
+                <div className="w-full max-w-[620px]">
 
-                    <div className="mb-8">
+                    <div className="mb-7 text-center">
                         <h2 className="text-[28px] font-extrabold tracking-tight text-foreground">Create your account</h2>
                         <p className="mt-1.5 text-[14px] text-muted-foreground">Fill in the details below to get started</p>
                     </div>
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
                         {/* Personal info */}
                         <div className="space-y-4">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                                Personal information
-                            </p>
+                            <SectionLabel text="Personal information" />
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <Label htmlFor="first_name" className="text-sm font-medium">
                                         First Name <span className="text-destructive">*</span>
                                     </Label>
-                                    <Input id="first_name" disabled={isLoading} placeholder="Your first name"
-                                        className={cn("h-11", errors.first_name && "border-destructive")}
-                                        {...register("first_name")} />
+                                    <div className="relative">
+                                        <User className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input id="first_name" disabled={isLoading} placeholder="Your first name"
+                                            className={cn("h-12 rounded-full pl-11 pr-5", errors.first_name && "border-destructive")}
+                                            {...register("first_name")} />
+                                    </div>
                                     {errors.first_name && <p className="text-xs text-destructive">{errors.first_name.message}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="last_name" className="text-sm font-medium">
                                         Last Name <span className="text-destructive">*</span>
                                     </Label>
-                                    <Input id="last_name" disabled={isLoading} placeholder="Your last name"
-                                        className={cn("h-11", errors.last_name && "border-destructive")}
-                                        {...register("last_name")} />
+                                    <div className="relative">
+                                        <User className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input id="last_name" disabled={isLoading} placeholder="Your last name"
+                                            className={cn("h-12 rounded-full pl-11 pr-5", errors.last_name && "border-destructive")}
+                                            {...register("last_name")} />
+                                    </div>
                                     {errors.last_name && <p className="text-xs text-destructive">{errors.last_name.message}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="email" className="text-sm font-medium">
                                         Email Address <span className="text-destructive">*</span>
                                     </Label>
-                                    <Input id="email" type="email" disabled={isLoading} placeholder="your@email.com"
-                                        className={cn("h-11", errors.email && "border-destructive")}
-                                        {...register("email")} />
+                                    <div className="relative">
+                                        <Mail className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input id="email" type="email" disabled={isLoading} placeholder="your@email.com"
+                                            className={cn("h-12 rounded-full pl-11 pr-5", errors.email && "border-destructive")}
+                                            {...register("email")} />
+                                    </div>
                                     {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="phone_number" className="text-sm font-medium">
                                         Phone Number <span className="text-destructive">*</span>
                                     </Label>
-                                    <Input id="phone_number" type="tel" disabled={isLoading} placeholder="Your phone number"
-                                        className={cn("h-11", errors.phone_number && "border-destructive")}
-                                        {...register("phone_number")} />
+                                    <div className="relative">
+                                        <Phone className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input id="phone_number" type="tel" disabled={isLoading} placeholder="Your phone number"
+                                            className={cn("h-12 rounded-full pl-11 pr-5", errors.phone_number && "border-destructive")}
+                                            {...register("phone_number")} />
+                                    </div>
                                     {errors.phone_number && <p className="text-xs text-destructive">{errors.phone_number.message}</p>}
                                 </div>
                             </div>
@@ -127,26 +148,30 @@ export default function RegisterPage() {
 
                         {/* Account details */}
                         <div className="space-y-4">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                                Account details
-                            </p>
+                            <SectionLabel text="Account details" />
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <Label htmlFor="username" className="text-sm font-medium">
                                         Username <span className="text-destructive">*</span>
                                     </Label>
-                                    <Input id="username" disabled={isLoading} placeholder="Choose a username"
-                                        className={cn("h-11", errors.username && "border-destructive")}
-                                        {...register("username")} />
+                                    <div className="relative">
+                                        <AtSign className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input id="username" disabled={isLoading} placeholder="Choose a username"
+                                            className={cn("h-12 rounded-full pl-11 pr-5", errors.username && "border-destructive")}
+                                            {...register("username")} />
+                                    </div>
                                     {errors.username && <p className="text-xs text-destructive">{errors.username.message}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="invitation_code" className="text-sm font-medium">
                                         Invitation Code <span className="text-destructive">*</span>
                                     </Label>
-                                    <Input id="invitation_code" disabled={isLoading} placeholder="Enter your invitation code"
-                                        className={cn("h-11", errors.invitation_code && "border-destructive")}
-                                        {...register("invitation_code")} />
+                                    <div className="relative">
+                                        <Ticket className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input id="invitation_code" disabled={isLoading} placeholder="Enter your invitation code"
+                                            className={cn("h-12 rounded-full pl-11 pr-5", errors.invitation_code && "border-destructive")}
+                                            {...register("invitation_code")} />
+                                    </div>
                                     {errors.invitation_code && <p className="text-xs text-destructive">{errors.invitation_code.message}</p>}
                                 </div>
                                 <div className="space-y-1.5">
@@ -154,14 +179,15 @@ export default function RegisterPage() {
                                         Password <span className="text-destructive">*</span>
                                     </Label>
                                     <div className="relative">
+                                        <Lock className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                                         <Input id="password" type={showPwd ? "text" : "password"}
                                             disabled={isLoading} placeholder="Create a strong password"
-                                            className={cn("h-11 pr-10", errors.password && "border-destructive")}
+                                            className={cn("h-12 rounded-full pl-11 pr-11", errors.password && "border-destructive")}
                                             {...register("password")} />
                                         <button type="button" tabIndex={-1}
                                             onClick={() => setShowPwd(p => !p)}
                                             aria-label={showPwd ? "Hide password" : "Show password"}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                                         >
                                             {showPwd ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                         </button>
@@ -173,14 +199,15 @@ export default function RegisterPage() {
                                         Confirm Password <span className="text-destructive">*</span>
                                     </Label>
                                     <div className="relative">
+                                        <Lock className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                                         <Input id="confirm_password" type={showConfirm ? "text" : "password"}
                                             disabled={isLoading} placeholder="Confirm your password"
-                                            className={cn("h-11 pr-10", errors.confirm_password && "border-destructive")}
+                                            className={cn("h-12 rounded-full pl-11 pr-11", errors.confirm_password && "border-destructive")}
                                             {...register("confirm_password")} />
                                         <button type="button" tabIndex={-1}
                                             onClick={() => setShowConfirm(p => !p)}
                                             aria-label={showConfirm ? "Hide password" : "Show password"}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                                         >
                                             {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                         </button>
@@ -200,14 +227,14 @@ export default function RegisterPage() {
                             </Label>
                         </div>
 
-                        <Button type="submit" disabled={isLoading} className="w-full h-11 font-semibold text-sm">
+                        <Button type="submit" disabled={isLoading} className="w-full h-12 rounded-full font-semibold text-sm">
                             {isLoading
                                 ? <><Loader2 className="mr-2 size-4 animate-spin" />Creating Account…</>
                                 : "Create Account"}
                         </Button>
                     </form>
 
-                    <p className="mt-8 text-center text-sm text-muted-foreground">
+                    <p className="mt-6 text-center text-sm text-muted-foreground">
                         Already have an account?{" "}
                         <Link href="/login" className="font-semibold text-foreground hover:text-primary transition-colors">
                             Login Now

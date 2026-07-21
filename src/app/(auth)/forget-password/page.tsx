@@ -53,7 +53,7 @@ export default function ForgetPasswordPage() {
 
                     {!submitted ? (
                         <>
-                            <div className="mb-8">
+                            <div className="mb-8 text-center">
                                 <h2 className="text-[28px] font-extrabold tracking-tight text-foreground">Reset your password</h2>
                                 <p className="mt-1.5 text-[14px] text-muted-foreground">
                                     Enter your email and we&apos;ll send you a reset link.
@@ -69,12 +69,12 @@ export default function ForgetPasswordPage() {
                                         required
                                         autoComplete="email"
                                         placeholder="your@email.com"
-                                        className="h-11"
+                                        className="h-12 rounded-full px-5"
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
                                     />
                                 </div>
-                                <Button type="submit" disabled={isLoading} className="w-full h-11 font-semibold text-sm">
+                                <Button type="submit" disabled={isLoading} className="w-full h-12 rounded-full font-semibold text-sm">
                                     {isLoading
                                         ? <><Loader2 className="mr-2 size-4 animate-spin" />Sending…</>
                                         : "Send reset link"}

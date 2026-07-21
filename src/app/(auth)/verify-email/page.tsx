@@ -70,7 +70,7 @@ export default function VerifyEmailPage() {
                             Email verified!
                         </h1>
                         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{message}</p>
-                        <Button asChild className="mt-8 w-full h-11 font-semibold text-sm">
+                        <Button asChild className="mt-8 w-full h-12 rounded-full font-semibold text-sm">
                             <Link href="/login">Continue to sign in</Link>
                         </Button>
                     </>
@@ -86,7 +86,7 @@ export default function VerifyEmailPage() {
                         </h1>
                         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{message}</p>
                         <div className="mt-8 flex flex-col gap-3">
-                            <Button asChild variant="outline" className="w-full h-11 font-semibold text-sm">
+                            <Button asChild variant="outline" className="w-full h-12 rounded-full font-semibold text-sm">
                                 <Link href="/verify-email/pending">Request a new link</Link>
                             </Button>
                             <Link

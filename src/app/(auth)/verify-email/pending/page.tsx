@@ -73,7 +73,7 @@ export default function VerifyEmailPendingPage() {
                     onClick={handleResend}
                     disabled={isSending || sent}
                     variant="outline"
-                    className="mt-6 w-full h-11 font-semibold text-sm"
+                    className="mt-6 w-full h-12 rounded-full font-semibold text-sm"
                 >
                     {isSending
                         ? <><Loader2 className="mr-2 size-4 animate-spin" />Sending…</>

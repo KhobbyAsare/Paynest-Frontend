@@ -89,7 +89,7 @@ export default function LoginPage() {
 
                 <div className="w-full max-w-[400px]">
 
-                    <div className="mb-8">
+                    <div className="mb-8 text-center">
                         <h2 className="text-[28px] font-extrabold tracking-tight text-foreground">Welcome back</h2>
                         <p className="mt-1.5 text-[14px] text-muted-foreground">Sign in to your account to continue</p>
                     </div>
@@ -103,7 +103,7 @@ export default function LoginPage() {
                                 type="text"
                                 disabled={isLoading}
                                 placeholder="Enter your email or username"
-                                className={cn("h-11", errors.email_or_username && "border-destructive focus-visible:ring-destructive")}
+                                className={cn("h-12 rounded-full px-5", errors.email_or_username && "border-destructive focus-visible:ring-destructive")}
                                 {...register("email_or_username")}
                             />
                             {errors.email_or_username ? (
@@ -128,14 +128,14 @@ export default function LoginPage() {
                                     type={showPassword ? "text" : "password"}
                                     disabled={isLoading}
                                     placeholder="Enter your password"
-                                    className={cn("h-11 pr-10", errors.password && "border-destructive focus-visible:ring-destructive")}
+                                    className={cn("h-12 rounded-full px-5 pr-11", errors.password && "border-destructive focus-visible:ring-destructive")}
                                     {...register("password")}
                                 />
                                 <button
                                     type="button" tabIndex={-1}
                                     onClick={() => setShowPassword(p => !p)}
                                     aria-label={showPassword ? "Hide password" : "Show password"}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                                 >
                                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                 </button>
@@ -150,7 +150,7 @@ export default function LoginPage() {
                             </Label>
                         </div>
 
-                        <Button type="submit" disabled={isLoading} className="w-full h-11 font-semibold text-sm">
+                        <Button type="submit" disabled={isLoading} className="w-full h-12 rounded-full font-semibold text-sm">
                             {isLoading
                                 ? <><Loader2 className="mr-2 size-4 animate-spin" />Signing in…</>
                                 : "Sign in"}
