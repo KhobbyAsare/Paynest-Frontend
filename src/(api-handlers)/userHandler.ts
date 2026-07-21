@@ -22,10 +22,12 @@ export const getUserData = async (): Promise<UserResponse> => {
 }
 
 
-// Administrator
-export const getOrganizationUsers = async (): Promise<UserResponse[]> => {
+// Administrator (organization_id required for superadmin, ignored/must match own org otherwise)
+export const getOrganizationUsers = async (organizationId?: number, skip = 0): Promise<UserResponse[]> => {
     try {
-        const response = await apiClient.get(`/user/users/organization`)
+        const response = await apiClient.get(`/user/users/organization`, {
+            params: { organization_id: organizationId, skip },
+        })
         return response.data.items
     } catch (error: any) {
         throw error;
@@ -63,6 +65,8 @@ export interface NotificationPreferences {
     user_activity_in_app: boolean;
     system_alerts_email: boolean;
     system_alerts_in_app: boolean;
+    payslip_ready_email: boolean;
+    payslip_ready_in_app: boolean;
     updated_at?: string;
 }
 

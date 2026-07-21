@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Mail, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, CheckCircle2 } from 'lucide-react';
+import { Bell, Mail, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, CheckCircle2, Banknote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NotificationSetting {
@@ -57,6 +57,11 @@ const notificationMeta: NotificationSetting[] = [
         title: 'System Alerts', description: 'Critical system messages and security-related notifications.',
         icon: AlertTriangle, iconClass: 'text-destructive', bgClass: 'bg-destructive/10', category: 'System',
     },
+    {
+        id: 'payslip_ready_email', emailKey: 'payslip_ready_email', inAppKey: 'payslip_ready_in_app',
+        title: 'Payslip Ready', description: 'Notification when your payslip has been generated and is ready to view.',
+        icon: Banknote, iconClass: 'text-success', bgClass: 'bg-success/10', category: 'Payroll',
+    },
 ];
 
 const defaultPrefs: Omit<NotificationPreferences, 'updated_at'> = {
@@ -66,6 +71,7 @@ const defaultPrefs: Omit<NotificationPreferences, 'updated_at'> = {
     report_ready_email: true, report_ready_in_app: true,
     user_activity_email: false, user_activity_in_app: false,
     system_alerts_email: true, system_alerts_in_app: true,
+    payslip_ready_email: true, payslip_ready_in_app: true,
 };
 
 export default function NotificationsSettingsPage() {
