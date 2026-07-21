@@ -170,7 +170,7 @@ export default function EditEmployeeProfile({ params }: EditEmployeeProfileProps
                 <CardContent className="p-5">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
                         <Avatar className="size-16">
-                            <AvatarImage src={userData.profile_pic} />
+                            <AvatarImage src={userData.profile_pic ?? undefined} />
                             <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
                                 {userData.first_name[0]}{userData.last_name[0]}
                             </AvatarFallback>

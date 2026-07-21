@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { changePassword } from '@/(api-handlers)/userHandler';
-import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import { handleErrorMessage, getErrorMessage } from '@/utils/handleErrorMessage';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import { toast } from 'sonner';
 
@@ -40,6 +40,7 @@ export default function SecuritySettingsPage() {
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [form, setForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
+    const [currentPasswordError, setCurrentPasswordError] = useState<string | null>(null);
 
     const strength = getStrength(form.new_password);
     const mismatch = !!form.confirm_password && form.confirm_password !== form.new_password;
@@ -47,6 +48,7 @@ export default function SecuritySettingsPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setCurrentPasswordError(null);
         if (mismatch) { toast.error('New passwords do not match'); return; }
         if (form.new_password.length < 8) { toast.error('New password must be at least 8 characters'); return; }
         setSaving(true);
@@ -55,7 +57,12 @@ export default function SecuritySettingsPage() {
             toast.success('Password changed successfully');
             setForm({ current_password: '', new_password: '', confirm_password: '' });
         } catch (err: unknown) {
-            handleErrorMessage(err);
+            const message = getErrorMessage(err);
+            if (/current password/i.test(message)) {
+                setCurrentPasswordError(message);
+            } else {
+                handleErrorMessage(err);
+            }
         } finally {
             setSaving(false);
         }
@@ -91,10 +98,13 @@ export default function SecuritySettingsPage() {
                                 </Label>
                                 <div className="relative">
                                     <Input
-                                        className="bg-background pr-10"
+                                        className={cn('bg-background pr-10', currentPasswordError && 'border-destructive focus-visible:ring-destructive/30')}
                                         type={showCurrent ? 'text' : 'password'}
                                         value={form.current_password}
-                                        onChange={e => setForm(f => ({ ...f, current_password: e.target.value }))}
+                                        onChange={e => {
+                                            setForm(f => ({ ...f, current_password: e.target.value }));
+                                            if (currentPasswordError) setCurrentPasswordError(null);
+                                        }}
                                         placeholder="Enter current password"
                                         required
                                     />
@@ -103,6 +113,7 @@ export default function SecuritySettingsPage() {
                                         {showCurrent ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                     </button>
                                 </div>
+                                {currentPasswordError && <p className="text-destructive text-xs">{currentPasswordError}</p>}
                             </div>
 
                             {/* New */}
@@ -205,7 +216,7 @@ export default function SecuritySettingsPage() {
                             <ul className="space-y-1.5 text-muted-foreground">
                                 <li>• Never share your password with anyone.</li>
                                 <li>• Use a password manager for unique credentials.</li>
-                                <li>• Changing your password signs out all other sessions.</li>
+                                <li>• Changing your password here does not sign out your other active sessions.</li>
                             </ul>
                         </CardContent>
                     </Card>

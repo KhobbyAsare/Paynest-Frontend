@@ -92,3 +92,27 @@ export const changePassword = async (data: { current_password: string; new_passw
         throw error;
     }
 }
+
+export const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+export const uploadProfilePicture = async (file: File): Promise<{ profile_pic: string }> => {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await apiClient.post(`/user/me/profile-picture`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return response.data
+    } catch (error: any) {
+        throw error;
+    }
+}
+
+export const removeProfilePicture = async (): Promise<void> => {
+    try {
+        await apiClient.delete(`/user/me/profile-picture`)
+    } catch (error: any) {
+        throw error;
+    }
+}

@@ -12,7 +12,7 @@ export interface UserResponse {
     last_name: string,
     role: 'superadmin' | 'admin' | 'manager' | 'attendant',
     phone_number: string,
-    profile_pic: string,
+    profile_pic: string | null,
     is_active: boolean,
     email_verified: boolean,
     is_employee_profile: boolean,
@@ -54,7 +54,7 @@ export interface UserResponse {
         max_users: number,
         created_at: string,
         updated_at: string
-    },
+    } | null,
 }
 
 export interface LoginResponseInterface {

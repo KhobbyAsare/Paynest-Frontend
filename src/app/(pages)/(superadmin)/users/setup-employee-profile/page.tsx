@@ -184,7 +184,7 @@ export default function SetUpEmployeeProfile() {
                         {selectedUserInfo && (
                             <div className="flex items-center gap-4 rounded-lg border bg-muted/30 p-4 min-w-[280px]">
                                 <Avatar className="size-14">
-                                    <AvatarImage src={selectedUserInfo.profile_pic} />
+                                    <AvatarImage src={selectedUserInfo.profile_pic ?? undefined} />
                                     <AvatarFallback className="bg-primary/10 text-primary font-bold">
                                         {selectedUserInfo.first_name[0]}{selectedUserInfo.last_name[0]}
                                     </AvatarFallback>
