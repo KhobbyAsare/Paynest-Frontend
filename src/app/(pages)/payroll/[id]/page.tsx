@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/(zustand-store)/authStore';
-import { usePayrollOrgStore } from '@/(zustand-store)/payrollOrgStore';
 import {
     getPayrollRunById, getRunPayslips,
     submitPayrollRun, approvePayrollRun, processPayrollRun,
@@ -55,9 +54,6 @@ export default function PayrollRunDetailPage() {
     const params = useParams();
     const runId = Number(params.id);
     const fmt = useCurrency();
-    const { selectedOrgId } = usePayrollOrgStore();
-    const isSuperadmin = user?.role === 'superadmin';
-    const organizationId = isSuperadmin ? selectedOrgId ?? undefined : undefined;
 
     const [run, setRun] = useState<PayrollRun | null>(null);
     const [payslips, setPayslips] = useState<Payslip[]>([]);
@@ -73,7 +69,7 @@ export default function PayrollRunDetailPage() {
     const [processOpen, setProcessOpen] = useState(false);
 
     useEffect(() => {
-        if (user && !['admin', 'superadmin'].includes(user.role)) router.replace('/dashboard');
+        if (user && user.role !== 'admin') router.replace('/dashboard');
     }, [user, router]);
 
     const fetchAll = useCallback(async () => {
@@ -81,20 +77,20 @@ export default function PayrollRunDetailPage() {
         setLoading(true);
         try {
             const [runData, payslipData] = await Promise.all([
-                getPayrollRunById(runId, organizationId),
-                getRunPayslips(runId, organizationId),
+                getPayrollRunById(runId),
+                getRunPayslips(runId),
             ]);
             setRun(runData);
             setPayslips(payslipData);
 
-            const users = await getOrganizationUsers(isSuperadmin ? runData.organization_id : undefined);
+            const users = await getOrganizationUsers();
             setEmployees(Object.fromEntries(users.map(u => [u.id, u])));
         } catch (err) {
             handleErrorMessage(err, 'Failed to load payroll run');
         } finally {
             setLoading(false);
         }
-    }, [runId, organizationId, isSuperadmin]);
+    }, [runId]);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -102,7 +98,7 @@ export default function PayrollRunDetailPage() {
         if (!run) return;
         setActing(true);
         try {
-            await submitPayrollRun(run.id, submitNotes || undefined, organizationId);
+            await submitPayrollRun(run.id, submitNotes || undefined);
             toast.success('Run submitted for review');
             setSubmitOpen(false);
             setSubmitNotes('');
@@ -118,7 +114,7 @@ export default function PayrollRunDetailPage() {
         if (!run) return;
         setActing(true);
         try {
-            await approvePayrollRun(run.id, { approved: true }, organizationId);
+            await approvePayrollRun(run.id, { approved: true });
             toast.success('Run approved');
             setApproveOpen(false);
             fetchAll();
@@ -133,7 +129,7 @@ export default function PayrollRunDetailPage() {
         if (!run || !rejectReason.trim()) { toast.error('A rejection reason is required'); return; }
         setActing(true);
         try {
-            await approvePayrollRun(run.id, { approved: false, rejection_reason: rejectReason }, organizationId);
+            await approvePayrollRun(run.id, { approved: false, rejection_reason: rejectReason });
             toast.success('Run rejected');
             setRejectOpen(false);
             setRejectReason('');
@@ -149,7 +145,7 @@ export default function PayrollRunDetailPage() {
         if (!run) return;
         setActing(true);
         try {
-            await processPayrollRun(run.id, organizationId);
+            await processPayrollRun(run.id);
             toast.success('Payroll processed — payslips are being generated');
             setProcessOpen(false);
             fetchAll();
@@ -160,7 +156,7 @@ export default function PayrollRunDetailPage() {
         }
     };
 
-    if (!user || !['admin', 'superadmin'].includes(user.role)) {
+    if (!user || user.role !== 'admin') {
         return (
             <div className="flex items-center justify-center py-24">
                 <Skeleton className="size-6 rounded-full" />

@@ -174,11 +174,11 @@ const NAV_GROUPS: NavGroup[] = [
     },
     {
         label: "Payroll",
-        roles: ["superadmin", "admin"],
+        roles: ["admin"],
         items: [
-            { name: "Payroll Runs", href: "/payroll", icon: Banknote, roles: ["superadmin", "admin"] },
-            { name: "Employee Payroll", href: "/payroll/employees", icon: Wallet, roles: ["superadmin", "admin"] },
-            { name: "Payroll Settings", href: "/settings/payroll", icon: Calculator, roles: ["superadmin", "admin"] },
+            { name: "Payroll Runs", href: "/payroll", icon: Banknote, roles: ["admin"] },
+            { name: "Employee Payroll", href: "/payroll/employees", icon: Wallet, roles: ["admin"] },
+            { name: "Payroll Settings", href: "/settings/payroll", icon: Calculator, roles: ["admin"] },
         ],
     },
     {

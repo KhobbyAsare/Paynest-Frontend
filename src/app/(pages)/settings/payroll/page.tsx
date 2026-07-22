@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/(zustand-store)/authStore';
-import { usePayrollOrgStore } from '@/(zustand-store)/payrollOrgStore';
 import {
     getPayrollConfig, updatePayrollConfig,
     getTaxConfigs, createTaxConfig, updateTaxConfig, deleteTaxConfig, reorderTaxConfigs,
@@ -18,7 +17,6 @@ import {
 } from '@/interfaces/payroll';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import PageHeader from '@/components/(shared-components)/PageHeader';
-import PayrollOrgPicker from '@/components/(shared-components)/PayrollOrgPicker';
 import EmptyState from '@/components/(shared-components)/EmptyState';
 import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
@@ -42,7 +40,7 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-    Calculator, Gift, Layers, Plus, Pencil, Trash2, Building2,
+    Calculator, Gift, Layers, Plus, Pencil, Trash2,
     Search, GripVertical, Settings2, Wand2, ListTree, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -76,16 +74,12 @@ const CONFIG_ROW_GRID = 'grid grid-cols-[32px_1.6fr_140px_110px_90px_100px_64px_
 export default function PayrollSettingsPage() {
     const { user } = useAuthStore();
     const router = useRouter();
-    const { selectedOrgId } = usePayrollOrgStore();
-    const isSuperadmin = user?.role === 'superadmin';
-    const organizationId = isSuperadmin ? selectedOrgId ?? undefined : undefined;
-    const orgReady = !isSuperadmin || !!selectedOrgId;
 
     useEffect(() => {
-        if (user && !['admin', 'superadmin'].includes(user.role)) router.replace('/dashboard');
+        if (user && user.role !== 'admin') router.replace('/dashboard');
     }, [user, router]);
 
-    if (!user || !['admin', 'superadmin'].includes(user.role)) {
+    if (!user || user.role !== 'admin') {
         return (
             <div className="flex items-center justify-center py-24">
                 <Skeleton className="size-6 rounded-full" />
@@ -98,29 +92,20 @@ export default function PayrollSettingsPage() {
             <PageHeader
                 title="Payroll Settings"
                 description="Pay cycle, tax configuration, and the org-wide benefit catalog."
-                actions={<PayrollOrgPicker />}
             />
 
-            {!orgReady ? (
-                <EmptyState
-                    icon={Building2}
-                    title="Select an organization"
-                    description="Pick an organization above to view and manage its payroll settings."
-                />
-            ) : (
-                <Tabs defaultValue="tax-config" className="w-full">
-                    <TabsList>
-                        <TabsTrigger value="tax-config"><Calculator className="mr-1.5 size-4" /> Tax Config</TabsTrigger>
-                        <TabsTrigger value="benefit-items"><Gift className="mr-1.5 size-4" /> Benefit Items</TabsTrigger>
-                        <TabsTrigger value="benefit-bands"><Layers className="mr-1.5 size-4" /> Benefit Bands</TabsTrigger>
-                        <TabsTrigger value="net-to-gross"><Wand2 className="mr-1.5 size-4" /> Net-to-Gross</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="tax-config"><TaxConfigTab organizationId={organizationId} /></TabsContent>
-                    <TabsContent value="benefit-items"><BenefitItemsTab organizationId={organizationId} /></TabsContent>
-                    <TabsContent value="benefit-bands"><BenefitBandsTab organizationId={organizationId} /></TabsContent>
-                    <TabsContent value="net-to-gross"><NetToGrossTab organizationId={organizationId} /></TabsContent>
-                </Tabs>
-            )}
+            <Tabs defaultValue="tax-config" className="w-full">
+                <TabsList>
+                    <TabsTrigger value="tax-config"><Calculator className="mr-1.5 size-4" /> Tax Config</TabsTrigger>
+                    <TabsTrigger value="benefit-items"><Gift className="mr-1.5 size-4" /> Benefit Items</TabsTrigger>
+                    <TabsTrigger value="benefit-bands"><Layers className="mr-1.5 size-4" /> Benefit Bands</TabsTrigger>
+                    <TabsTrigger value="net-to-gross"><Wand2 className="mr-1.5 size-4" /> Net-to-Gross</TabsTrigger>
+                </TabsList>
+                <TabsContent value="tax-config"><TaxConfigTab /></TabsContent>
+                <TabsContent value="benefit-items"><BenefitItemsTab /></TabsContent>
+                <TabsContent value="benefit-bands"><BenefitBandsTab /></TabsContent>
+                <TabsContent value="net-to-gross"><NetToGrossTab /></TabsContent>
+            </Tabs>
         </div>
     );
 }
@@ -148,7 +133,7 @@ function SortableConfigRow({
     );
 }
 
-function TaxConfigTab({ organizationId }: { organizationId?: number }) {
+function TaxConfigTab() {
     const [config, setConfig] = useState<PayrollConfig | null>(null);
     const [configs, setConfigs] = useState<TaxConfig[]>([]);
     const [loading, setLoading] = useState(true);
@@ -173,8 +158,8 @@ function TaxConfigTab({ organizationId }: { organizationId?: number }) {
         setLoading(true);
         try {
             const [configData, configsData] = await Promise.all([
-                getPayrollConfig(organizationId),
-                getTaxConfigs(organizationId),
+                getPayrollConfig(),
+                getTaxConfigs(),
             ]);
             setConfig(configData);
             setConfigs([...configsData].sort((a, b) => a.step - b.step));
@@ -183,7 +168,7 @@ function TaxConfigTab({ organizationId }: { organizationId?: number }) {
         } finally {
             setLoading(false);
         }
-    }, [organizationId]);
+    }, []);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -201,7 +186,7 @@ function TaxConfigTab({ organizationId }: { organizationId?: number }) {
         e.preventDefault();
         setSavingPayCycle(true);
         try {
-            await updatePayrollConfig(payCycleForm, organizationId);
+            await updatePayrollConfig(payCycleForm);
             toast.success('Pay cycle updated');
             setPayCycleOpen(false);
             fetchAll();
@@ -243,11 +228,11 @@ function TaxConfigTab({ organizationId }: { organizationId?: number }) {
         };
         try {
             if (editing) {
-                await updateTaxConfig(editing.id, payload, organizationId);
+                await updateTaxConfig(editing.id, payload);
                 toast.success('Tax config updated');
             } else {
                 const nextStep = configs.length > 0 ? Math.max(...configs.map(c => c.step)) + 1 : 1;
-                await createTaxConfig({ ...payload, step: nextStep }, organizationId);
+                await createTaxConfig({ ...payload, step: nextStep });
                 toast.success('Tax config created');
             }
             closeDialog();
@@ -261,7 +246,7 @@ function TaxConfigTab({ organizationId }: { organizationId?: number }) {
 
     const toggleActive = async (row: TaxConfig) => {
         try {
-            await updateTaxConfig(row.id, { is_active: !row.is_active }, organizationId);
+            await updateTaxConfig(row.id, { is_active: !row.is_active });
             setConfigs(prev => prev.map(c => c.id === row.id ? { ...c, is_active: !c.is_active } : c));
         } catch (err) {
             handleErrorMessage(err, 'Failed to update tax config');
@@ -271,7 +256,7 @@ function TaxConfigTab({ organizationId }: { organizationId?: number }) {
     const handleDelete = async () => {
         if (!deleteTarget) return;
         try {
-            await deleteTaxConfig(deleteTarget.id, organizationId);
+            await deleteTaxConfig(deleteTarget.id);
             toast.success('Tax config deleted');
             fetchAll();
         } catch (err) {
@@ -291,7 +276,7 @@ function TaxConfigTab({ organizationId }: { organizationId?: number }) {
         setConfigs(reordered);
         try {
             const items = reordered.map((c, i) => ({ id: c.id, step: i + 1 }));
-            const updated = await reorderTaxConfigs(items, organizationId);
+            const updated = await reorderTaxConfigs(items);
             setConfigs([...updated].sort((a, b) => a.step - b.step));
         } catch (err) {
             handleErrorMessage(err, 'Failed to reorder tax configs');
@@ -568,7 +553,7 @@ function TaxConfigTab({ organizationId }: { organizationId?: number }) {
 }
 
 // ─── Benefit Items (catalog) ────────────────────────────────────────────────
-function BenefitItemsTab({ organizationId }: { organizationId?: number }) {
+function BenefitItemsTab() {
     const [items, setItems] = useState<BenefitItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -584,13 +569,13 @@ function BenefitItemsTab({ organizationId }: { organizationId?: number }) {
     const fetchItems = useCallback(async () => {
         setLoading(true);
         try {
-            setItems(await getBenefitItems(organizationId));
+            setItems(await getBenefitItems());
         } catch (err) {
             handleErrorMessage(err, 'Failed to load benefit items');
         } finally {
             setLoading(false);
         }
-    }, [organizationId]);
+    }, []);
 
     useEffect(() => { fetchItems(); }, [fetchItems]);
 
@@ -622,10 +607,10 @@ function BenefitItemsTab({ organizationId }: { organizationId?: number }) {
         };
         try {
             if (editing) {
-                await updateBenefitItem(editing.id, payload, organizationId);
+                await updateBenefitItem(editing.id, payload);
                 toast.success('Benefit item updated');
             } else {
-                await createBenefitItem(payload, organizationId);
+                await createBenefitItem(payload);
                 toast.success('Benefit item created');
             }
             closeDialog();
@@ -639,7 +624,7 @@ function BenefitItemsTab({ organizationId }: { organizationId?: number }) {
 
     const toggleActive = async (item: BenefitItem) => {
         try {
-            await updateBenefitItem(item.id, { is_active: !item.is_active }, organizationId);
+            await updateBenefitItem(item.id, { is_active: !item.is_active });
             setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_active: !i.is_active } : i));
         } catch (err) {
             handleErrorMessage(err, 'Failed to update benefit item');
@@ -649,7 +634,7 @@ function BenefitItemsTab({ organizationId }: { organizationId?: number }) {
     const handleDelete = async () => {
         if (!deleteTarget) return;
         try {
-            await deleteBenefitItem(deleteTarget.id, organizationId);
+            await deleteBenefitItem(deleteTarget.id);
             toast.success('Benefit item deleted');
             fetchItems();
         } catch (err) {
@@ -817,7 +802,7 @@ function BenefitItemsTab({ organizationId }: { organizationId?: number }) {
 }
 
 // ─── Benefit Bands (reusable packages) ──────────────────────────────────────
-function BenefitBandsTab({ organizationId }: { organizationId?: number }) {
+function BenefitBandsTab() {
     const fmt = useCurrency();
     const [bands, setBands] = useState<BenefitBand[]>([]);
     const [allItems, setAllItems] = useState<BenefitItem[]>([]);
@@ -838,8 +823,8 @@ function BenefitBandsTab({ organizationId }: { organizationId?: number }) {
         setLoading(true);
         try {
             const [bandsData, itemsData] = await Promise.all([
-                getBenefitBands(organizationId),
-                getBenefitItems(organizationId),
+                getBenefitBands(),
+                getBenefitItems(),
             ]);
             setBands(bandsData);
             setAllItems(itemsData.filter(i => i.is_active));
@@ -848,7 +833,7 @@ function BenefitBandsTab({ organizationId }: { organizationId?: number }) {
         } finally {
             setLoading(false);
         }
-    }, [organizationId]);
+    }, []);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -865,10 +850,10 @@ function BenefitBandsTab({ organizationId }: { organizationId?: number }) {
         setSubmitting(true);
         try {
             if (editing) {
-                await updateBenefitBand(editing.id, form, organizationId);
+                await updateBenefitBand(editing.id, form);
                 toast.success('Benefit band updated');
             } else {
-                await createBenefitBand(form, organizationId);
+                await createBenefitBand(form);
                 toast.success('Benefit band created');
             }
             closeDialog();
@@ -882,7 +867,7 @@ function BenefitBandsTab({ organizationId }: { organizationId?: number }) {
 
     const toggleActive = async (band: BenefitBand) => {
         try {
-            await updateBenefitBand(band.id, { is_active: !band.is_active }, organizationId);
+            await updateBenefitBand(band.id, { is_active: !band.is_active });
             setBands(prev => prev.map(b => b.id === band.id ? { ...b, is_active: !b.is_active } : b));
         } catch (err) {
             handleErrorMessage(err, 'Failed to update benefit band');
@@ -892,7 +877,7 @@ function BenefitBandsTab({ organizationId }: { organizationId?: number }) {
     const handleDelete = async () => {
         if (!deleteTarget) return;
         try {
-            await deleteBenefitBand(deleteTarget.id, organizationId);
+            await deleteBenefitBand(deleteTarget.id);
             toast.success('Benefit band deleted');
             fetchAll();
         } catch (err) {
@@ -914,7 +899,7 @@ function BenefitBandsTab({ organizationId }: { organizationId?: number }) {
             const updated = await addBenefitBandItem(managingBand.id, {
                 benefit_item_id: Number(addItemId),
                 override_value: addItemOverride ? Number(addItemOverride) : null,
-            }, organizationId);
+            });
             setManagingBand(updated);
             setBands(prev => prev.map(b => b.id === updated.id ? updated : b));
             setAddItemId('');
@@ -930,7 +915,7 @@ function BenefitBandsTab({ organizationId }: { organizationId?: number }) {
     const handleRemoveItem = async (bandItemId: number) => {
         if (!managingBand) return;
         try {
-            await removeBenefitBandItem(managingBand.id, bandItemId, organizationId);
+            await removeBenefitBandItem(managingBand.id, bandItemId);
             const updated = { ...managingBand, band_items: managingBand.band_items.filter(bi => bi.id !== bandItemId) };
             setManagingBand(updated);
             setBands(prev => prev.map(b => b.id === updated.id ? updated : b));
@@ -1085,7 +1070,7 @@ function BenefitBandsTab({ organizationId }: { organizationId?: number }) {
 }
 
 // ─── Net-to-Gross calculator ────────────────────────────────────────────────
-function NetToGrossTab({ organizationId }: { organizationId?: number }) {
+function NetToGrossTab() {
     const fmt = useCurrency();
     const [configs, setConfigs] = useState<TaxConfig[]>([]);
     const [loading, setLoading] = useState(true);
@@ -1098,7 +1083,7 @@ function NetToGrossTab({ organizationId }: { organizationId?: number }) {
     const fetchAll = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await getTaxConfigs(organizationId);
+            const data = await getTaxConfigs();
             const sorted = [...data].sort((a, b) => a.step - b.step);
             setConfigs(sorted);
             setSelected(new Set(sorted.filter(c => c.is_active).map(c => c.id)));
@@ -1107,7 +1092,7 @@ function NetToGrossTab({ organizationId }: { organizationId?: number }) {
         } finally {
             setLoading(false);
         }
-    }, [organizationId]);
+    }, []);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -1129,7 +1114,7 @@ function NetToGrossTab({ organizationId }: { organizationId?: number }) {
         setCalculating(true);
         setResult(null);
         try {
-            const res = await calculateNetToGross({ desired_net_salary: target, tax_config_ids: [...selected] }, organizationId);
+            const res = await calculateNetToGross({ desired_net_salary: target, tax_config_ids: [...selected] });
             setResult(res.required_gross_salary);
         } catch (err) {
             handleErrorMessage(err, 'Failed to calculate gross salary');

@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/(zustand-store)/authStore';
-import { usePayrollOrgStore } from '@/(zustand-store)/payrollOrgStore';
 import {
     getSalaryStructures, createSalaryStructure,
     getEmployeeBenefitsSummary, assignBenefitBand, addExtraBenefitItem, removeExtraBenefitItem,
@@ -58,9 +57,6 @@ export default function EmployeePayrollDetailPage() {
     const employeeProfileId = Number(params.id);
     const userId = searchParams.get('user_id');
     const fmt = useCurrency();
-    const { selectedOrgId } = usePayrollOrgStore();
-    const isSuperadmin = user?.role === 'superadmin';
-    const organizationId = isSuperadmin ? selectedOrgId ?? undefined : undefined;
 
     const [employee, setEmployee] = useState<UserResponse | null>(null);
     const [salaryHistory, setSalaryHistory] = useState<SalaryStructure[]>([]);
@@ -85,7 +81,7 @@ export default function EmployeePayrollDetailPage() {
     const [removeTarget, setRemoveTarget] = useState<ExtraBenefitItem | null>(null);
 
     useEffect(() => {
-        if (user && !['admin', 'superadmin'].includes(user.role)) router.replace('/dashboard');
+        if (user && user.role !== 'admin') router.replace('/dashboard');
     }, [user, router]);
 
     const fetchAll = useCallback(async () => {
@@ -93,10 +89,10 @@ export default function EmployeePayrollDetailPage() {
         setLoading(true);
         try {
             const [salary, summary, bandsData, itemsData] = await Promise.all([
-                getSalaryStructures(employeeProfileId, organizationId),
-                getEmployeeBenefitsSummary(employeeProfileId, organizationId),
-                getBenefitBands(organizationId),
-                getBenefitItems(organizationId),
+                getSalaryStructures(employeeProfileId),
+                getEmployeeBenefitsSummary(employeeProfileId),
+                getBenefitBands(),
+                getBenefitItems(),
             ]);
             setSalaryHistory(salary);
             setBenefitsSummary(summary);
@@ -110,7 +106,7 @@ export default function EmployeePayrollDetailPage() {
         } finally {
             setLoading(false);
         }
-    }, [employeeProfileId, organizationId, userId]);
+    }, [employeeProfileId, userId]);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -125,7 +121,7 @@ export default function EmployeePayrollDetailPage() {
                 employee_profile_id: employeeProfileId,
                 base_amount: Number(salaryForm.amount),
                 effective_date: salaryForm.effectiveDate.format('YYYY-MM-DD'),
-            }, organizationId);
+            });
             toast.success('Salary updated');
             setSalaryDialogOpen(false);
             setSalaryForm({ amount: '', effectiveDate: dayjs() });
@@ -146,7 +142,7 @@ export default function EmployeePayrollDetailPage() {
                 employee_profile_id: employeeProfileId,
                 benefit_band_id: Number(bandForm.bandId),
                 effective_date: bandForm.effectiveDate.format('YYYY-MM-DD'),
-            }, organizationId);
+            });
             toast.success('Benefit band assigned');
             setBandDialogOpen(false);
             setBandForm({ bandId: '', effectiveDate: dayjs() });
@@ -168,7 +164,7 @@ export default function EmployeePayrollDetailPage() {
                 benefit_item_id: Number(extraForm.itemId),
                 effective_date: extraForm.effectiveDate.format('YYYY-MM-DD'),
                 override_value: extraForm.overrideValue ? Number(extraForm.overrideValue) : null,
-            }, organizationId);
+            });
             toast.success('Extra item added');
             setExtraDialogOpen(false);
             setExtraForm({ itemId: '', effectiveDate: dayjs(), overrideValue: '' });
@@ -183,7 +179,7 @@ export default function EmployeePayrollDetailPage() {
     const handleRemoveExtra = async () => {
         if (!removeTarget) return;
         try {
-            await removeExtraBenefitItem(removeTarget.id, organizationId);
+            await removeExtraBenefitItem(removeTarget.id);
             toast.success('Extra item removed');
             fetchAll();
         } catch (err) {
@@ -193,7 +189,7 @@ export default function EmployeePayrollDetailPage() {
         }
     };
 
-    if (!user || !['admin', 'superadmin'].includes(user.role)) {
+    if (!user || user.role !== 'admin') {
         return (
             <div className="flex items-center justify-center py-24">
                 <Skeleton className="size-6 rounded-full" />
