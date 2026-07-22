@@ -328,7 +328,10 @@ export default function FinancePage() {
                         {/* Sidebar */}
                         <div className="space-y-6">
                             {/* Insight card */}
-                            <Card className="bg-primary text-primary-foreground overflow-hidden relative">
+                            <Card
+                                className="text-primary-foreground overflow-hidden relative border-0"
+                                style={{ background: 'linear-gradient(135deg, #a47451 0.000%, #9c9881 16.667%, #73a09d 33.333%, #3b899a 50.000%, #095b79 66.667%, #002847 83.333%, #000116 100.000%)' }}
+                            >
                                 <div className="absolute -bottom-6 -right-6 size-32 rounded-full bg-white/10 blur-2xl" />
                                 <CardHeader>
                                     <CardTitle className="text-primary-foreground text-base">Financial Insight</CardTitle>
