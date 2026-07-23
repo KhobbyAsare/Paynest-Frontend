@@ -28,12 +28,19 @@ import {
     CircleDollarSign,
     Timer,
     CalendarClock,
+    RotateCcw,
+    Undo2,
 } from 'lucide-react';
 import { GetWalkinOrderById, CloseOrder, UpdateOrderStatus } from '@/(api-handlers)/orders_walkinsHandler';
 import { GetProductByID } from '@/(api-handlers)/productsHandler';
+import { GetReturns } from '@/(api-handlers)/returnsHandler';
 import { OrderWalkInsResponse, OrderStatus } from '@/interfaces/orders_walkins';
 import { ProductResponse } from '@/interfaces/products';
+import { ReturnResponse } from '@/interfaces/returns';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import ReturnRequestDialog from '@/components/orders/ReturnRequestDialog';
+import ReturnDetailDialog from '@/components/orders/ReturnDetailDialog';
+import { StatusPill } from '@/components/(shared-components)/StatusPill';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -135,6 +142,23 @@ export default function OrderDetailsPage() {
     const [products, setProducts] = useState<Record<number, ProductResponse>>({});
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
+    const [returns, setReturns] = useState<ReturnResponse[]>([]);
+    const [returnsLoading, setReturnsLoading] = useState(true);
+    const [returnRequestOpen, setReturnRequestOpen] = useState(false);
+    const [returnDetailOpen, setReturnDetailOpen] = useState(false);
+    const [selectedReturnId, setSelectedReturnId] = useState<number | null>(null);
+
+    const fetchReturns = useCallback(async (orderId: number) => {
+        setReturnsLoading(true);
+        try {
+            const data = await GetReturns({ order_id: orderId });
+            setReturns(data.items);
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to fetch returns for this order');
+        } finally {
+            setReturnsLoading(false);
+        }
+    }, []);
 
     const fetchOrderDetails = useCallback(async () => {
         if (!id) return;
@@ -142,6 +166,7 @@ export default function OrderDetailsPage() {
         try {
             const orderData = await GetWalkinOrderById(Number(id));
             setOrder(orderData);
+            fetchReturns(orderData.id);
 
             const productIds = Array.from(new Set(((orderData.items as any[]) || []).map(item => item.product_id)));
             const productResults = await Promise.allSettled(productIds.map(pid => GetProductByID(pid)));
@@ -156,7 +181,7 @@ export default function OrderDetailsPage() {
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, fetchReturns]);
 
     useEffect(() => { fetchOrderDetails(); }, [fetchOrderDetails]);
 
@@ -293,6 +318,18 @@ export default function OrderDetailsPage() {
                             <Printer className="mr-2 size-4" />
                             Print
                         </Button>
+
+                        {order.order_type === 'sale' && order.amount_paid > 0 && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9"
+                                onClick={() => setReturnRequestOpen(true)}
+                            >
+                                <RotateCcw className="mr-2 size-4" />
+                                Return / Refund
+                            </Button>
+                        )}
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -579,6 +616,52 @@ export default function OrderDetailsPage() {
                                 </div>
                             </div>
                         </Card>
+
+                        {/* Returns */}
+                        {returnsLoading ? (
+                            <Card className="gap-0 p-6">
+                                <Skeleton className="h-20 w-full" />
+                            </Card>
+                        ) : returns.length > 0 && (
+                            <Card className="gap-0 overflow-hidden p-0">
+                                <CardHeader className="border-border border-b px-6 py-4">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="flex items-center gap-2 text-base">
+                                            <div className="bg-warning/10 flex size-8 items-center justify-center rounded-lg">
+                                                <Undo2 className="text-warning-foreground size-4" />
+                                            </div>
+                                            Returns
+                                        </CardTitle>
+                                        <Badge variant="outline" className="rounded-full px-3">
+                                            {returns.length} {returns.length === 1 ? 'return' : 'returns'}
+                                        </Badge>
+                                    </div>
+                                </CardHeader>
+                                <div className="divide-border divide-y">
+                                    {returns.map((ret) => (
+                                        <button
+                                            key={ret.id}
+                                            className="hover:bg-muted/50 flex w-full items-center justify-between px-6 py-4 text-left transition-colors"
+                                            onClick={() => {
+                                                setSelectedReturnId(ret.id);
+                                                setReturnDetailOpen(true);
+                                            }}
+                                        >
+                                            <div>
+                                                <p className="text-foreground font-medium">{ret.return_number}</p>
+                                                <p className="text-muted-foreground text-xs">
+                                                    {format(new Date(ret.requested_at), 'MMM d, yyyy · HH:mm')}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-foreground font-semibold">{fmt(ret.refund_total)}</span>
+                                                <StatusPill status={ret.status === 'requested' ? 'requested' : ret.status} />
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </Card>
+                        )}
                     </div>
 
                     {/* Right — sidebar */}
@@ -771,6 +854,26 @@ export default function OrderDetailsPage() {
                     </div>
                 </div>
             </div>
+
+            <ReturnRequestDialog
+                order={order}
+                products={products}
+                open={returnRequestOpen}
+                onOpenChange={setReturnRequestOpen}
+                onSuccess={() => {
+                    fetchReturns(order.id);
+                    fetchOrderDetails();
+                }}
+            />
+            <ReturnDetailDialog
+                returnId={selectedReturnId}
+                open={returnDetailOpen}
+                onOpenChange={setReturnDetailOpen}
+                onDecided={() => {
+                    fetchReturns(order.id);
+                    fetchOrderDetails();
+                }}
+            />
         </TooltipProvider>
     );
 }

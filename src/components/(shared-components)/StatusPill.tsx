@@ -22,6 +22,7 @@ export type StatusKind =
     | "warning"
     | "pending"
     | "processing"
+    | "requested"
     | "info"
     | "initiated"
     | "destructive"
@@ -43,6 +44,7 @@ const STATUS_MAP: Record<StatusKind, { tone: Tone; icon: LucideIcon }> = {
     warning: { tone: "warning", icon: AlertCircle },
     pending: { tone: "warning", icon: Clock },
     processing: { tone: "warning", icon: Clock },
+    requested: { tone: "warning", icon: Clock },
 
     info: { tone: "info", icon: Circle },
     initiated: { tone: "info", icon: Circle },
