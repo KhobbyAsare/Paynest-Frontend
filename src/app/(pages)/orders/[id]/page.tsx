@@ -34,12 +34,15 @@ import {
 import { GetWalkinOrderById, CloseOrder, UpdateOrderStatus } from '@/(api-handlers)/orders_walkinsHandler';
 import { GetProductByID } from '@/(api-handlers)/productsHandler';
 import { GetReturns } from '@/(api-handlers)/returnsHandler';
+import { GetReceiptPdfUrl } from '@/(api-handlers)/receiptsHandler';
 import { OrderWalkInsResponse, OrderStatus } from '@/interfaces/orders_walkins';
 import { ProductResponse } from '@/interfaces/products';
 import { ReturnResponse } from '@/interfaces/returns';
+import { ReceiptFormat } from '@/interfaces/receipts';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 import ReturnRequestDialog from '@/components/orders/ReturnRequestDialog';
 import ReturnDetailDialog from '@/components/orders/ReturnDetailDialog';
+import EmailReceiptDialog from '@/components/orders/EmailReceiptDialog';
 import { StatusPill } from '@/components/(shared-components)/StatusPill';
 
 import { Button } from '@/components/ui/button';
@@ -147,6 +150,8 @@ export default function OrderDetailsPage() {
     const [returnRequestOpen, setReturnRequestOpen] = useState(false);
     const [returnDetailOpen, setReturnDetailOpen] = useState(false);
     const [selectedReturnId, setSelectedReturnId] = useState<number | null>(null);
+    const [receiptLoading, setReceiptLoading] = useState<ReceiptFormat | null>(null);
+    const [emailReceiptOpen, setEmailReceiptOpen] = useState(false);
 
     const fetchReturns = useCallback(async (orderId: number) => {
         setReturnsLoading(true);
@@ -210,6 +215,27 @@ export default function OrderDetailsPage() {
             handleErrorMessage(error, 'Failed to close order');
         } finally {
             setUpdating(false);
+        }
+    };
+
+    const handleOpenReceipt = async (format: ReceiptFormat) => {
+        if (!order) return;
+        // Open the tab synchronously (within the click's call stack) so browsers
+        // don't treat the later async navigation as an unrequested popup.
+        const receiptWindow = window.open('', '_blank');
+        setReceiptLoading(format);
+        try {
+            const url = await GetReceiptPdfUrl(order.id, format);
+            if (receiptWindow) {
+                receiptWindow.location.href = url;
+            } else {
+                window.open(url, '_blank');
+            }
+        } catch (error) {
+            receiptWindow?.close();
+            handleErrorMessage(error, 'Failed to generate receipt');
+        } finally {
+            setReceiptLoading(null);
         }
     };
 
@@ -314,10 +340,34 @@ export default function OrderDetailsPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" className="h-9">
-                            <Printer className="mr-2 size-4" />
-                            Print
-                        </Button>
+                        {((order.items as any[])?.length ?? 0) > 0 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-9" disabled={!!receiptLoading}>
+                                        {receiptLoading
+                                            ? <RefreshCcw className="mr-2 size-4 animate-spin" />
+                                            : <Printer className="mr-2 size-4" />
+                                        }
+                                        {receiptLoading ? 'Generating…' : 'Receipt'}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-56">
+                                    <DropdownMenuItem onClick={() => handleOpenReceipt('full')}>
+                                        <Printer className="size-4" />
+                                        Print Receipt (PDF)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOpenReceipt('thermal')}>
+                                        <Receipt className="size-4" />
+                                        Print Thermal Receipt
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => setEmailReceiptOpen(true)}>
+                                        <Mail className="size-4" />
+                                        Email Receipt
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
 
                         {order.order_type === 'sale' && order.amount_paid > 0 && (
                             <Button
@@ -873,6 +923,12 @@ export default function OrderDetailsPage() {
                     fetchReturns(order.id);
                     fetchOrderDetails();
                 }}
+            />
+            <EmailReceiptDialog
+                orderId={order.id}
+                defaultEmail={order.customer?.email}
+                open={emailReceiptOpen}
+                onOpenChange={setEmailReceiptOpen}
             />
         </TooltipProvider>
     );
