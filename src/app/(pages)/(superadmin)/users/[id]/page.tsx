@@ -62,10 +62,10 @@ const ROLE_CONFIG: Record<string, {
 };
 
 const PLAN_BADGE: Record<string, string> = {
-    free:       'border-border bg-muted text-muted-foreground',
-    basic:      'border-info/30 bg-info/10 text-info',
-    pro:        'border-primary/30 bg-primary/10 text-primary',
-    enterprise: 'border-warning/30 bg-warning/10 text-warning-foreground',
+    FREE:       'border-border bg-muted text-muted-foreground',
+    BASIC:      'border-info/30 bg-info/10 text-info',
+    PRO:        'border-primary/30 bg-primary/10 text-primary',
+    ENTERPRISE: 'border-warning/30 bg-warning/10 text-warning-foreground',
 };
 
 function fmtDate(iso?: string | null, opts?: Intl.DateTimeFormatOptions) {
@@ -469,7 +469,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
                                         <Shield className="size-3.5" /> Plan
                                     </span>
                                     <Badge variant="outline" className={cn("capitalize text-xs rounded-full font-medium", PLAN_BADGE[userData.organization.plan_type] ?? 'border-border bg-muted text-muted-foreground')}>
-                                        {userData.organization.plan_type}
+                                        {userData.organization.plan_type.toLowerCase()}
                                     </Badge>
                                 </div>
                                 <div className="flex items-center justify-between text-sm">

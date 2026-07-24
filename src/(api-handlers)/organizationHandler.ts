@@ -1,4 +1,4 @@
-import { GeneratedCodeResponse, OnboardingOrganizationAndAdminRequest, OrganizationResponse } from "@/interfaces/organization";
+import { GeneratedCodeResponse, OnboardingOrganizationAndAdminRequest, OnboardOrganizationResponse, OrganizationResponse } from "@/interfaces/organization";
 import apiClient from "@/lib/apiClient";
 
 // Superadmin
@@ -11,7 +11,7 @@ export const getAllOrganizations = async (): Promise<OrganizationResponse[]> => 
     }
 }
 
-export const onboardOrganizationAndAdmin = async (data: OnboardingOrganizationAndAdminRequest): Promise<OrganizationResponse> => {
+export const onboardOrganizationAndAdmin = async (data: OnboardingOrganizationAndAdminRequest): Promise<OnboardOrganizationResponse> => {
     try {
         const response = await apiClient.post(`/organization/`, data)
         return response.data
@@ -30,10 +30,9 @@ export const changeOrganizationPlanType = async (organizationId: number, planTyp
 }
 
 
-export const deleteOrganization = async (organizationId: number): Promise<OrganizationResponse> => {
+export const deleteOrganization = async (organizationId: number): Promise<void> => {
     try {
-        const response = await apiClient.delete(`/organization/${organizationId}`)
-        return response.data
+        await apiClient.delete(`/organization/${organizationId}`)
     } catch (error: any) {
         throw error;
     }

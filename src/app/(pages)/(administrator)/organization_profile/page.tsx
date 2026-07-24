@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import axios from 'axios';
+import { handleErrorMessage } from '@/utils/handleErrorMessage';
 
 const schema = z.object({
     name:         z.string().min(1, 'Organization name is required'),
@@ -45,21 +45,17 @@ export default function OrganizationProfile() {
         if (!organizationId) { setLoading(false); return; }
         setLoading(true);
         try {
-            const data = await getOrganizationProfileByOrgId(organizationId);
-            const profile = Array.isArray(data) ? data[0] : data;
-            if (profile) {
-                setOriginalData(profile);
-                reset({
-                    name:         profile.name,
-                    email:        profile.email,
-                    phone_number: profile.phone_number,
-                    address:      profile.address,
-                    description:  profile.description || '',
-                });
-            }
+            const profile = await getOrganizationProfileByOrgId(organizationId);
+            setOriginalData(profile);
+            reset({
+                name:         profile.name,
+                email:        profile.email,
+                phone_number: profile.phone_number,
+                address:      profile.address,
+                description:  profile.description || '',
+            });
         } catch (error: unknown) {
-            const msg = axios.isAxiosError(error) ? error.response?.data?.message : undefined;
-            toast.error(msg || 'Failed to fetch organization profile');
+            handleErrorMessage(error, 'Failed to fetch organization profile');
         } finally {
             setLoading(false);
         }
@@ -75,8 +71,7 @@ export default function OrganizationProfile() {
             toast.success('Organization profile updated successfully');
             fetchProfile();
         } catch (error: unknown) {
-            const msg = axios.isAxiosError(error) ? error.response?.data?.message : undefined;
-            toast.error(msg || 'Failed to update profile');
+            handleErrorMessage(error, 'Failed to update profile');
         } finally {
             setUpdating(false);
         }
@@ -162,7 +157,7 @@ export default function OrganizationProfile() {
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                 {[
                                     { label: 'Currency',  value: originalData?.currency },
-                                    { label: 'Plan Type', value: originalData?.plan_type },
+                                    { label: 'Plan Type', value: originalData?.plan_type?.toLowerCase() },
                                     { label: 'Max Shops', value: String(originalData?.max_shops ?? '—') },
                                     { label: 'Max Users', value: String(originalData?.max_users ?? '—') },
                                 ].map(row => (
