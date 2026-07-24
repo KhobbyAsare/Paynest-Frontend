@@ -13,7 +13,7 @@ export const getAllOrganizations = async (): Promise<OrganizationResponse[]> => 
 
 export const onboardOrganizationAndAdmin = async (data: OnboardingOrganizationAndAdminRequest): Promise<OrganizationResponse> => {
     try {
-        const response = await apiClient.post(`/organization/onboard`, data)
+        const response = await apiClient.post(`/organization/`, data)
         return response.data
     } catch (error: any) {
         throw error;
