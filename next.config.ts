@@ -1,27 +1,38 @@
 import type { NextConfig } from "next";
+import withPWA from "@ducanh2912/next-pwa";
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   images: {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**", // Allows images from any domain
+        hostname: "**",
       },
       {
         protocol: "http",
-        hostname: "**", // Also allows images from any domain over HTTP
+        hostname: "**",
       },
     ],
   },
   async redirects() {
     return [
       {
-        source: '/',
-        destination: '/dashboard',
+        source: "/",
+        destination: "/dashboard",
         permanent: false,
       },
-    ]
+    ];
   },
 };
 
-export default nextConfig;
+export default withPWA({
+  dest: "public",
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  disable: process.env.NODE_ENV === "development",
+  workboxOptions: {
+    disableDevLogs: true,
+  },
+})(nextConfig);

@@ -1,0 +1,256 @@
+node_modules/@ant-design/cssinjs-utils/lib/util/genStyleUtils.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/collapse/es/Collapse.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/color-picker/lib/ColorPicker.d.ts(2,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/color-picker/lib/components/ColorBlock.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/color-picker/lib/components/Slider.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/dialog/lib/Dialog/Content/Panel.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/dropdown/lib/Dropdown.d.ts(3,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/dropdown/lib/Overlay.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/image/lib/Preview/index.d.ts(2,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/input/lib/BaseInput.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/input/lib/Input.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/mentions/lib/Mentions.d.ts(3,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/notification/lib/interface.d.ts(1,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/pagination/lib/interface.d.ts(1,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/pagination/lib/Options.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/pagination/lib/Pagination.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/qrcode/lib/interface.d.ts(1,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/qrcode/lib/QRCodeCanvas.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/qrcode/lib/QRCodeSVG.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/rate/lib/Rate.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/rate/lib/Star.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/select/lib/BaseSelect/index.d.ts(87,29): error TS2503: Cannot find namespace 'JSX'.
+node_modules/@rc-component/select/lib/BaseSelect/index.d.ts(89,32): error TS2503: Cannot find namespace 'JSX'.
+node_modules/@rc-component/slider/lib/interface.d.ts(1,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/steps/lib/Steps.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/tabs/lib/hooks/useIndicator.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/tabs/lib/interface.d.ts(3,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/textarea/lib/interface.d.ts(2,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/textarea/lib/TextArea.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/tree/lib/DropIndicator.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/tree/lib/TreeNode.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/upload/lib/AjaxUploader.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/upload/lib/Upload.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@rc-component/virtual-list/lib/utils/CacheMap.d.ts(1,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/_util/hooks/useClosable.d.ts(2,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/_util/hooks/useForceUpdate.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/_util/type.d.ts(1,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/_util/wave/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/affix/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/app/App.d.ts(2,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/app/context.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/back-top/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/button/Button.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/button/buttonHelpers.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/calendar/generateCalendar.d.ts(2,37): error TS2307: Cannot find module '@rc-component/picker/generate' or its corresponding type declarations.
+  There are types at 'C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@rc-component/picker/es/generate/index.d.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+node_modules/antd/es/calendar/generateCalendar.d.ts(3,37): error TS2307: Cannot find module '@rc-component/picker/interface' or its corresponding type declarations.
+  There are types at 'C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@rc-component/picker/es/interface.d.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+node_modules/antd/es/checkbox/GroupContext.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/color-picker/ColorPicker.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/color-picker/interface.d.ts(1,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/config-provider/defaultRenderEmpty.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/date-picker/generatePicker/index.d.ts(1,37): error TS2307: Cannot find module '@rc-component/picker/generate/index' or its corresponding type declarations.
+  There are types at 'C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@rc-component/picker/es/generate/index.d.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+node_modules/antd/es/date-picker/generatePicker/interface.d.ts(2,47): error TS2307: Cannot find module '@rc-component/picker/interface' or its corresponding type declarations.
+  There are types at 'C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@rc-component/picker/es/interface.d.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+node_modules/antd/es/descriptions/DescriptionsContext.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/flex/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/flex/interface.d.ts(1,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/float-button/BackTop.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/float-button/FloatButton.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/float-button/FloatButtonGroup.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/image/PreviewGroup.d.ts(18,68): error TS2339: Property 'preview' does not exist on type '{}'.
+node_modules/antd/es/input/Input.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/list/context.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/list/Item.d.ts(2,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/masonry/MasonryItem.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/message/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/modal/interface.d.ts(1,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/notification/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/notification/useNotification.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/qr-code/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/qr-code/interface.d.ts(26,18): error TS2320: Interface 'QRCodeProps' cannot simultaneously extend types 'QRProps' and 'HTMLAttributes<HTMLDivElement>'.
+  Named property 'style' of types 'QRProps' and 'HTMLAttributes<HTMLDivElement>' are not identical.
+node_modules/antd/es/slider/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/slider/index.d.ts(107,51): error TS2344: Type '"range"' does not satisfy the constraint 'never'.
+node_modules/antd/es/space/Addon.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/space/context.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/splitter/Panel.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/splitter/SplitBar.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/splitter/Splitter.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/steps/index.d.ts(37,40): error TS2344: Type '"items"' does not satisfy the constraint 'never'.
+node_modules/antd/es/steps/index.d.ts(37,49): error TS2537: Type '{}' has no matching index signature for type 'number'.
+node_modules/antd/es/steps/index.d.ts(38,36): error TS2344: Type '"items"' does not satisfy the constraint 'never'.
+node_modules/antd/es/steps/index.d.ts(38,45): error TS2537: Type '{}' has no matching index signature for type 'number'.
+node_modules/antd/es/tag/CheckableTagGroup.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/tag/style/index.d.ts(1,13): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/theme/context.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/timeline/Timeline.d.ts(13,38): error TS2344: Type '"items"' does not satisfy the constraint 'never'.
+node_modules/antd/es/timeline/Timeline.d.ts(13,47): error TS2537: Type '{}' has no matching index signature for type 'number'.
+node_modules/antd/es/timeline/Timeline.d.ts(14,34): error TS2344: Type '"items"' does not satisfy the constraint 'never'.
+node_modules/antd/es/timeline/Timeline.d.ts(14,43): error TS2537: Type '{}' has no matching index signature for type 'number'.
+node_modules/antd/es/tooltip/UniqueProvider/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/tour/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/transfer/Actions.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/transfer/index.d.ts(2,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/transfer/Section.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/tree/Tree.d.ts(2,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/antd/es/watermark/index.d.ts(1,8): error TS1259: Module '"C:/Users/samue/OneDrive/Documents/PROJECTS/Personal Projects/paynest-frontend-app/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+src/(api-handlers)/paymentsHandler.ts(2,31): error TS2307: Cannot find module '@/lib/getToken' or its corresponding type declarations.
+src/(api-handlers)/paymentsHandler.ts(3,71): error TS2307: Cannot find module '@/interfaces/payments' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(26,8): error TS2307: Cannot find module '@/components/ui/dropdown-menu' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(27,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(28,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(29,23): error TS2307: Cannot find module '@/components/ui/badge' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(50,8): error TS2307: Cannot find module '@/(api-handlers)/paymentsHandler' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(53,8): error TS2307: Cannot find module '@/(api-handlers)/orders_walkinsHandler' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(56,8): error TS2307: Cannot find module '@/(api-handlers)/userHandler' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(57,38): error TS2307: Cannot find module '@/interfaces/orders_walkins' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(62,8): error TS2307: Cannot find module '@/interfaces/payments' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(63,30): error TS2307: Cannot find module '@/interfaces/loginInterface' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(65,24): error TS2307: Cannot find module '@/components/(shared-components)/PageHeader' or its corresponding type declarations.
+src/app/(pages)/payments/page.tsx(240,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(241,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(243,34): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(244,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(263,31): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(270,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(280,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(281,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(284,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(293,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(294,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(298,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(308,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(320,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(321,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(322,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(331,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(332,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(333,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(334,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(337,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(338,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(339,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(341,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(342,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(350,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(351,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(361,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(362,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(363,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(365,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(366,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(367,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(370,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(371,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(376,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(377,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(378,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(391,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(392,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(393,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(400,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(412,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(421,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(427,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(428,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(438,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(440,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(441,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(442,47): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(442,93): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(444,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(445,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(448,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(457,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(460,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(467,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(468,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(469,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(470,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(471,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(475,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(476,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(477,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(477,71): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(478,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(489,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(490,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(490,77): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(491,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(496,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(497,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(498,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(498,69): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(499,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(502,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(503,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(503,71): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(504,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(507,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(508,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(508,77): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(509,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(522,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(523,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(524,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(526,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(527,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(528,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(528,81): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(529,49): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(532,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(533,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(533,85): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(534,49): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(537,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(538,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(538,89): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(539,49): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(547,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(548,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(549,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(551,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(552,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(553,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(553,86): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(554,49): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(557,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(558,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(558,84): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(559,49): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(562,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(563,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(563,85): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(564,49): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(572,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(573,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(574,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(576,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(577,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(578,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(578,80): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(579,49): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(582,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(583,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(583,83): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(584,49): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(591,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(592,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(593,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(596,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(597,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(598,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(598,79): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(599,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(606,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(607,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(607,77): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(608,49): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(618,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(619,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(620,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(620,82): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(pages)/payments/page.tsx(621,49): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
