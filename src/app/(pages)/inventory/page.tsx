@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import { StatusPill } from '@/components/(shared-components)/StatusPill';
 import { GetAllInventory, GetInventoryStatistics, AdjustInventoryStock, UpdateInventory } from '@/(api-handlers)/inventoryHandler';
+import { GetTransfers } from '@/(api-handlers)/inventoryTransfersHandler';
 import type { LucideIcon } from 'lucide-react';
 import { InventoryResponse, InventoryStats } from '@/interfaces/inventory';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
@@ -78,11 +79,27 @@ export default function InventoryPage() {
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
     const [selectedShopId, setSelectedShopId] = useState('all');
     const isAdmin = ['admin', 'superadmin'].includes((user?.role ?? '').toLowerCase());
+    const [incoming, setIncoming] = useState<Map<string, number>>(new Map());
 
     useEffect(() => {
         if (!isAdmin) return;
         getOrganizationShops().then(setShops).catch(console.error);
     }, [isAdmin]);
+
+    useEffect(() => {
+        GetTransfers({ status: 'shipped', limit: 200 })
+            .then((data) => {
+                const map = new Map<string, number>();
+                data.items.forEach((transfer) => {
+                    transfer.items.forEach((item) => {
+                        const key = `${transfer.destination_shop_id}_${item.destination_product_id}`;
+                        map.set(key, (map.get(key) ?? 0) + item.quantity);
+                    });
+                });
+                setIncoming(map);
+            })
+            .catch(console.error);
+    }, []);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -357,6 +374,13 @@ export default function InventoryPage() {
                                                     {item.is_out_of_stock && <StatusPill status="failed" label="Out" showIcon={false} />}
                                                     {item.is_low_stock && !item.is_out_of_stock && <StatusPill status="warning" label="Low" showIcon={false} />}
                                                     {item.needs_reorder && <StatusPill status="info" label="Reorder" showIcon={false} />}
+                                                    {!!incoming.get(`${item.shop_id}_${item.product_id}`) && (
+                                                        <StatusPill
+                                                            status="info"
+                                                            label={`+${incoming.get(`${item.shop_id}_${item.product_id}`)} incoming`}
+                                                            showIcon={false}
+                                                        />
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">

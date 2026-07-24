@@ -23,6 +23,8 @@ export type StatusKind =
     | "pending"
     | "processing"
     | "requested"
+    | "shipped"
+    | "received"
     | "info"
     | "initiated"
     | "destructive"
@@ -40,6 +42,7 @@ const STATUS_MAP: Record<StatusKind, { tone: Tone; icon: LucideIcon }> = {
     completed: { tone: "success", icon: CheckCircle2 },
     approved: { tone: "success", icon: CheckCircle2 },
     paid: { tone: "success", icon: CheckCircle2 },
+    received: { tone: "success", icon: CheckCircle2 },
 
     warning: { tone: "warning", icon: AlertCircle },
     pending: { tone: "warning", icon: Clock },
@@ -48,6 +51,7 @@ const STATUS_MAP: Record<StatusKind, { tone: Tone; icon: LucideIcon }> = {
 
     info: { tone: "info", icon: Circle },
     initiated: { tone: "info", icon: Circle },
+    shipped: { tone: "info", icon: Circle },
 
     destructive: { tone: "destructive", icon: XCircle },
     failed: { tone: "destructive", icon: XCircle },

@@ -100,7 +100,7 @@ const NAV_GROUPS: NavGroup[] = [
     },
     {
         label: "Operate",
-        roles: ["admin", "manager", "attendant"],
+        roles: ["superadmin", "admin", "manager", "attendant"],
         items: [
             {
                 name: "Sales",
@@ -113,6 +113,7 @@ const NAV_GROUPS: NavGroup[] = [
                     { name: "Order Items", href: "/order-items", icon: ShoppingCart, roles: ["superadmin", "admin", "manager", "attendant"] },
                     { name: "Payments", href: "/payments", icon: Banknote, roles: ["superadmin", "admin", "manager", "attendant"] },
                     { name: "Returns", href: "/returns", icon: RotateCcw, roles: ["superadmin", "admin", "manager", "attendant"] },
+                    { name: "Transfers", href: "/transfers", icon: ArrowLeftRight, roles: ["superadmin", "admin", "manager", "attendant"] },
                 ],
             },
             { name: "Daily Closure", href: "/daily-closure", icon: Banknote, roles: ["admin", "manager", "attendant"] },
