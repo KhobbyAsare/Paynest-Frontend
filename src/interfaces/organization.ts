@@ -33,6 +33,11 @@ export interface OnboardingOrganizationAndAdminRequest {
     admin_phone_number: string
 }
 
+export interface OnboardOrganizationResponse {
+    organization: OrganizationResponse,
+    admin_user_id: number,
+}
+
 export interface UpdateOrganizationRequest {
     name: string,
     description: string,

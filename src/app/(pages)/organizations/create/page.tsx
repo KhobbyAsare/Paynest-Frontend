@@ -19,6 +19,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { handleErrorMessage } from '@/utils/handleErrorMessage'
 
 const schema = z.object({
     name:              z.string().min(1, 'Organization name is required'),
@@ -50,7 +51,7 @@ export default function CreateOrganization() {
         resolver: zodResolver(schema) as Resolver<FormValues>,
         defaultValues: {
             currency: 'GHS',
-            plan_type: 'free',
+            plan_type: 'FREE',
             max_shops: 1,
             max_users: 2,
         },
@@ -60,11 +61,13 @@ export default function CreateOrganization() {
         setLoading(true);
         try {
             await onboardOrganizationAndAdmin({ ...values, description: values.description ?? '', is_active: true });
-            toast.success('Organization and Admin onboarded successfully');
+            toast.success('Organization and Admin onboarded successfully', {
+                description: 'The admin account cannot sign in until its email is manually verified — no verification email is sent for org onboarding yet.',
+                duration: 8000,
+            });
             router.push('/organizations');
         } catch (error: unknown) {
-            const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            toast.error(msg || 'Failed to onboard organization');
+            handleErrorMessage(error, 'Failed to onboard organization');
         } finally {
             setLoading(false);
         }
@@ -145,10 +148,10 @@ export default function CreateOrganization() {
                                 <Select value={planType} onValueChange={v => setValue('plan_type', v)}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="free">Free</SelectItem>
-                                        <SelectItem value="basic">Basic</SelectItem>
-                                        <SelectItem value="pro">Pro</SelectItem>
-                                        <SelectItem value="enterprise">Enterprise</SelectItem>
+                                        <SelectItem value="FREE">Free</SelectItem>
+                                        <SelectItem value="BASIC">Basic</SelectItem>
+                                        <SelectItem value="PRO">Pro</SelectItem>
+                                        <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 {errors.plan_type && <p className="text-destructive text-xs">{errors.plan_type.message}</p>}

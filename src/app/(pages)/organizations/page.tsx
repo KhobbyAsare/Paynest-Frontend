@@ -39,14 +39,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { handleErrorMessage } from "@/utils/handleErrorMessage";
 
 const ITEMS_PER_PAGE = 10;
 
 const PLAN_BADGE: Record<string, string> = {
-    free:         'border-border bg-muted text-muted-foreground',
-    basic:        'border-info/30 bg-info/10 text-info',
-    pro:          'border-primary/30 bg-primary/10 text-primary',
-    enterprise:   'border-warning/30 bg-warning/10 text-warning-foreground',
+    FREE:         'border-border bg-muted text-muted-foreground',
+    BASIC:        'border-info/30 bg-info/10 text-info',
+    PRO:          'border-primary/30 bg-primary/10 text-primary',
+    ENTERPRISE:   'border-warning/30 bg-warning/10 text-warning-foreground',
 };
 
 function getInitials(name: string) {
@@ -74,8 +75,8 @@ export default function OrganizationsPage() {
         setLoading(true);
         try {
             setOrganizations(await getAllOrganizations());
-        } catch {
-            toast.error('Failed to fetch organizations');
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to fetch organizations');
         } finally {
             setLoading(false);
         }
@@ -86,8 +87,8 @@ export default function OrganizationsPage() {
 
     const stats = useMemo(() => {
         const active     = organizations.filter(o => o.is_active).length;
-        const enterprise = organizations.filter(o => o.plan_type === 'enterprise').length;
-        const pro        = organizations.filter(o => o.plan_type === 'pro').length;
+        const enterprise = organizations.filter(o => o.plan_type === 'ENTERPRISE').length;
+        const pro        = organizations.filter(o => o.plan_type === 'PRO').length;
         return { total: organizations.length, active, inactive: organizations.length - active, enterprise, pro };
     }, [organizations]);
 
@@ -113,8 +114,8 @@ export default function OrganizationsPage() {
             toast.success('Organization deleted successfully');
             fetchOrganizations();
             setIsDeleteOpen(false);
-        } catch {
-            toast.error('Failed to delete organization');
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to delete organization');
         } finally {
             setActionLoading(false);
         }
@@ -128,8 +129,8 @@ export default function OrganizationsPage() {
             toast.success(`Plan changed to ${newPlan} successfully`);
             fetchOrganizations();
             setIsChangePlanOpen(false);
-        } catch {
-            toast.error('Failed to change plan');
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to change plan');
         } finally {
             setActionLoading(false);
         }
@@ -199,7 +200,7 @@ export default function OrganizationsPage() {
                         <SelectItem value="all">All plans</SelectItem>
                         {planTypes.map(p => (
                             <SelectItem key={p} value={p} className="capitalize">
-                                {p.charAt(0).toUpperCase() + p.slice(1)}
+                                {p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -266,8 +267,8 @@ export default function OrganizationsPage() {
                                             variant="outline"
                                             className={cn("capitalize rounded-full text-xs font-medium", PLAN_BADGE[org.plan_type] ?? 'border-border bg-muted text-muted-foreground')}
                                         >
-                                            {org.plan_type === 'enterprise' && <BadgeCheck className="mr-1 size-3" />}
-                                            {org.plan_type}
+                                            {org.plan_type === 'ENTERPRISE' && <BadgeCheck className="mr-1 size-3" />}
+                                            {org.plan_type.toLowerCase()}
                                         </Badge>
                                     </TableCell>
                                     {/* Status */}
@@ -350,12 +351,15 @@ export default function OrganizationsPage() {
                         <Select value={newPlan} onValueChange={setNewPlan}>
                             <SelectTrigger><SelectValue placeholder="Select a plan" /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="free">Free</SelectItem>
-                                <SelectItem value="basic">Basic</SelectItem>
-                                <SelectItem value="pro">Pro</SelectItem>
-                                <SelectItem value="enterprise">Enterprise</SelectItem>
+                                <SelectItem value="FREE">Free</SelectItem>
+                                <SelectItem value="BASIC">Basic</SelectItem>
+                                <SelectItem value="PRO">Pro</SelectItem>
+                                <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
                             </SelectContent>
                         </Select>
+                        <p className="text-muted-foreground text-xs">
+                            Switching to Basic, Pro, or Enterprise automatically resets max shops/users to that plan&apos;s defaults. Free leaves current limits unchanged.
+                        </p>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsChangePlanOpen(false)}>Cancel</Button>

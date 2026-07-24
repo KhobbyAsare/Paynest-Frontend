@@ -28,10 +28,10 @@ interface OrgDetailsPageProps {
 }
 
 const PLAN_BADGE: Record<string, string> = {
-    free:         'border-border bg-muted text-muted-foreground',
-    basic:        'border-info/30 bg-info/10 text-info',
-    pro:          'border-primary/30 bg-primary/10 text-primary',
-    enterprise:   'border-warning/30 bg-warning/10 text-warning-foreground',
+    FREE:         'border-border bg-muted text-muted-foreground',
+    BASIC:        'border-info/30 bg-info/10 text-info',
+    PRO:          'border-primary/30 bg-primary/10 text-primary',
+    ENTERPRISE:   'border-warning/30 bg-warning/10 text-warning-foreground',
 };
 
 function getInitials(name: string) {
@@ -149,8 +149,8 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
                         <div className="flex items-center gap-2 flex-wrap">
                             <h1 className="text-2xl font-bold text-foreground leading-tight">{org.name}</h1>
                             <Badge variant="outline" className={cn("capitalize rounded-full text-xs font-semibold gap-1", PLAN_BADGE[org.plan_type] ?? 'border-border bg-muted text-muted-foreground')}>
-                                {org.plan_type === 'enterprise' && <BadgeCheck className="size-3" />}
-                                {org.plan_type}
+                                {org.plan_type === 'ENTERPRISE' && <BadgeCheck className="size-3" />}
+                                {org.plan_type.toLowerCase()}
                             </Badge>
                             <Badge
                                 variant="outline"

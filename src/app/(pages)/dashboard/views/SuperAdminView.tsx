@@ -69,7 +69,7 @@ const PIE_PALETTE = [
     'var(--warning)',
 ];
 
-const PLAN_ORDER = ['free', 'basic', 'pro', 'enterprise'];
+const PLAN_ORDER = ['FREE', 'BASIC', 'PRO', 'ENTERPRISE'];
 
 const CTA_GRADIENT = 'linear-gradient(135deg, #a47451 0.000%, #9c9881 16.667%, #73a09d 33.333%, #3b899a 50.000%, #095b79 66.667%, #002847 83.333%, #000116 100.000%)';
 
@@ -792,7 +792,7 @@ export const SuperAdminView = () => {
     const planData = PLAN_ORDER.map((plan, i) => {
         const found = (data?.plan_distribution ?? []).find(p => p.plan === plan);
         return {
-            name:  plan.charAt(0).toUpperCase() + plan.slice(1),
+            name:  plan.charAt(0) + plan.slice(1).toLowerCase(),
             count: found?.count ?? 0,
             color: PIE_PALETTE[i],
         };
@@ -1217,10 +1217,10 @@ function OrgLeaderboard({ orgs }: { orgs: OrgMetrics[] }) {
                                 <TableCell>
                                     <Badge
                                         variant="outline"
-                                        className={cn('capitalize rounded-full text-xs font-medium', PLAN_BADGE[org.plan_type])}
+                                        className={cn('capitalize rounded-full text-xs font-medium', PLAN_BADGE[org.plan_type?.toLowerCase()])}
                                     >
-                                        {org.plan_type === 'enterprise' && <BadgeCheck className="size-3 mr-1" />}
-                                        {org.plan_type}
+                                        {org.plan_type === 'ENTERPRISE' && <BadgeCheck className="size-3 mr-1" />}
+                                        {org.plan_type?.toLowerCase()}
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
