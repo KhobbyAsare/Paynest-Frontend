@@ -32,8 +32,6 @@ const PLAN_BADGE: Record<string, string> = {
     basic:        'border-info/30 bg-info/10 text-info',
     pro:          'border-primary/30 bg-primary/10 text-primary',
     enterprise:   'border-warning/30 bg-warning/10 text-warning-foreground',
-    starter:      'border-border bg-muted text-muted-foreground',
-    professional: 'border-info/30 bg-info/10 text-info',
 };
 
 function getInitials(name: string) {

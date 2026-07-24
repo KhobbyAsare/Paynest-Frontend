@@ -47,8 +47,6 @@ const PLAN_BADGE: Record<string, string> = {
     basic:        'border-info/30 bg-info/10 text-info',
     pro:          'border-primary/30 bg-primary/10 text-primary',
     enterprise:   'border-warning/30 bg-warning/10 text-warning-foreground',
-    starter:      'border-border bg-muted text-muted-foreground',
-    professional: 'border-info/30 bg-info/10 text-info',
 };
 
 function getInitials(name: string) {
@@ -353,9 +351,7 @@ export default function OrganizationsPage() {
                             <SelectTrigger><SelectValue placeholder="Select a plan" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="free">Free</SelectItem>
-                                <SelectItem value="starter">Starter</SelectItem>
                                 <SelectItem value="basic">Basic</SelectItem>
-                                <SelectItem value="professional">Professional</SelectItem>
                                 <SelectItem value="pro">Pro</SelectItem>
                                 <SelectItem value="enterprise">Enterprise</SelectItem>
                             </SelectContent>

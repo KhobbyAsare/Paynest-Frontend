@@ -50,7 +50,7 @@ export default function CreateOrganization() {
         resolver: zodResolver(schema) as Resolver<FormValues>,
         defaultValues: {
             currency: 'GHS',
-            plan_type: 'starter',
+            plan_type: 'free',
             max_shops: 1,
             max_users: 2,
         },
@@ -145,8 +145,9 @@ export default function CreateOrganization() {
                                 <Select value={planType} onValueChange={v => setValue('plan_type', v)}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="starter">Starter</SelectItem>
-                                        <SelectItem value="professional">Professional</SelectItem>
+                                        <SelectItem value="free">Free</SelectItem>
+                                        <SelectItem value="basic">Basic</SelectItem>
+                                        <SelectItem value="pro">Pro</SelectItem>
                                         <SelectItem value="enterprise">Enterprise</SelectItem>
                                     </SelectContent>
                                 </Select>
