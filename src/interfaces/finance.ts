@@ -6,6 +6,7 @@ export interface FinanceSummary {
     total_tax: number;
     total_discounts: number;
     net_profit: number;
+    total_expenses: number;
 }
 
 export interface ShopFinance {

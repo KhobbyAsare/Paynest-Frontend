@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
     TrendingUp, TrendingDown, DollarSign,
-    Calendar, RefreshCcw, Store, BarChart3,
+    Calendar, RefreshCcw, Store, BarChart3, ReceiptText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,7 @@ function ProgressBar({ percent, status }: { percent: number; status: 'success' |
 
 export default function FinancePage() {
     const fmt = useCurrency();
+    const router = useRouter();
     const { user } = useAuthStore();
     const role = (user?.role || "attendant").toLowerCase();
     const isAdmin = role === 'admin' || role === 'superadmin';
@@ -122,6 +124,12 @@ export default function FinancePage() {
             change: 'Government Dues',
             changeType: 'neutral' as const,
         },
+        {
+            name: 'Total Expenses',
+            value: fmt(financeData.summary.total_expenses),
+            change: 'Approved Only',
+            changeType: 'neutral' as const,
+        },
     ] : [];
 
     return (
@@ -130,10 +138,16 @@ export default function FinancePage() {
                 title="Financial Analytics"
                 description="Real-time revenue, profit tracking, and multi-shop performance analysis."
                 actions={
-                    <Button variant="outline" onClick={fetchData} disabled={loading}>
-                        <RefreshCcw className={cn("mr-2 size-4", loading && "animate-spin")} />
-                        Sync Data
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => router.push('/expenses')}>
+                            <ReceiptText className="mr-2 size-4" />
+                            Expenses
+                        </Button>
+                        <Button variant="outline" onClick={fetchData} disabled={loading}>
+                            <RefreshCcw className={cn("mr-2 size-4", loading && "animate-spin")} />
+                            Sync Data
+                        </Button>
+                    </div>
                 }
             />
 
@@ -191,8 +205,8 @@ export default function FinancePage() {
             {/* Loading state */}
             {loading && !financeData ? (
                 <div className="flex flex-col gap-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-px bg-border overflow-hidden rounded-2xl border">
-                        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-none" />)}
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-px bg-border overflow-hidden rounded-2xl border">
+                        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-none" />)}
                     </div>
                     <Skeleton className="h-64 rounded-2xl" />
                     <Skeleton className="h-48 rounded-2xl" />
@@ -210,6 +224,7 @@ export default function FinancePage() {
                     {/* Stats */}
                     <StatsGrid
                         stats={statsConfig.map(stat => ({ ...stat, value: loading ? '…' : stat.value }))}
+                        columns={5}
                     />
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
