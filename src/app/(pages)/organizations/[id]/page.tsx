@@ -86,7 +86,7 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
             setLoading(true);
             try {
                 const data = await getOrganizationProfileByOrgId(Number(id));
-                setOrg(Array.isArray(data) ? data[0] ?? null : data);
+                setOrg(data);
             } catch (error) {
                 handleErrorMessage(error, 'Failed to fetch organization details');
             } finally {
