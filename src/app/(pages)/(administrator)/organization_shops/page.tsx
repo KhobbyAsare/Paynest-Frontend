@@ -20,12 +20,12 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, sanitizePhoneNumber } from '@/lib/utils';
 
 const schema = z.object({
     name:     z.string().min(1, 'Shop name is required'),
     location: z.string().min(1, 'Location is required'),
-    phone:    z.string().min(1, 'Phone number is required'),
+    phone:    z.string().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits'),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -38,6 +38,8 @@ export default function OrganizationShops() {
         register, handleSubmit, reset,
         formState: { errors, isSubmitting },
     } = useForm<FormValues>({ resolver: zodResolver(schema) as Resolver<FormValues> });
+
+    const { onChange: onPhoneChange, ...phoneField } = register('phone');
 
     const fetchShops = async () => {
         setLoading(true);
@@ -180,8 +182,12 @@ export default function OrganizationShops() {
                         <div className="space-y-1.5">
                             <Label>Phone Number <span className="text-destructive">*</span></Label>
                             <Input
-                                {...register('phone')}
-                                placeholder="+233..."
+                                {...phoneField}
+                                type="tel"
+                                inputMode="numeric"
+                                maxLength={10}
+                                onChange={e => { e.target.value = sanitizePhoneNumber(e.target.value); onPhoneChange(e); }}
+                                placeholder="10-digit phone number"
                                 className={cn(errors.phone && 'border-destructive')}
                             />
                             {errors.phone && <p className="text-destructive text-xs">{errors.phone.message}</p>}

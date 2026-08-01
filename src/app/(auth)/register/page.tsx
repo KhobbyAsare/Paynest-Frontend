@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
+import { cn, sanitizePhoneNumber } from "@/lib/utils";
 
 function SectionLabel({ text }: { text: string }) {
     return (
@@ -42,6 +42,8 @@ export default function RegisterPage() {
             last_name: "", phone_number: "", invitation_code: "", confirm_password: "",
         },
     });
+
+    const { onChange: onPhoneNumberChange, ...phoneNumberField } = register("phone_number");
 
     const onSubmit = async (data: RegisterFormData) => {
         setIsLoading(true);
@@ -137,9 +139,13 @@ export default function RegisterPage() {
                                     </Label>
                                     <div className="relative">
                                         <Phone className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                                        <Input id="phone_number" type="tel" disabled={isLoading} placeholder="Your phone number"
+                                        <Input id="phone_number" type="tel" inputMode="numeric" maxLength={10} disabled={isLoading} placeholder="10-digit phone number"
                                             className={cn("h-12 rounded-full pl-11 pr-5", errors.phone_number && "border-destructive")}
-                                            {...register("phone_number")} />
+                                            {...phoneNumberField}
+                                            onChange={(e) => {
+                                                e.target.value = sanitizePhoneNumber(e.target.value);
+                                                onPhoneNumberChange(e);
+                                            }} />
                                     </div>
                                     {errors.phone_number && <p className="text-xs text-destructive">{errors.phone_number.message}</p>}
                                 </div>

@@ -18,13 +18,13 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, sanitizePhoneNumber } from '@/lib/utils'
 import { handleErrorMessage } from '@/utils/handleErrorMessage'
 
 const schema = z.object({
     name:              z.string().min(1, 'Organization name is required'),
     email:             z.string().email('Invalid email'),
-    phone_number:      z.string().min(1, 'Phone number is required'),
+    phone_number:      z.string().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits'),
     currency:          z.string().min(1, 'Currency is required'),
     address:           z.string().min(1, 'Address is required'),
     description:       z.string().optional(),
@@ -35,7 +35,7 @@ const schema = z.object({
     admin_last_name:   z.string().min(1, 'Required'),
     admin_username:    z.string().min(1, 'Required'),
     admin_email:       z.string().email('Invalid email'),
-    admin_phone_number: z.string().min(1, 'Required'),
+    admin_phone_number: z.string().regex(/^\d{10}$/, 'Must be exactly 10 digits'),
     admin_password:    z.string().min(8, 'Min 8 characters'),
 });
 type FormValues = z.infer<typeof schema>;
@@ -56,6 +56,9 @@ export default function CreateOrganization() {
             max_users: 2,
         },
     });
+
+    const { onChange: onPhoneNumberChange, ...phoneNumberField } = register('phone_number');
+    const { onChange: onAdminPhoneNumberChange, ...adminPhoneNumberField } = register('admin_phone_number');
 
     const onSubmit = async (values: FormValues) => {
         setLoading(true);
@@ -111,7 +114,9 @@ export default function CreateOrganization() {
                             </div>
                             <div className="space-y-1.5">
                                 <Label>Phone Number <span className="text-destructive">*</span></Label>
-                                <Input {...register('phone_number')} placeholder="+233..." className={cn(errors.phone_number && 'border-destructive')} />
+                                <Input {...phoneNumberField} type="tel" inputMode="numeric" maxLength={10}
+                                    onChange={e => { e.target.value = sanitizePhoneNumber(e.target.value); onPhoneNumberChange(e); }}
+                                    placeholder="10-digit phone number" className={cn(errors.phone_number && 'border-destructive')} />
                                 {errors.phone_number && <p className="text-destructive text-xs">{errors.phone_number.message}</p>}
                             </div>
                             <div className="space-y-1.5">
@@ -201,7 +206,9 @@ export default function CreateOrganization() {
                             </div>
                             <div className="space-y-1.5">
                                 <Label>Admin Phone <span className="text-destructive">*</span></Label>
-                                <Input {...register('admin_phone_number')} placeholder="+233..." className={cn(errors.admin_phone_number && 'border-destructive')} />
+                                <Input {...adminPhoneNumberField} type="tel" inputMode="numeric" maxLength={10}
+                                    onChange={e => { e.target.value = sanitizePhoneNumber(e.target.value); onAdminPhoneNumberChange(e); }}
+                                    placeholder="10-digit phone number" className={cn(errors.admin_phone_number && 'border-destructive')} />
                                 {errors.admin_phone_number && <p className="text-destructive text-xs">{errors.admin_phone_number.message}</p>}
                             </div>
                             <div className="space-y-1.5">

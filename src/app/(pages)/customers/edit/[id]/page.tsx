@@ -24,7 +24,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { cn, sanitizePhoneNumber } from '@/lib/utils';
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
 
@@ -148,6 +148,7 @@ export default function EditCustomerPage({ params }: EditCustomerPageProps) {
         if (!values.first_name.trim()) e.first_name = 'First name is required';
         if (!values.last_name.trim()) e.last_name = 'Last name is required';
         if (!values.phone.trim()) e.phone = 'Phone number is required';
+        else if (!/^\d{10}$/.test(values.phone)) e.phone = 'Phone number must be exactly 10 digits';
         if (!values.customer_code.trim()) e.customer_code = 'Customer code is required';
         if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
             e.email = 'Enter a valid email address';
@@ -252,7 +253,15 @@ export default function EditCustomerPage({ params }: EditCustomerPageProps) {
                                         <FieldLabel required>Phone Number</FieldLabel>
                                         <div className="relative">
                                             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                                            <Input value={values.phone} onChange={e => set('phone', e.target.value)} className={cn('pl-9', errors.phone && 'border-destructive')} />
+                                            <Input
+                                                type="tel"
+                                                inputMode="numeric"
+                                                maxLength={10}
+                                                placeholder="10-digit phone number"
+                                                value={values.phone}
+                                                onChange={e => set('phone', sanitizePhoneNumber(e.target.value))}
+                                                className={cn('pl-9', errors.phone && 'border-destructive')}
+                                            />
                                         </div>
                                         <FieldError message={errors.phone} />
                                     </div>

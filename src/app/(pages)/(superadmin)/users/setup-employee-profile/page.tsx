@@ -29,7 +29,7 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, sanitizePhoneNumber } from '@/lib/utils';
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
 
@@ -42,7 +42,7 @@ const schema = z.object({
     employment_type:    z.string().optional(),
     employment_status:  z.string().optional(),
     work_email:         z.string().optional(),
-    work_phone:         z.string().optional(),
+    work_phone:         z.string().regex(/^\d{10}$/, 'Work phone must be exactly 10 digits').or(z.literal('')).optional(),
     shop_id:            z.coerce.number().min(1, 'Please assign a shop'),
     role:               z.string().min(1, 'Role is required'),
     can_create_shop:    z.boolean().default(false),
@@ -69,10 +69,13 @@ export default function SetUpEmployeeProfile() {
         defaultValues: {
             employment_type:   'full_time',
             employment_status: 'active',
+            work_phone:        '',
             role:              'attendant',
             shop_id:           1,
         },
     });
+
+    const { onChange: onWorkPhoneChange, ...workPhoneField } = register('work_phone');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -291,7 +294,10 @@ export default function SetUpEmployeeProfile() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label>Work Phone</Label>
-                                    <Input {...register('work_phone')} placeholder="Official contact number" />
+                                    <Input {...workPhoneField} type="tel" inputMode="numeric" maxLength={10}
+                                        onChange={e => { e.target.value = sanitizePhoneNumber(e.target.value); onWorkPhoneChange(e); }}
+                                        placeholder="10-digit contact number" className={cn(errors.work_phone && 'border-destructive')} />
+                                    {errors.work_phone && <p className="text-destructive text-xs">{errors.work_phone.message}</p>}
                                 </div>
                                 <div className="md:col-span-2 space-y-1.5">
                                     <Label className="flex items-center gap-1.5">
