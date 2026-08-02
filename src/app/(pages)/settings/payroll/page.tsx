@@ -888,7 +888,7 @@ function BenefitBandsTab() {
     };
 
     const availableItems = managingBand
-        ? allItems.filter(i => !managingBand.band_items.some(bi => bi.benefit_item_id === i.id))
+        ? allItems.filter(i => !(managingBand.band_items ?? []).some(bi => bi.benefit_item_id === i.id))
         : [];
 
     const handleAddItem = async (e: React.FormEvent) => {
@@ -916,7 +916,7 @@ function BenefitBandsTab() {
         if (!managingBand) return;
         try {
             await removeBenefitBandItem(managingBand.id, bandItemId);
-            const updated = { ...managingBand, band_items: managingBand.band_items.filter(bi => bi.id !== bandItemId) };
+            const updated = { ...managingBand, band_items: (managingBand.band_items ?? []).filter(bi => bi.id !== bandItemId) };
             setManagingBand(updated);
             setBands(prev => prev.map(b => b.id === updated.id ? updated : b));
             toast.success('Item removed from band');
@@ -949,7 +949,7 @@ function BenefitBandsTab() {
                                     </div>
                                     <Switch checked={band.is_active} onCheckedChange={() => toggleActive(band)} />
                                 </div>
-                                <Badge variant="outline" className="rounded-full text-xs">{band.band_items.length} item{band.band_items.length !== 1 ? 's' : ''}</Badge>
+                                <Badge variant="outline" className="rounded-full text-xs">{(band.band_items ?? []).length} item{(band.band_items ?? []).length !== 1 ? 's' : ''}</Badge>
                                 <div className="flex items-center gap-1 pt-1">
                                     <Button variant="outline" size="sm" className="h-8 flex-1 text-xs" onClick={() => setManagingBand(band)}>
                                         Manage Items
@@ -994,9 +994,9 @@ function BenefitBandsTab() {
                     <DialogHeader><DialogTitle>Manage Items — {managingBand?.name}</DialogTitle></DialogHeader>
                     <div className="space-y-4 pt-2">
                         <div className="max-h-64 space-y-1 overflow-y-auto">
-                            {managingBand?.band_items.length === 0 ? (
+                            {(managingBand?.band_items ?? []).length === 0 ? (
                                 <p className="text-muted-foreground py-4 text-center text-sm">No items in this band yet.</p>
-                            ) : managingBand?.band_items.map(bi => (
+                            ) : (managingBand?.band_items ?? []).map(bi => (
                                 <div key={bi.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2">

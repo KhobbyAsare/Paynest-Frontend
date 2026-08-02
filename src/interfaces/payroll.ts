@@ -92,7 +92,9 @@ export interface BenefitBand {
     name: string;
     description: string | null;
     is_active: boolean;
-    band_items: BenefitBandItem[];
+    // Some endpoints omit this (or return null) rather than an empty array — always
+    // guard with `?? []` before reading it.
+    band_items?: BenefitBandItem[] | null;
 }
 
 export interface BenefitBandCreate {
