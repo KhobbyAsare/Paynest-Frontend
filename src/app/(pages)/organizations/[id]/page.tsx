@@ -7,10 +7,13 @@ import axios from 'axios';
 import {
     ArrowLeft, Building2, Mail, Phone, MapPin, Calendar,
     CheckCircle2, XCircle, Globe, FileText, LayoutDashboard,
-    UserCog, Loader2, RotateCcw, CreditCard, AlertTriangle,
+    UserCog, Loader2, RotateCcw, CreditCard, AlertTriangle, Ban, Power,
 } from 'lucide-react';
 import { getOrganizationProfileByOrgId } from '@/(api-handlers)/organizationProfileHandler';
-import { resendAdminVerification, changeOrganizationSubscriptionPlan } from '@/(api-handlers)/organizationHandler';
+import {
+    resendAdminVerification, changeOrganizationSubscriptionPlan,
+    deactivateOrganizationAccount, reactivateOrganizationAccount,
+} from '@/(api-handlers)/organizationHandler';
 import { OrganizationResponse } from '@/interfaces/organization';
 import EmptyState from '@/components/(shared-components)/EmptyState';
 import StatsGrid from '@/components/(shared-components)/StatsGrid';
@@ -26,6 +29,10 @@ import {
     Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
     BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 
 const RESEND_ADMIN_VERIFICATION_COOLDOWN_SECONDS = 120;
@@ -88,6 +95,8 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
     const [resending, setResending] = useState(false);
     const [resendCooldown, setResendCooldown] = useCooldown();
     const [reactivating, setReactivating] = useState(false);
+    const [togglingAccount, setTogglingAccount] = useState(false);
+    const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -133,6 +142,33 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
             handleErrorMessage(error, 'Failed to reactivate organization');
         } finally {
             setReactivating(false);
+        }
+    };
+
+    const handleDeactivateAccount = async () => {
+        setTogglingAccount(true);
+        try {
+            const data = await deactivateOrganizationAccount(Number(id));
+            setOrg(data);
+            toast.success(`${data.name}'s account has been suspended`);
+            setIsDeactivateOpen(false);
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to deactivate organization');
+        } finally {
+            setTogglingAccount(false);
+        }
+    };
+
+    const handleReactivateAccount = async () => {
+        setTogglingAccount(true);
+        try {
+            const data = await reactivateOrganizationAccount(Number(id));
+            setOrg(data);
+            toast.success(`${data.name}'s account has been reactivated`);
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to reactivate organization account');
+        } finally {
+            setTogglingAccount(false);
         }
     };
 
@@ -379,10 +415,52 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
                                     <Calendar className="size-3.5" /> {fmtDate(org.updated_at)}
                                 </span>
                             </div>
+                            {org.is_active ? (
+                                <Button
+                                    variant="outline" size="sm" className="w-full gap-2 text-destructive hover:text-destructive"
+                                    disabled={togglingAccount}
+                                    onClick={() => setIsDeactivateOpen(true)}
+                                >
+                                    <Ban className="size-3.5" /> Deactivate account
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="outline" size="sm" className="w-full gap-2"
+                                    disabled={togglingAccount}
+                                    onClick={handleReactivateAccount}
+                                >
+                                    <Power className={cn("size-3.5", togglingAccount && "animate-spin")} />
+                                    {togglingAccount ? 'Reactivating…' : 'Reactivate account'}
+                                </Button>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
             </div>
+
+            {/* Deactivate Account Confirmation */}
+            <AlertDialog open={isDeactivateOpen} onOpenChange={open => !open && setIsDeactivateOpen(false)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Deactivate Organization Account</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to suspend <strong>{org.name}</strong>? This immediately blocks all
+                            non-superadmin users of this organization from signing in, regardless of their subscription
+                            status. It does not change their plan or expiry — reverse it any time with Reactivate Account.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={handleDeactivateAccount}
+                            disabled={togglingAccount}
+                        >
+                            {togglingAccount ? 'Deactivating…' : 'Deactivate'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

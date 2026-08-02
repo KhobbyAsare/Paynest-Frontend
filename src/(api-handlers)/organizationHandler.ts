@@ -51,6 +51,25 @@ export const deleteOrganization = async (organizationId: number): Promise<void> 
     }
 }
 
+// Manual account suspension — separate from subscription-plan expiry/renewal (changeOrganizationSubscriptionPlan).
+export const deactivateOrganizationAccount = async (organizationId: number): Promise<OrganizationResponse> => {
+    try {
+        const response = await apiClient.post(`/organization/${organizationId}/deactivate`)
+        return response.data
+    } catch (error: any) {
+        throw error;
+    }
+}
+
+export const reactivateOrganizationAccount = async (organizationId: number): Promise<OrganizationResponse> => {
+    try {
+        const response = await apiClient.post(`/organization/${organizationId}/reactivate`)
+        return response.data
+    } catch (error: any) {
+        throw error;
+    }
+}
+
 export const resendAdminVerification = async (organizationId: number): Promise<{ message: string }> => {
     try {
         const response = await apiClient.post(`/organization/${organizationId}/resend-admin-verification`)

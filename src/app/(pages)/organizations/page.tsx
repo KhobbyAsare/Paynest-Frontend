@@ -5,6 +5,7 @@ import { OrganizationResponse } from "@/interfaces/organization";
 import { SubscriptionPlanResponse } from "@/interfaces/subscriptionPlan";
 import {
     getAllOrganizations, changeOrganizationSubscriptionPlan, deleteOrganization,
+    deactivateOrganizationAccount, reactivateOrganizationAccount,
 } from "@/(api-handlers)/organizationHandler";
 import { getSubscriptionPlans } from "@/(api-handlers)/subscriptionPlansHandler";
 import PageHeader from "@/components/(shared-components)/PageHeader";
@@ -35,7 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import StatsGrid from "@/components/(shared-components)/StatsGrid";
 import {
     Search, Plus, MoreHorizontal, Pencil, Trash2, Building2, RefreshCcw,
-    CheckCircle2, XCircle, Eye, RotateCcw, AlertTriangle,
+    CheckCircle2, XCircle, Eye, RotateCcw, AlertTriangle, Ban, Power,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -73,9 +74,11 @@ export default function OrganizationsPage() {
     const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(null);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isChangePlanOpen, setIsChangePlanOpen] = useState(false);
+    const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
     const [newPlanId, setNewPlanId] = useState<number | ''>('');
     const [actionLoading, setActionLoading] = useState(false);
     const [reactivatingId, setReactivatingId] = useState<number | null>(null);
+    const [togglingAccountId, setTogglingAccountId] = useState<number | null>(null);
 
     const fetchOrganizations = async () => {
         setLoading(true);
@@ -160,6 +163,34 @@ export default function OrganizationsPage() {
             handleErrorMessage(error, 'Failed to reactivate organization');
         } finally {
             setReactivatingId(null);
+        }
+    };
+
+    const handleDeactivateAccount = async () => {
+        if (!selectedOrg) return;
+        setTogglingAccountId(selectedOrg.id);
+        try {
+            await deactivateOrganizationAccount(selectedOrg.id);
+            toast.success(`${selectedOrg.name}'s account has been suspended`);
+            fetchOrganizations();
+            setIsDeactivateOpen(false);
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to deactivate organization');
+        } finally {
+            setTogglingAccountId(null);
+        }
+    };
+
+    const handleReactivateAccount = async (org: OrganizationResponse) => {
+        setTogglingAccountId(org.id);
+        try {
+            await reactivateOrganizationAccount(org.id);
+            toast.success(`${org.name}'s account has been reactivated`);
+            fetchOrganizations();
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to reactivate organization account');
+        } finally {
+            setTogglingAccountId(null);
         }
     };
 
@@ -367,6 +398,22 @@ export default function OrganizationsPage() {
                                                         <Pencil className="mr-2 size-4" /> Change Plan
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
+                                                    {org.is_active ? (
+                                                        <DropdownMenuItem
+                                                            disabled={togglingAccountId === org.id}
+                                                            onClick={() => { setSelectedOrg(org); setIsDeactivateOpen(true); }}
+                                                        >
+                                                            <Ban className="mr-2 size-4" /> Deactivate Account
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem
+                                                            disabled={togglingAccountId === org.id}
+                                                            onClick={() => handleReactivateAccount(org)}
+                                                        >
+                                                            <Power className="mr-2 size-4" /> Reactivate Account
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    <DropdownMenuSeparator />
                                                     <DropdownMenuItem
                                                         className="text-destructive focus:text-destructive"
                                                         onClick={() => { setSelectedOrg(org); setIsDeleteOpen(true); }}
@@ -429,6 +476,30 @@ export default function OrganizationsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Deactivate Account Confirmation */}
+            <AlertDialog open={isDeactivateOpen} onOpenChange={open => !open && setIsDeactivateOpen(false)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Deactivate Organization Account</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to suspend <strong>{selectedOrg?.name}</strong>? This immediately blocks
+                            all non-superadmin users of this organization from signing in, regardless of their subscription
+                            status. It does not change their plan or expiry — reverse it any time with Reactivate Account.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={handleDeactivateAccount}
+                            disabled={togglingAccountId === selectedOrg?.id}
+                        >
+                            {togglingAccountId === selectedOrg?.id ? 'Deactivating…' : 'Deactivate'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Delete Confirmation */}
             <AlertDialog open={isDeleteOpen} onOpenChange={open => !open && setIsDeleteOpen(false)}>

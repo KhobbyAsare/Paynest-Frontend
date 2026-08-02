@@ -61,6 +61,13 @@ export default function LoginPage() {
                 router.push(`/verify-email/pending${emailParam}`);
                 return;
             }
+            if (error?.response?.status === 403 && detail === "ORGANIZATION_DEACTIVATED") {
+                toast.error("Your organization's account has been suspended.", {
+                    description: "Contact support for assistance.",
+                    duration: 8000,
+                });
+                return;
+            }
             if (error?.response?.status === 403 && detail === "SUBSCRIPTION_EXPIRED") {
                 toast.error("Your organization's subscription has expired.", {
                     description: "Contact your administrator to reactivate access.",
