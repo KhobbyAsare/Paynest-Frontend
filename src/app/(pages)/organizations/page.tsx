@@ -290,9 +290,6 @@ export default function OrganizationsPage() {
                                     {/* Actions */}
                                     <TableCell className="pr-6 text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                            <Button variant="ghost" size="sm" className="h-8 px-3 text-xs gap-1.5" asChild>
-                                                <Link href={`/organizations/${org.id}`}><Eye className="size-3.5" /> View</Link>
-                                            </Button>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" size="icon" className="size-8" aria-label="Organization actions">
@@ -300,6 +297,12 @@ export default function OrganizationsPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/organizations/${org.id}`}>
+                                                            <Eye className="mr-2 size-4" /> View
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
                                                     <DropdownMenuItem onClick={() => {
                                                         setSelectedOrg(org);
                                                         setNewPlan(org.plan_type);

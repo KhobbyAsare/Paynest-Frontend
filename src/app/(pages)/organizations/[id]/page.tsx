@@ -3,15 +3,20 @@
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import {
     ArrowLeft, Building2, Mail, Phone, MapPin, Calendar,
     CheckCircle2, XCircle, BadgeCheck, Globe, FileText, LayoutDashboard,
+    UserCog, Loader2, RotateCcw,
 } from 'lucide-react';
 import { getOrganizationProfileByOrgId } from '@/(api-handlers)/organizationProfileHandler';
+import { resendAdminVerification } from '@/(api-handlers)/organizationHandler';
 import { OrganizationResponse } from '@/interfaces/organization';
 import EmptyState from '@/components/(shared-components)/EmptyState';
 import StatsGrid from '@/components/(shared-components)/StatsGrid';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import { useCooldown, formatCooldown } from '@/hooks/useCooldown';
+import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +27,8 @@ import {
     BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { cn } from '@/lib/utils';
+
+const RESEND_ADMIN_VERIFICATION_COOLDOWN_SECONDS = 120;
 
 interface OrgDetailsPageProps {
     params: Promise<{ id: string }>;
@@ -81,6 +88,9 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
     const [org, setOrg] = useState<OrganizationResponse | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const [resending, setResending] = useState(false);
+    const [resendCooldown, setResendCooldown] = useCooldown();
+
     useEffect(() => {
         (async () => {
             setLoading(true);
@@ -94,6 +104,25 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
             }
         })();
     }, [id]);
+
+    const admin = org?.admin ?? null;
+
+    const handleResendAdminVerification = async () => {
+        if (resendCooldown > 0) return;
+        setResending(true);
+        try {
+            const res = await resendAdminVerification(Number(id));
+            toast.success(res.message);
+            setResendCooldown(RESEND_ADMIN_VERIFICATION_COOLDOWN_SECONDS);
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 429) {
+                setResendCooldown(RESEND_ADMIN_VERIFICATION_COOLDOWN_SECONDS);
+            }
+            handleErrorMessage(error, 'Failed to resend verification email');
+        } finally {
+            setResending(false);
+        }
+    };
 
     if (loading) return <LoadingSkeleton />;
 
@@ -204,6 +233,57 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
                 </div>
 
                 <div className="flex flex-col gap-6">
+                    <Card className="gap-0 p-0">
+                        <CardHeader className="border-b px-5 py-4">
+                            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                <UserCog className="size-4 text-muted-foreground" />
+                                Administrator
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-5 py-4 space-y-3">
+                            {admin ? (
+                                <>
+                                    <div>
+                                        <p className="text-sm font-medium text-foreground truncate">
+                                            {admin.first_name} {admin.last_name}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate">{admin.email}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground text-xs">Email Verified</span>
+                                        {admin.email_verified ? (
+                                            <span className="inline-flex items-center gap-1 text-success text-xs font-semibold">
+                                                <CheckCircle2 className="size-3.5" /> Verified
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 text-warning-foreground text-xs font-semibold">
+                                                <XCircle className="size-3.5" /> Unverified
+                                            </span>
+                                        )}
+                                    </div>
+                                    {!admin.email_verified && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full gap-2"
+                                            disabled={resending || resendCooldown > 0}
+                                            onClick={handleResendAdminVerification}
+                                        >
+                                            {resending
+                                                ? <><Loader2 className="size-3.5 animate-spin" /> Sending…</>
+                                                : resendCooldown > 0
+                                                ? `Resend in ${formatCooldown(resendCooldown)}`
+                                                : <><RotateCcw className="size-3.5" /> Resend verification email</>
+                                            }
+                                        </Button>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-xs text-muted-foreground">No admin user found for this organization.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     <Card className="gap-0 p-0">
                         <CardHeader className="border-b px-5 py-4">
                             <CardTitle className="text-sm font-semibold flex items-center gap-2">

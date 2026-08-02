@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Pencil, RefreshCcw, Users, Eye, CheckCircle2, XCircle, Crown } from 'lucide-react';
+import axios from 'axios';
+import { Search, Pencil, RefreshCcw, Users, Eye, CheckCircle2, XCircle, Crown, RotateCcw, Loader2 } from 'lucide-react';
 import { getAllUsers } from '@/(api-handlers)/userHandler';
+import { resendAdminVerification } from '@/(api-handlers)/organizationHandler';
 import { UserResponse } from '@/interfaces/loginInterface';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import Pagination from '@/components/(shared-components)/Pagination';
@@ -20,8 +22,11 @@ import StatsGrid from '@/components/(shared-components)/StatsGrid';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import { useKeyedCooldown, formatCooldown } from '@/hooks/useCooldown';
 
 const ITEMS_PER_PAGE = 10;
+const RESEND_VERIFICATION_COOLDOWN_SECONDS = 120;
 
 type Role = 'all' | 'superadmin' | 'admin' | 'manager' | 'attendant';
 type Status = 'all' | 'active' | 'inactive';
@@ -56,6 +61,25 @@ export default function SuperAdminPage() {
     const [roleFilter, setRoleFilter] = useState<Role>('all');
     const [statusFilter, setStatusFilter] = useState<Status>('all');
     const [currentPage, setCurrentPage] = useState(1);
+    const [resendingId, setResendingId] = useState<number | null>(null);
+    const [cooldowns, startCooldown] = useKeyedCooldown();
+
+    const handleResendAdminVerification = async (u: UserResponse) => {
+        if (!u.organization) return;
+        setResendingId(u.id);
+        try {
+            const res = await resendAdminVerification(u.organization.id);
+            toast.success(res.message);
+            startCooldown(u.id, RESEND_VERIFICATION_COOLDOWN_SECONDS);
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 429) {
+                startCooldown(u.id, RESEND_VERIFICATION_COOLDOWN_SECONDS);
+            }
+            handleErrorMessage(error, 'Failed to resend verification email');
+        } finally {
+            setResendingId(null);
+        }
+    };
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -291,6 +315,27 @@ export default function SuperAdminPage() {
                                             <Button variant="ghost" size="sm" className="h-8 px-3 text-xs gap-1.5" asChild>
                                                 <Link href={`/users/${u.id}`}><Eye className="size-3.5" /> View</Link>
                                             </Button>
+                                            {u.role?.toLowerCase() === 'admin' && !u.email_verified && u.organization && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="ghost" size="icon" className="size-8"
+                                                            aria-label="Resend verification email"
+                                                            disabled={resendingId === u.id || (cooldowns[u.id] ?? 0) > 0}
+                                                            onClick={() => handleResendAdminVerification(u)}
+                                                        >
+                                                            {resendingId === u.id
+                                                                ? <Loader2 className="size-4 animate-spin" />
+                                                                : <RotateCcw className="size-4" />}
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        {(cooldowns[u.id] ?? 0) > 0
+                                                            ? `Resend in ${formatCooldown(cooldowns[u.id])}`
+                                                            : 'Resend verification email'}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
                                             {u.employee_profile && (
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>

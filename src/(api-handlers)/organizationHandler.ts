@@ -38,6 +38,15 @@ export const deleteOrganization = async (organizationId: number): Promise<void> 
     }
 }
 
+export const resendAdminVerification = async (organizationId: number): Promise<{ message: string }> => {
+    try {
+        const response = await apiClient.post(`/organization/${organizationId}/resend-admin-verification`)
+        return response.data
+    } catch (error: any) {
+        throw error;
+    }
+}
+
 // Administrator
 export const generateInvitationCode = async (organization_id: number): Promise<GeneratedCodeResponse> => {
     try {
