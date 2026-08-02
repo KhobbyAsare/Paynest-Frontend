@@ -46,10 +46,16 @@ export default function LoginPage() {
                 setCookie("user_role", response.user?.role || "attendant", { maxAge: 30 * 24 * 60 * 60, path: "/" });
                 const { setAuth, updateUser } = useAuthStore.getState();
                 setAuth(response);
-                try { const u = await getUserData(); updateUser(u); } catch (e) { handleErrorMessage(e, "Failed to fetch user data."); }
+                let currentUser = response.user;
+                try {
+                    currentUser = await getUserData();
+                    updateUser(currentUser);
+                } catch (e) { handleErrorMessage(e, "Failed to fetch user data."); }
                 toast.success("Login successful!");
-                const role = response.user?.role;
-                if (role === "attendant") router.push("/sales");
+                const role = currentUser?.role;
+                if ((role === "manager" || role === "attendant") && !currentUser?.employee_profile) {
+                    router.push("/account-pending");
+                } else if (role === "attendant") router.push("/sales");
                 else if (role === "manager") router.push("/orders");
                 else router.push("/dashboard");
             }
