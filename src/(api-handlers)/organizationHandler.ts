@@ -1,4 +1,4 @@
-import { GeneratedCodeResponse, OnboardingOrganizationAndAdminRequest, OnboardOrganizationResponse, OrganizationResponse } from "@/interfaces/organization";
+import { ChangeOrganizationSubscriptionPlanRequest, GeneratedCodeResponse, OnboardingOrganizationAndAdminRequest, OnboardOrganizationResponse, OrganizationResponse } from "@/interfaces/organization";
 import apiClient from "@/lib/apiClient";
 
 // Superadmin
@@ -20,9 +20,10 @@ export const onboardOrganizationAndAdmin = async (data: OnboardingOrganizationAn
     }
 }
 
-export const changeOrganizationPlanType = async (organizationId: number, planType: string): Promise<OrganizationResponse> => {
+export const changeOrganizationSubscriptionPlan = async (organizationId: number, subscriptionPlanId: number): Promise<OrganizationResponse> => {
     try {
-        const response = await apiClient.put(`/organization/${planType}/${organizationId}`)
+        const data: ChangeOrganizationSubscriptionPlanRequest = { subscription_plan_id: subscriptionPlanId };
+        const response = await apiClient.put(`/organization/${organizationId}/subscription-plan`, data)
         return response.data
     } catch (error: any) {
         throw error;

@@ -1,3 +1,5 @@
+import { SubscriptionPlanResponse } from "./subscriptionPlan";
+
 export interface LoginInterface {
     email?: string;
     username?: string;
@@ -49,9 +51,10 @@ export interface UserResponse {
         phone_number: string,
         currency: string,
         is_active: boolean,
-        plan_type: string,
         max_shops: number,
         max_users: number,
+        subscription_expires_at: string | null,
+        subscription_plan?: SubscriptionPlanResponse | null,
         created_at: string,
         updated_at: string
     } | null,

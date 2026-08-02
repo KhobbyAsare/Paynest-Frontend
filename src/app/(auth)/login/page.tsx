@@ -61,6 +61,13 @@ export default function LoginPage() {
                 router.push(`/verify-email/pending${emailParam}`);
                 return;
             }
+            if (error?.response?.status === 403 && detail === "SUBSCRIPTION_EXPIRED") {
+                toast.error("Your organization's subscription has expired.", {
+                    description: "Contact your administrator to reactivate access.",
+                    duration: 8000,
+                });
+                return;
+            }
             handleErrorMessage(error, "Login failed. Please check your credentials.");
         } finally {
             setIsLoading(false);

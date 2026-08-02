@@ -21,6 +21,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { cn, sanitizePhoneNumber } from '@/lib/utils';
+import { handleErrorMessage } from '@/utils/handleErrorMessage';
 
 const schema = z.object({
     name:     z.string().min(1, 'Shop name is required'),
@@ -62,8 +63,7 @@ export default function OrganizationShops() {
             reset();
             fetchShops();
         } catch (error: unknown) {
-            const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            toast.error(msg || 'Failed to create shop');
+            handleErrorMessage(error, 'Failed to create shop');
         }
     };
 

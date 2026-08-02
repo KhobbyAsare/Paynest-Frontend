@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Building2, UserCog, Loader2, Send } from 'lucide-react'
 import PageHeader from '@/components/(shared-components)/PageHeader'
 import { onboardOrganizationAndAdmin } from '@/(api-handlers)/organizationHandler'
+import { getSubscriptionPlans } from '@/(api-handlers)/subscriptionPlansHandler'
+import { SubscriptionPlanResponse } from '@/interfaces/subscriptionPlan'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,9 +30,7 @@ const schema = z.object({
     currency:          z.string().min(1, 'Currency is required'),
     address:           z.string().min(1, 'Address is required'),
     description:       z.string().optional(),
-    plan_type:         z.string().min(1, 'Plan type is required'),
-    max_shops:         z.coerce.number().int().min(1, 'Min 1 shop'),
-    max_users:         z.coerce.number().int().min(1, 'Min 1 user'),
+    subscription_plan_id: z.coerce.number().int().min(1, 'Please select a plan'),
     admin_first_name:  z.string().min(1, 'Required'),
     admin_last_name:   z.string().min(1, 'Required'),
     admin_username:    z.string().min(1, 'Required'),
@@ -43,6 +43,8 @@ type FormValues = z.infer<typeof schema>;
 export default function CreateOrganization() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [plans, setPlans] = useState<SubscriptionPlanResponse[]>([]);
+    const [plansLoading, setPlansLoading] = useState(true);
 
     const {
         register, handleSubmit, setValue, watch,
@@ -51,11 +53,21 @@ export default function CreateOrganization() {
         resolver: zodResolver(schema) as Resolver<FormValues>,
         defaultValues: {
             currency: 'GHS',
-            plan_type: 'FREE',
-            max_shops: 1,
-            max_users: 2,
         },
     });
+
+    useEffect(() => {
+        (async () => {
+            setPlansLoading(true);
+            try {
+                setPlans(await getSubscriptionPlans({ activeOnly: true }));
+            } catch (error) {
+                handleErrorMessage(error, 'Failed to fetch subscription plans');
+            } finally {
+                setPlansLoading(false);
+            }
+        })();
+    }, []);
 
     const { onChange: onPhoneNumberChange, ...phoneNumberField } = register('phone_number');
     const { onChange: onAdminPhoneNumberChange, ...adminPhoneNumberField } = register('admin_phone_number');
@@ -76,7 +88,8 @@ export default function CreateOrganization() {
         }
     };
 
-    const planType = watch('plan_type');
+    const subscriptionPlanId = watch('subscription_plan_id');
+    const selectedPlan = plans.find(p => p.id === subscriptionPlanId);
     const currency = watch('currency');
 
     return (
@@ -145,33 +158,47 @@ export default function CreateOrganization() {
                         </div>
 
                         <Separator className="my-6" />
-                        <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-5">Subscription Limits</p>
+                        <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-5">Subscription Plan</p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                            <div className="space-y-1.5">
-                                <Label>Plan Type <span className="text-destructive">*</span></Label>
-                                <Select value={planType} onValueChange={v => setValue('plan_type', v)}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="FREE">Free</SelectItem>
-                                        <SelectItem value="BASIC">Basic</SelectItem>
-                                        <SelectItem value="PRO">Pro</SelectItem>
-                                        <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {errors.plan_type && <p className="text-destructive text-xs">{errors.plan_type.message}</p>}
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Max Shops <span className="text-destructive">*</span></Label>
-                                <Input type="number" min={1} {...register('max_shops')} className={cn(errors.max_shops && 'border-destructive')} />
-                                {errors.max_shops && <p className="text-destructive text-xs">{errors.max_shops.message}</p>}
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Max Users <span className="text-destructive">*</span></Label>
-                                <Input type="number" min={1} {...register('max_users')} className={cn(errors.max_users && 'border-destructive')} />
-                                {errors.max_users && <p className="text-destructive text-xs">{errors.max_users.message}</p>}
-                            </div>
+                        <div className="space-y-1.5">
+                            <Label>Plan <span className="text-destructive">*</span></Label>
+                            <Select
+                                value={subscriptionPlanId ? String(subscriptionPlanId) : undefined}
+                                onValueChange={v => setValue('subscription_plan_id', Number(v), { shouldValidate: true })}
+                                disabled={plansLoading}
+                            >
+                                <SelectTrigger className={cn(errors.subscription_plan_id && 'border-destructive')}>
+                                    <SelectValue placeholder={plansLoading ? 'Loading plans…' : 'Select a plan'} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {plans.map(p => (
+                                        <SelectItem key={p.id} value={String(p.id)}>
+                                            {p.name} — {p.max_shops} shops / {p.max_users} users
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {errors.subscription_plan_id && <p className="text-destructive text-xs">{errors.subscription_plan_id.message}</p>}
+                            {!plansLoading && plans.length === 0 && (
+                                <p className="text-muted-foreground text-xs">No active plans found. Create one under Subscription Plans first.</p>
+                            )}
                         </div>
+
+                        {selectedPlan && (
+                            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 rounded-lg border bg-muted/30 p-4">
+                                {[
+                                    { label: 'Max Shops', value: selectedPlan.max_shops },
+                                    { label: 'Max Users', value: selectedPlan.max_users },
+                                    { label: 'Duration', value: selectedPlan.duration_days ? `${selectedPlan.duration_days} days` : 'Never expires' },
+                                    { label: 'Price', value: selectedPlan.price != null ? `GHS ${selectedPlan.price}` : '—' },
+                                ].map(row => (
+                                    <div key={row.label} className="space-y-1">
+                                        <p className="text-muted-foreground text-[10px] uppercase tracking-wider font-semibold">{row.label}</p>
+                                        <p className="text-sm font-medium text-foreground">{row.value}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

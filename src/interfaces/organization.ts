@@ -1,3 +1,5 @@
+import { SubscriptionPlanResponse } from "./subscriptionPlan";
+
 export interface OrganizationAdminSummary {
     id: number,
     email: string,
@@ -18,12 +20,13 @@ export interface OrganizationResponse {
     phone_number: string,
     currency: string,
     is_active: boolean,
-    plan_type: string,
     max_shops: number,
     max_users: number,
+    subscription_expires_at: string | null,
     created_at: string,
     updated_at: string,
     admin?: OrganizationAdminSummary | null,
+    subscription_plan?: SubscriptionPlanResponse | null,
 }
 
 export interface OnboardingOrganizationAndAdminRequest {
@@ -34,15 +37,17 @@ export interface OnboardingOrganizationAndAdminRequest {
     phone_number: string,
     currency: string,
     is_active: boolean,
-    plan_type: string,
-    max_shops: number,
-    max_users: number,
+    subscription_plan_id: number,
     admin_email: string,
     admin_username: string,
     admin_password: string,
     admin_first_name: string,
     admin_last_name: string,
     admin_phone_number: string
+}
+
+export interface ChangeOrganizationSubscriptionPlanRequest {
+    subscription_plan_id: number,
 }
 
 export interface OnboardOrganizationResponse {
