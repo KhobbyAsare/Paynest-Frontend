@@ -197,6 +197,7 @@ const NAV_GROUPS: NavGroup[] = [
                 roles: ["superadmin", "admin"],
                 subItems: [
                     { name: "Organizations", href: "/organizations", icon: Building2, roles: ["superadmin"] },
+                    { name: "Subscription Plans", href: "/subscription-plans", icon: CreditCard, roles: ["superadmin"] },
                     { name: "Shops", href: "/organization_shops", icon: Building, roles: ["admin"] },
                 ],
             },

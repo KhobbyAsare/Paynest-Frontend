@@ -17,13 +17,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, sanitizePhoneNumber } from '@/lib/utils';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
 
 const schema = z.object({
     name:         z.string().min(1, 'Organization name is required'),
     email:        z.string().email('Invalid email format'),
-    phone_number: z.string().min(1, 'Phone number is required'),
+    phone_number: z.string().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits'),
     address:      z.string().min(1, 'Address is required'),
     description:  z.string().optional(),
 });
@@ -40,6 +40,8 @@ export default function OrganizationProfile() {
     const {
         register, handleSubmit, reset, formState: { errors, isDirty },
     } = useForm<FormValues>({ resolver: zodResolver(schema) as Resolver<FormValues> });
+
+    const { onChange: onPhoneNumberChange, ...phoneNumberField } = register('phone_number');
 
     const fetchProfile = useCallback(async () => {
         if (!organizationId) { setLoading(false); return; }
@@ -127,7 +129,9 @@ export default function OrganizationProfile() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="flex items-center gap-1.5"><Phone className="size-3.5" /> Phone Number <span className="text-destructive">*</span></Label>
-                                    <Input {...register('phone_number')} placeholder="+233..." className={cn(errors.phone_number && 'border-destructive')} />
+                                    <Input {...phoneNumberField} type="tel" inputMode="numeric" maxLength={10}
+                                        onChange={e => { e.target.value = sanitizePhoneNumber(e.target.value); onPhoneNumberChange(e); }}
+                                        placeholder="10-digit phone number" className={cn(errors.phone_number && 'border-destructive')} />
                                     {errors.phone_number && <p className="text-destructive text-xs">{errors.phone_number.message}</p>}
                                 </div>
                                 <div className="space-y-1.5">
@@ -154,10 +158,15 @@ export default function OrganizationProfile() {
                             <p className="text-muted-foreground text-sm mb-5">
                                 Subscription details are managed by the platform administrator and cannot be modified here.
                             </p>
+                            {originalData?.subscription_expires_at && new Date(originalData.subscription_expires_at) < new Date() && (
+                                <div className="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                                    Your organization&apos;s subscription has expired. Contact the platform administrator to reactivate it.
+                                </div>
+                            )}
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                 {[
                                     { label: 'Currency',  value: originalData?.currency },
-                                    { label: 'Plan Type', value: originalData?.plan_type?.toLowerCase() },
+                                    { label: 'Plan',      value: originalData?.subscription_plan?.name },
                                     { label: 'Max Shops', value: String(originalData?.max_shops ?? '—') },
                                     { label: 'Max Users', value: String(originalData?.max_users ?? '—') },
                                 ].map(row => (
@@ -172,8 +181,9 @@ export default function OrganizationProfile() {
 
                             <Separator className="my-5" />
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 {[
+                                    { label: 'Subscription Expires', value: originalData?.subscription_expires_at ? new Date(originalData.subscription_expires_at).toLocaleString() : 'Never' },
                                     { label: 'Created On',    value: originalData?.created_at ? new Date(originalData.created_at).toLocaleString() : '—' },
                                     { label: 'Last Updated',  value: originalData?.updated_at ? new Date(originalData.updated_at).toLocaleString() : '—' },
                                 ].map(row => (

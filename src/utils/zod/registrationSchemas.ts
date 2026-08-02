@@ -20,8 +20,7 @@ export const registerSchema = z.object({
         .min(2, "Last name must be at least 2 characters")
         .max(50, "Last name must be at most 50 characters"),
     phone_number: z.string()
-        .min(10, "Phone number must be at least 10 digits")
-        .max(15, "Phone number must be at most 15 digits"),
+        .regex(/^\d{10}$/, "Phone number must be exactly 10 digits"),
     invitation_code: z.string(),
     confirm_password: z.string()
 }).refine((data) => data.password === data.confirm_password, {

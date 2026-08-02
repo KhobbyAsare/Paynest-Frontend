@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { OrganizationResponse } from "@/interfaces/organization";
+import { SubscriptionPlanResponse } from "@/interfaces/subscriptionPlan";
 import {
-    getAllOrganizations, changeOrganizationPlanType, deleteOrganization,
+    getAllOrganizations, changeOrganizationSubscriptionPlan, deleteOrganization,
+    deactivateOrganizationAccount, reactivateOrganizationAccount,
 } from "@/(api-handlers)/organizationHandler";
+import { getSubscriptionPlans } from "@/(api-handlers)/subscriptionPlansHandler";
 import PageHeader from "@/components/(shared-components)/PageHeader";
 import Pagination from "@/components/(shared-components)/Pagination";
 import {
@@ -33,7 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import StatsGrid from "@/components/(shared-components)/StatsGrid";
 import {
     Search, Plus, MoreHorizontal, Pencil, Trash2, Building2, RefreshCcw,
-    CheckCircle2, XCircle, BadgeCheck, Eye,
+    CheckCircle2, XCircle, Eye, RotateCcw, AlertTriangle, Ban, Power,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -43,15 +46,17 @@ import { handleErrorMessage } from "@/utils/handleErrorMessage";
 
 const ITEMS_PER_PAGE = 10;
 
-const PLAN_BADGE: Record<string, string> = {
-    FREE:         'border-border bg-muted text-muted-foreground',
-    BASIC:        'border-info/30 bg-info/10 text-info',
-    PRO:          'border-primary/30 bg-primary/10 text-primary',
-    ENTERPRISE:   'border-warning/30 bg-warning/10 text-warning-foreground',
-};
-
 function getInitials(name: string) {
     return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+function isOrgExpired(org: OrganizationResponse) {
+    return org.subscription_expires_at !== null && new Date(org.subscription_expires_at) < new Date();
+}
+
+function fmtExpiry(iso: string | null) {
+    if (!iso) return 'Never expires';
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 type StatusFilter = 'all' | 'active' | 'inactive';
@@ -60,16 +65,20 @@ export default function OrganizationsPage() {
     const router = useRouter();
     const [organizations, setOrganizations] = useState<OrganizationResponse[]>([]);
     const [loading, setLoading] = useState(true);
+    const [plans, setPlans] = useState<SubscriptionPlanResponse[]>([]);
     const [searchText, setSearchText] = useState('');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-    const [planFilter, setPlanFilter] = useState('all');
+    const [planFilter, setPlanFilter] = useState<number | 'all'>('all');
     const [currentPage, setCurrentPage] = useState(1);
 
     const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(null);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isChangePlanOpen, setIsChangePlanOpen] = useState(false);
-    const [newPlan, setNewPlan] = useState('');
+    const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
+    const [newPlanId, setNewPlanId] = useState<number | ''>('');
     const [actionLoading, setActionLoading] = useState(false);
+    const [reactivatingId, setReactivatingId] = useState<number | null>(null);
+    const [togglingAccountId, setTogglingAccountId] = useState<number | null>(null);
 
     const fetchOrganizations = async () => {
         setLoading(true);
@@ -82,24 +91,28 @@ export default function OrganizationsPage() {
         }
     };
 
-    useEffect(() => { fetchOrganizations(); }, []);
+    const fetchPlans = async () => {
+        try {
+            setPlans(await getSubscriptionPlans());
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to fetch subscription plans');
+        }
+    };
+
+    useEffect(() => { fetchOrganizations(); fetchPlans(); }, []);
     useEffect(() => { setCurrentPage(1); }, [searchText, statusFilter, planFilter]);
 
     const stats = useMemo(() => {
-        const active     = organizations.filter(o => o.is_active).length;
-        const enterprise = organizations.filter(o => o.plan_type === 'ENTERPRISE').length;
-        const pro        = organizations.filter(o => o.plan_type === 'PRO').length;
-        return { total: organizations.length, active, inactive: organizations.length - active, enterprise, pro };
+        const active  = organizations.filter(o => o.is_active).length;
+        const expired = organizations.filter(isOrgExpired).length;
+        const neverExpires = organizations.filter(o => o.subscription_expires_at === null).length;
+        return { total: organizations.length, active, inactive: organizations.length - active, expired, neverExpires };
     }, [organizations]);
-
-    const planTypes = useMemo(() => (
-        [...new Set(organizations.map(o => o.plan_type))].sort()
-    ), [organizations]);
 
     const filtered = useMemo(() => organizations.filter(org => {
         const matchSearch = `${org.name} ${org.email} ${org.phone_number}`.toLowerCase().includes(searchText.toLowerCase());
         const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? org.is_active : !org.is_active);
-        const matchPlan   = planFilter === 'all' || org.plan_type === planFilter;
+        const matchPlan   = planFilter === 'all' || org.subscription_plan?.id === planFilter;
         return matchSearch && matchStatus && matchPlan;
     }), [organizations, searchText, statusFilter, planFilter]);
 
@@ -122,11 +135,11 @@ export default function OrganizationsPage() {
     };
 
     const handleChangePlan = async () => {
-        if (!selectedOrg || !newPlan) return;
+        if (!selectedOrg || !newPlanId) return;
         setActionLoading(true);
         try {
-            await changeOrganizationPlanType(selectedOrg.id, newPlan);
-            toast.success(`Plan changed to ${newPlan} successfully`);
+            await changeOrganizationSubscriptionPlan(selectedOrg.id, newPlanId);
+            toast.success('Subscription plan updated successfully');
             fetchOrganizations();
             setIsChangePlanOpen(false);
         } catch (error) {
@@ -135,6 +148,59 @@ export default function OrganizationsPage() {
             setActionLoading(false);
         }
     };
+
+    const handleReactivate = async (org: OrganizationResponse) => {
+        if (!org.subscription_plan) {
+            toast.error('This organization has no subscription plan assigned — use Change Plan instead.');
+            return;
+        }
+        setReactivatingId(org.id);
+        try {
+            await changeOrganizationSubscriptionPlan(org.id, org.subscription_plan.id);
+            toast.success(`${org.name}'s subscription has been renewed`);
+            fetchOrganizations();
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to reactivate organization');
+        } finally {
+            setReactivatingId(null);
+        }
+    };
+
+    const handleDeactivateAccount = async () => {
+        if (!selectedOrg) return;
+        setTogglingAccountId(selectedOrg.id);
+        try {
+            await deactivateOrganizationAccount(selectedOrg.id);
+            toast.success(`${selectedOrg.name}'s account has been suspended`);
+            fetchOrganizations();
+            setIsDeactivateOpen(false);
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to deactivate organization');
+        } finally {
+            setTogglingAccountId(null);
+        }
+    };
+
+    const handleReactivateAccount = async (org: OrganizationResponse) => {
+        setTogglingAccountId(org.id);
+        try {
+            await reactivateOrganizationAccount(org.id);
+            toast.success(`${org.name}'s account has been reactivated`);
+            fetchOrganizations();
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to reactivate organization account');
+        } finally {
+            setTogglingAccountId(null);
+        }
+    };
+
+    // The dialog's plan options must include the org's current plan even if it has since been
+    // deactivated, so a deactivated plan can still be re-selected to reactivate an expired org.
+    const changePlanOptions = useMemo(() => {
+        if (!selectedOrg?.subscription_plan) return plans;
+        if (plans.some(p => p.id === selectedOrg.subscription_plan!.id)) return plans;
+        return [...plans, selectedOrg.subscription_plan];
+    }, [plans, selectedOrg]);
 
     return (
         <div className="flex flex-col gap-6">
@@ -158,8 +224,8 @@ export default function OrganizationsPage() {
                 stats={[
                     { name: 'Total', value: stats.total, change: 'organizations', changeType: 'neutral' },
                     { name: 'Active', value: stats.active, change: `${stats.inactive} inactive`, changeType: 'neutral' },
-                    { name: 'Pro', value: stats.pro, change: 'on pro plan', changeType: 'neutral' },
-                    { name: 'Enterprise', value: stats.enterprise, change: 'on enterprise plan', changeType: 'neutral' },
+                    { name: 'Expired', value: stats.expired, change: 'need reactivation', changeType: stats.expired > 0 ? 'negative' : 'neutral' },
+                    { name: 'Never Expires', value: stats.neverExpires, change: 'on non-expiring plans', changeType: 'neutral' },
                 ]}
             />
 
@@ -192,15 +258,18 @@ export default function OrganizationsPage() {
                     ))}
                 </div>
 
-                <Select value={planFilter} onValueChange={setPlanFilter}>
-                    <SelectTrigger className="h-9 w-36 bg-background text-xs">
+                <Select
+                    value={planFilter === 'all' ? 'all' : String(planFilter)}
+                    onValueChange={v => setPlanFilter(v === 'all' ? 'all' : Number(v))}
+                >
+                    <SelectTrigger className="h-9 w-40 bg-background text-xs">
                         <SelectValue placeholder="All plans" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All plans</SelectItem>
-                        {planTypes.map(p => (
-                            <SelectItem key={p} value={p} className="capitalize">
-                                {p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()}
+                        {plans.map(p => (
+                            <SelectItem key={p.id} value={String(p.id)}>
+                                {p.name}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -219,9 +288,10 @@ export default function OrganizationsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="pl-6 w-[280px]">Organization</TableHead>
+                                <TableHead className="pl-6 w-[260px]">Organization</TableHead>
                                 <TableHead>Plan</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Subscription</TableHead>
                                 <TableHead>Joined</TableHead>
                                 <TableHead className="pr-6 w-[140px] text-right">Actions</TableHead>
                             </TableRow>
@@ -230,14 +300,14 @@ export default function OrganizationsPage() {
                             {loading ? (
                                 Array.from({ length: 6 }).map((_, i) => (
                                     <TableRow key={i}>
-                                        {Array.from({ length: 5 }).map((_, j) => (
+                                        {Array.from({ length: 6 }).map((_, j) => (
                                             <TableCell key={j}><Skeleton className="h-5 w-full rounded" /></TableCell>
                                         ))}
                                     </TableRow>
                                 ))
                             ) : current.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="py-20 text-center">
+                                    <TableCell colSpan={6} className="py-20 text-center">
                                         <div className="bg-muted mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
                                             <Building2 className="text-muted-foreground size-7" />
                                         </div>
@@ -247,7 +317,9 @@ export default function OrganizationsPage() {
                                         </p>
                                     </TableCell>
                                 </TableRow>
-                            ) : current.map(org => (
+                            ) : current.map(org => {
+                                const expired = isOrgExpired(org);
+                                return (
                                 <TableRow key={org.id}>
                                     {/* Identity */}
                                     <TableCell className="pl-6">
@@ -263,12 +335,8 @@ export default function OrganizationsPage() {
                                     </TableCell>
                                     {/* Plan */}
                                     <TableCell>
-                                        <Badge
-                                            variant="outline"
-                                            className={cn("capitalize rounded-full text-xs font-medium", PLAN_BADGE[org.plan_type] ?? 'border-border bg-muted text-muted-foreground')}
-                                        >
-                                            {org.plan_type === 'ENTERPRISE' && <BadgeCheck className="mr-1 size-3" />}
-                                            {org.plan_type.toLowerCase()}
+                                        <Badge variant="outline" className="rounded-full text-xs font-medium border-border bg-muted text-muted-foreground">
+                                            {org.subscription_plan?.name ?? 'No Plan'}
                                         </Badge>
                                     </TableCell>
                                     {/* Status */}
@@ -283,6 +351,16 @@ export default function OrganizationsPage() {
                                             </span>
                                         )}
                                     </TableCell>
+                                    {/* Subscription / Expiry */}
+                                    <TableCell>
+                                        {expired ? (
+                                            <span className="text-destructive inline-flex items-center gap-1 text-xs font-medium">
+                                                <AlertTriangle className="size-3.5" /> Expired
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs">{fmtExpiry(org.subscription_expires_at)}</span>
+                                        )}
+                                    </TableCell>
                                     {/* Joined */}
                                     <TableCell className="text-muted-foreground text-xs">
                                         {new Date(org.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -290,9 +368,15 @@ export default function OrganizationsPage() {
                                     {/* Actions */}
                                     <TableCell className="pr-6 text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                            <Button variant="ghost" size="sm" className="h-8 px-3 text-xs gap-1.5" asChild>
-                                                <Link href={`/organizations/${org.id}`}><Eye className="size-3.5" /> View</Link>
-                                            </Button>
+                                            {expired && (
+                                                <Button
+                                                    variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5"
+                                                    disabled={reactivatingId === org.id}
+                                                    onClick={() => handleReactivate(org)}
+                                                >
+                                                    <RotateCcw className={cn("size-3.5", reactivatingId === org.id && "animate-spin")} /> Reactivate
+                                                </Button>
+                                            )}
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" size="icon" className="size-8" aria-label="Organization actions">
@@ -300,13 +384,35 @@ export default function OrganizationsPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/organizations/${org.id}`}>
+                                                            <Eye className="mr-2 size-4" /> View
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
                                                     <DropdownMenuItem onClick={() => {
                                                         setSelectedOrg(org);
-                                                        setNewPlan(org.plan_type);
+                                                        setNewPlanId(org.subscription_plan?.id ?? '');
                                                         setIsChangePlanOpen(true);
                                                     }}>
                                                         <Pencil className="mr-2 size-4" /> Change Plan
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    {org.is_active ? (
+                                                        <DropdownMenuItem
+                                                            disabled={togglingAccountId === org.id}
+                                                            onClick={() => { setSelectedOrg(org); setIsDeactivateOpen(true); }}
+                                                        >
+                                                            <Ban className="mr-2 size-4" /> Deactivate Account
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem
+                                                            disabled={togglingAccountId === org.id}
+                                                            onClick={() => handleReactivateAccount(org)}
+                                                        >
+                                                            <Power className="mr-2 size-4" /> Reactivate Account
+                                                        </DropdownMenuItem>
+                                                    )}
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem
                                                         className="text-destructive focus:text-destructive"
@@ -319,7 +425,7 @@ export default function OrganizationsPage() {
                                         </div>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            );})}
                         </TableBody>
                     </Table>
                 </div>
@@ -343,32 +449,57 @@ export default function OrganizationsPage() {
                     <DialogHeader>
                         <DialogTitle>Change Organization Plan</DialogTitle>
                         <DialogDescription>
-                            Select a new plan for <strong>{selectedOrg?.name}</strong>.
+                            Select a new plan for <strong>{selectedOrg?.name}</strong>. Max shops/users update to match, and the subscription expiry resets from today.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3 py-2">
                         <Label>New Plan</Label>
-                        <Select value={newPlan} onValueChange={setNewPlan}>
+                        <Select value={newPlanId ? String(newPlanId) : undefined} onValueChange={v => setNewPlanId(Number(v))}>
                             <SelectTrigger><SelectValue placeholder="Select a plan" /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="FREE">Free</SelectItem>
-                                <SelectItem value="BASIC">Basic</SelectItem>
-                                <SelectItem value="PRO">Pro</SelectItem>
-                                <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
+                                {changePlanOptions.map(p => (
+                                    <SelectItem key={p.id} value={String(p.id)}>
+                                        {p.name}{!p.is_active ? ' (deactivated)' : ''} — {p.max_shops} shops / {p.max_users} users
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                         <p className="text-muted-foreground text-xs">
-                            Switching to Basic, Pro, or Enterprise automatically resets max shops/users to that plan&apos;s defaults. Free leaves current limits unchanged.
+                            Selecting the organization&apos;s current plan again renews its subscription — this is also how you reactivate an expired org.
                         </p>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsChangePlanOpen(false)}>Cancel</Button>
-                        <Button onClick={handleChangePlan} disabled={actionLoading || !newPlan}>
+                        <Button onClick={handleChangePlan} disabled={actionLoading || !newPlanId}>
                             {actionLoading ? 'Saving…' : 'Save Changes'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Deactivate Account Confirmation */}
+            <AlertDialog open={isDeactivateOpen} onOpenChange={open => !open && setIsDeactivateOpen(false)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Deactivate Organization Account</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to suspend <strong>{selectedOrg?.name}</strong>? This immediately blocks
+                            all non-superadmin users of this organization from signing in, regardless of their subscription
+                            status. It does not change their plan or expiry — reverse it any time with Reactivate Account.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={handleDeactivateAccount}
+                            disabled={togglingAccountId === selectedOrg?.id}
+                        >
+                            {togglingAccountId === selectedOrg?.id ? 'Deactivating…' : 'Deactivate'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Delete Confirmation */}
             <AlertDialog open={isDeleteOpen} onOpenChange={open => !open && setIsDeleteOpen(false)}>

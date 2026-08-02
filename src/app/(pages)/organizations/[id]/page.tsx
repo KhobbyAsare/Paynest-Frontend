@@ -3,15 +3,23 @@
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import {
     ArrowLeft, Building2, Mail, Phone, MapPin, Calendar,
-    CheckCircle2, XCircle, BadgeCheck, Globe, FileText, LayoutDashboard,
+    CheckCircle2, XCircle, Globe, FileText, LayoutDashboard,
+    UserCog, Loader2, RotateCcw, CreditCard, AlertTriangle, Ban, Power,
 } from 'lucide-react';
 import { getOrganizationProfileByOrgId } from '@/(api-handlers)/organizationProfileHandler';
+import {
+    resendAdminVerification, changeOrganizationSubscriptionPlan,
+    deactivateOrganizationAccount, reactivateOrganizationAccount,
+} from '@/(api-handlers)/organizationHandler';
 import { OrganizationResponse } from '@/interfaces/organization';
 import EmptyState from '@/components/(shared-components)/EmptyState';
 import StatsGrid from '@/components/(shared-components)/StatsGrid';
 import { handleErrorMessage } from '@/utils/handleErrorMessage';
+import { useCooldown, formatCooldown } from '@/hooks/useCooldown';
+import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,18 +29,17 @@ import {
     Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
     BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+
+const RESEND_ADMIN_VERIFICATION_COOLDOWN_SECONDS = 120;
 
 interface OrgDetailsPageProps {
     params: Promise<{ id: string }>;
 }
-
-const PLAN_BADGE: Record<string, string> = {
-    FREE:         'border-border bg-muted text-muted-foreground',
-    BASIC:        'border-info/30 bg-info/10 text-info',
-    PRO:          'border-primary/30 bg-primary/10 text-primary',
-    ENTERPRISE:   'border-warning/30 bg-warning/10 text-warning-foreground',
-};
 
 function getInitials(name: string) {
     return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
@@ -41,6 +48,10 @@ function getInitials(name: string) {
 function fmtDate(iso?: string | null) {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function isOrgExpired(org: OrganizationResponse) {
+    return org.subscription_expires_at !== null && new Date(org.subscription_expires_at) < new Date();
 }
 
 function InfoItem({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
@@ -81,6 +92,12 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
     const [org, setOrg] = useState<OrganizationResponse | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const [resending, setResending] = useState(false);
+    const [resendCooldown, setResendCooldown] = useCooldown();
+    const [reactivating, setReactivating] = useState(false);
+    const [togglingAccount, setTogglingAccount] = useState(false);
+    const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
+
     useEffect(() => {
         (async () => {
             setLoading(true);
@@ -94,6 +111,66 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
             }
         })();
     }, [id]);
+
+    const admin = org?.admin ?? null;
+
+    const handleResendAdminVerification = async () => {
+        if (resendCooldown > 0) return;
+        setResending(true);
+        try {
+            const res = await resendAdminVerification(Number(id));
+            toast.success(res.message);
+            setResendCooldown(RESEND_ADMIN_VERIFICATION_COOLDOWN_SECONDS);
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 429) {
+                setResendCooldown(RESEND_ADMIN_VERIFICATION_COOLDOWN_SECONDS);
+            }
+            handleErrorMessage(error, 'Failed to resend verification email');
+        } finally {
+            setResending(false);
+        }
+    };
+
+    const handleReactivate = async () => {
+        if (!org?.subscription_plan) return;
+        setReactivating(true);
+        try {
+            const data = await changeOrganizationSubscriptionPlan(Number(id), org.subscription_plan.id);
+            setOrg(data);
+            toast.success(`${data.name}'s subscription has been renewed`);
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to reactivate organization');
+        } finally {
+            setReactivating(false);
+        }
+    };
+
+    const handleDeactivateAccount = async () => {
+        setTogglingAccount(true);
+        try {
+            const data = await deactivateOrganizationAccount(Number(id));
+            setOrg(data);
+            toast.success(`${data.name}'s account has been suspended`);
+            setIsDeactivateOpen(false);
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to deactivate organization');
+        } finally {
+            setTogglingAccount(false);
+        }
+    };
+
+    const handleReactivateAccount = async () => {
+        setTogglingAccount(true);
+        try {
+            const data = await reactivateOrganizationAccount(Number(id));
+            setOrg(data);
+            toast.success(`${data.name}'s account has been reactivated`);
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to reactivate organization account');
+        } finally {
+            setTogglingAccount(false);
+        }
+    };
 
     if (loading) return <LoadingSkeleton />;
 
@@ -148,9 +225,8 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
                     <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                             <h1 className="text-2xl font-bold text-foreground leading-tight">{org.name}</h1>
-                            <Badge variant="outline" className={cn("capitalize rounded-full text-xs font-semibold gap-1", PLAN_BADGE[org.plan_type] ?? 'border-border bg-muted text-muted-foreground')}>
-                                {org.plan_type === 'ENTERPRISE' && <BadgeCheck className="size-3" />}
-                                {org.plan_type.toLowerCase()}
+                            <Badge variant="outline" className="rounded-full text-xs font-semibold gap-1 border-border bg-muted text-muted-foreground">
+                                {org.subscription_plan?.name ?? 'No Plan'}
                             </Badge>
                             <Badge
                                 variant="outline"
@@ -162,12 +238,27 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
                             >
                                 {org.is_active ? 'Active' : 'Inactive'}
                             </Badge>
+                            {isOrgExpired(org) && (
+                                <Badge variant="outline" className="rounded-full text-xs font-semibold gap-1 border-destructive/30 bg-destructive/10 text-destructive">
+                                    <AlertTriangle className="size-3" /> Expired
+                                </Badge>
+                            )}
                         </div>
                         <p className="text-muted-foreground text-sm font-medium mt-1">{org.email}</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                    {isOrgExpired(org) && (
+                        <Button
+                            size="sm" className="gap-2"
+                            disabled={reactivating}
+                            onClick={handleReactivate}
+                        >
+                            <RotateCcw className={cn("size-4", reactivating && "animate-spin")} />
+                            {reactivating ? 'Reactivating…' : 'Reactivate'}
+                        </Button>
+                    )}
                     <Button variant="outline" size="sm" className="gap-2" onClick={() => router.back()}>
                         <ArrowLeft className="size-4" /> Back
                     </Button>
@@ -207,6 +298,94 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
                     <Card className="gap-0 p-0">
                         <CardHeader className="border-b px-5 py-4">
                             <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                <UserCog className="size-4 text-muted-foreground" />
+                                Administrator
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-5 py-4 space-y-3">
+                            {admin ? (
+                                <>
+                                    <div>
+                                        <p className="text-sm font-medium text-foreground truncate">
+                                            {admin.first_name} {admin.last_name}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate">{admin.email}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground text-xs">Email Verified</span>
+                                        {admin.email_verified ? (
+                                            <span className="inline-flex items-center gap-1 text-success text-xs font-semibold">
+                                                <CheckCircle2 className="size-3.5" /> Verified
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 text-warning-foreground text-xs font-semibold">
+                                                <XCircle className="size-3.5" /> Unverified
+                                            </span>
+                                        )}
+                                    </div>
+                                    {!admin.email_verified && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full gap-2"
+                                            disabled={resending || resendCooldown > 0}
+                                            onClick={handleResendAdminVerification}
+                                        >
+                                            {resending
+                                                ? <><Loader2 className="size-3.5 animate-spin" /> Sending…</>
+                                                : resendCooldown > 0
+                                                ? `Resend in ${formatCooldown(resendCooldown)}`
+                                                : <><RotateCcw className="size-3.5" /> Resend verification email</>
+                                            }
+                                        </Button>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-xs text-muted-foreground">No admin user found for this organization.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card className="gap-0 p-0">
+                        <CardHeader className="border-b px-5 py-4">
+                            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                <CreditCard className="size-4 text-muted-foreground" />
+                                Subscription
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-5 py-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground text-xs">Plan</span>
+                                <span className="font-semibold text-foreground text-sm">{org.subscription_plan?.name ?? 'No Plan'}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground text-xs">Expires</span>
+                                {isOrgExpired(org) ? (
+                                    <span className="inline-flex items-center gap-1 text-destructive text-xs font-semibold">
+                                        <AlertTriangle className="size-3.5" /> {fmtDate(org.subscription_expires_at)}
+                                    </span>
+                                ) : (
+                                    <span className="font-semibold text-foreground text-sm">
+                                        {org.subscription_expires_at ? fmtDate(org.subscription_expires_at) : 'Never'}
+                                    </span>
+                                )}
+                            </div>
+                            {isOrgExpired(org) && (
+                                <Button
+                                    variant="outline" size="sm" className="w-full gap-2"
+                                    disabled={reactivating}
+                                    onClick={handleReactivate}
+                                >
+                                    <RotateCcw className={cn("size-3.5", reactivating && "animate-spin")} />
+                                    {reactivating ? 'Reactivating…' : 'Reactivate subscription'}
+                                </Button>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card className="gap-0 p-0">
+                        <CardHeader className="border-b px-5 py-4">
+                            <CardTitle className="text-sm font-semibold flex items-center gap-2">
                                 <Globe className="size-4 text-muted-foreground" />
                                 Status
                             </CardTitle>
@@ -236,10 +415,52 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
                                     <Calendar className="size-3.5" /> {fmtDate(org.updated_at)}
                                 </span>
                             </div>
+                            {org.is_active ? (
+                                <Button
+                                    variant="outline" size="sm" className="w-full gap-2 text-destructive hover:text-destructive"
+                                    disabled={togglingAccount}
+                                    onClick={() => setIsDeactivateOpen(true)}
+                                >
+                                    <Ban className="size-3.5" /> Deactivate account
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="outline" size="sm" className="w-full gap-2"
+                                    disabled={togglingAccount}
+                                    onClick={handleReactivateAccount}
+                                >
+                                    <Power className={cn("size-3.5", togglingAccount && "animate-spin")} />
+                                    {togglingAccount ? 'Reactivating…' : 'Reactivate account'}
+                                </Button>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
             </div>
+
+            {/* Deactivate Account Confirmation */}
+            <AlertDialog open={isDeactivateOpen} onOpenChange={open => !open && setIsDeactivateOpen(false)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Deactivate Organization Account</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to suspend <strong>{org.name}</strong>? This immediately blocks all
+                            non-superadmin users of this organization from signing in, regardless of their subscription
+                            status. It does not change their plan or expiry — reverse it any time with Reactivate Account.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={handleDeactivateAccount}
+                            disabled={togglingAccount}
+                        >
+                            {togglingAccount ? 'Deactivating…' : 'Deactivate'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

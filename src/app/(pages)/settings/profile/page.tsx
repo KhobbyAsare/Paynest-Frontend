@@ -23,7 +23,7 @@ import {
     User, Mail, Phone, AtSign, ShieldCheck, CheckCircle2, XCircle, Calendar,
     UserCog, Save, Sparkles, Camera, Trash2, Loader2,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, sanitizePhoneNumber } from '@/lib/utils';
 
 const ROLE_BADGE: Record<string, string> = {
     superadmin: 'border-purple-500/30 bg-purple-500/10 text-purple-500',
@@ -402,10 +402,13 @@ export default function ProfileSettingsPage() {
                                 <div className="relative">
                                     <Phone className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                                     <Input
+                                        type="tel"
+                                        inputMode="numeric"
+                                        maxLength={10}
                                         className="bg-background pl-9"
                                         value={form.phone_number}
-                                        onChange={e => setForm(f => ({ ...f, phone_number: e.target.value }))}
-                                        placeholder="e.g. +233 20 000 0000"
+                                        onChange={e => setForm(f => ({ ...f, phone_number: sanitizePhoneNumber(e.target.value) }))}
+                                        placeholder="10-digit phone number"
                                         disabled={loading}
                                     />
                                 </div>

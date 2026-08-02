@@ -3,26 +3,35 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import axios from "axios";
 import { Wallet, Mail, Loader2, RotateCcw, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { resendVerificationHandler } from "@/(api-handlers)/registrationHandler";
 import { handleErrorMessage } from "@/utils/handleErrorMessage";
 import { Button } from "@/components/ui/button";
+import { useCooldown, formatCooldown } from "@/hooks/useCooldown";
+
+const RESEND_COOLDOWN_SECONDS = 120;
 
 export default function VerifyEmailPendingPage() {
     const searchParams = useSearchParams();
     const email = searchParams.get("email") ?? "";
     const [isSending, setIsSending] = useState(false);
     const [sent, setSent] = useState(false);
+    const [cooldown, setCooldown] = useCooldown();
 
     const handleResend = async () => {
-        if (!email) return;
+        if (!email || cooldown > 0) return;
         setIsSending(true);
         try {
             await resendVerificationHandler(email);
             setSent(true);
+            setCooldown(RESEND_COOLDOWN_SECONDS);
             toast.success("Verification email resent. Check your inbox.");
         } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 429) {
+                setCooldown(RESEND_COOLDOWN_SECONDS);
+            }
             handleErrorMessage(error, "Failed to resend. Please try again shortly.");
         } finally {
             setIsSending(false);
@@ -71,17 +80,22 @@ export default function VerifyEmailPendingPage() {
 
                 <Button
                     onClick={handleResend}
-                    disabled={isSending || sent}
+                    disabled={isSending || cooldown > 0}
                     variant="outline"
                     className="mt-6 w-full h-12 rounded-full font-semibold text-sm"
                 >
                     {isSending
                         ? <><Loader2 className="mr-2 size-4 animate-spin" />Sending…</>
-                        : sent
-                        ? "Email sent — check your inbox"
+                        : cooldown > 0
+                        ? `Resend in ${formatCooldown(cooldown)}`
                         : <><RotateCcw className="mr-2 size-4" />Resend verification email</>
                     }
                 </Button>
+                {sent && cooldown > 0 && (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                        Email sent — check your inbox.
+                    </p>
+                )}
 
                 <p className="mt-6 text-sm text-muted-foreground">
                     Already verified?{" "}
