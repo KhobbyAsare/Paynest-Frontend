@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
     ArrowLeftRight,
     BarChart3,
@@ -314,8 +314,17 @@ export default function AppShell({
     children,
 }: Readonly<{ children: React.ReactNode }>) {
     const pathname = usePathname();
+    const router = useRouter();
     const { user } = useAuthStore();
     const role = (user?.role as Role) ?? "attendant";
+
+    React.useEffect(() => {
+        if (!user) return;
+        const needsEmployeeProfile = (user.role === "manager" || user.role === "attendant") && !user.employee_profile;
+        if (needsEmployeeProfile && pathname !== "/account-pending") {
+            router.replace("/account-pending");
+        }
+    }, [user, pathname, router]);
 
     const groups = React.useMemo(() => {
         return NAV_GROUPS.map((g) => ({
