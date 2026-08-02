@@ -405,7 +405,7 @@ export default function EmployeePayrollDetailPage() {
                                 <SelectTrigger className="w-full"><SelectValue placeholder="Select a band…" /></SelectTrigger>
                                 <SelectContent>
                                     {bands.map(b => (
-                                        <SelectItem key={b.id} value={String(b.id)}>{b.name} ({b.band_items.length} items)</SelectItem>
+                                        <SelectItem key={b.id} value={String(b.id)}>{b.name} ({(b.band_items ?? []).length} items)</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
