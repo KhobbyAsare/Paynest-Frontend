@@ -34,14 +34,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
     Calculator, Gift, Layers, Plus, Pencil, Trash2,
-    Search, GripVertical, Settings2, Wand2, ListTree, X,
+    Search, GripVertical, Settings2, Wand2, ListTree, MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -802,6 +806,11 @@ function BenefitItemsTab() {
 }
 
 // ─── Benefit Bands (reusable packages) ──────────────────────────────────────
+interface ItemSelection {
+    selected: boolean;
+    override: string;
+}
+
 function BenefitBandsTab() {
     const fmt = useCurrency();
     const [bands, setBands] = useState<BenefitBand[]>([]);
@@ -813,11 +822,7 @@ function BenefitBandsTab() {
     const [deleteTarget, setDeleteTarget] = useState<BenefitBand | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [form, setForm] = useState({ name: '', description: '' });
-
-    const [managingBand, setManagingBand] = useState<BenefitBand | null>(null);
-    const [addItemId, setAddItemId] = useState('');
-    const [addItemOverride, setAddItemOverride] = useState('');
-    const [addingItem, setAddingItem] = useState(false);
+    const [itemSelections, setItemSelections] = useState<Record<number, ItemSelection>>({});
 
     const fetchAll = useCallback(async () => {
         setLoading(true);
@@ -840,20 +845,70 @@ function BenefitBandsTab() {
     const openDialog = (band: BenefitBand | null = null) => {
         setEditing(band);
         setForm(band ? { name: band.name, description: band.description ?? '' } : { name: '', description: '' });
+        const selections: Record<number, ItemSelection> = {};
+        allItems.forEach(item => {
+            const existing = band?.band_items?.find(bi => bi.benefit_item_id === item.id);
+            selections[item.id] = {
+                selected: !!existing,
+                override: existing?.override_value != null ? String(existing.override_value) : '',
+            };
+        });
+        setItemSelections(selections);
         setIsDialogOpen(true);
     };
 
     const closeDialog = () => { setIsDialogOpen(false); setEditing(null); };
 
+    const toggleItemSelection = (itemId: number) => {
+        setItemSelections(prev => ({
+            ...prev,
+            [itemId]: { ...prev[itemId], selected: !prev[itemId]?.selected },
+        }));
+    };
+
+    const setItemOverride = (itemId: number, override: string) => {
+        setItemSelections(prev => ({ ...prev, [itemId]: { ...prev[itemId], override } }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
         try {
+            const selectedEntries = Object.entries(itemSelections)
+                .filter(([, v]) => v.selected)
+                .map(([itemId, v]) => ({
+                    benefit_item_id: Number(itemId),
+                    override_value: v.override.trim() ? Number(v.override) : null,
+                }));
+
             if (editing) {
                 await updateBenefitBand(editing.id, form);
+
+                const existingItems = editing.band_items ?? [];
+                const selectedIds = new Set(selectedEntries.map(entry => entry.benefit_item_id));
+
+                // No update endpoint for an existing band item's override — remove + re-add when it changes.
+                for (const bi of existingItems) {
+                    const entry = selectedEntries.find(e => e.benefit_item_id === bi.benefit_item_id);
+                    const overrideChanged = entry != null && entry.override_value !== bi.override_value;
+                    if (!selectedIds.has(bi.benefit_item_id) || overrideChanged) {
+                        await removeBenefitBandItem(editing.id, bi.id);
+                    }
+                }
+                for (const entry of selectedEntries) {
+                    const existing = existingItems.find(bi => bi.benefit_item_id === entry.benefit_item_id);
+                    const overrideChanged = existing != null && entry.override_value !== existing.override_value;
+                    if (!existing || overrideChanged) {
+                        await addBenefitBandItem(editing.id, entry);
+                    }
+                }
+
                 toast.success('Benefit band updated');
             } else {
-                await createBenefitBand(form);
+                const newBand = await createBenefitBand(form);
+                for (const entry of selectedEntries) {
+                    await addBenefitBandItem(newBand.id, entry);
+                }
                 toast.success('Benefit band created');
             }
             closeDialog();
@@ -887,90 +942,92 @@ function BenefitBandsTab() {
         }
     };
 
-    const availableItems = managingBand
-        ? allItems.filter(i => !(managingBand.band_items ?? []).some(bi => bi.benefit_item_id === i.id))
-        : [];
-
-    const handleAddItem = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!managingBand || !addItemId) return;
-        setAddingItem(true);
-        try {
-            const updated = await addBenefitBandItem(managingBand.id, {
-                benefit_item_id: Number(addItemId),
-                override_value: addItemOverride ? Number(addItemOverride) : null,
-            });
-            setManagingBand(updated);
-            setBands(prev => prev.map(b => b.id === updated.id ? updated : b));
-            setAddItemId('');
-            setAddItemOverride('');
-            toast.success('Item added to band');
-        } catch (err) {
-            handleErrorMessage(err, 'Failed to add item to band');
-        } finally {
-            setAddingItem(false);
-        }
-    };
-
-    const handleRemoveItem = async (bandItemId: number) => {
-        if (!managingBand) return;
-        try {
-            await removeBenefitBandItem(managingBand.id, bandItemId);
-            const updated = { ...managingBand, band_items: (managingBand.band_items ?? []).filter(bi => bi.id !== bandItemId) };
-            setManagingBand(updated);
-            setBands(prev => prev.map(b => b.id === updated.id ? updated : b));
-            toast.success('Item removed from band');
-        } catch (err) {
-            handleErrorMessage(err, 'Failed to remove item from band');
-        }
-    };
-
     return (
         <div className="mt-6 flex flex-col gap-4">
             <div className="flex justify-end">
                 <Button onClick={() => openDialog()}><Plus className="mr-2 size-4" /> Add Benefit Band</Button>
             </div>
 
-            {loading ? (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+            <Card className="gap-0 overflow-hidden p-0">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b text-muted-foreground text-xs font-semibold uppercase tracking-wide">
+                                <th className="px-4 py-2.5 pl-6 text-left">Name</th>
+                                <th className="px-4 py-2.5 text-left">Description</th>
+                                <th className="px-4 py-2.5 text-left">Items</th>
+                                <th className="px-4 py-2.5 text-left">Active</th>
+                                <th className="px-4 py-2.5 pr-6 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                Array.from({ length: 3 }).map((_, i) => (
+                                    <tr key={i} className="border-b last:border-0">
+                                        {Array.from({ length: 5 }).map((_, j) => (
+                                            <td key={j} className="px-4 py-2.5"><Skeleton className="h-5 w-full rounded" /></td>
+                                        ))}
+                                    </tr>
+                                ))
+                            ) : bands.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="py-16 text-center">
+                                        <EmptyState icon={Layers} title="No benefit bands yet" description="Bundle benefit items into a reusable package to assign to employees in one action." />
+                                    </td>
+                                </tr>
+                            ) : bands.map(band => {
+                                const bandItems = band.band_items ?? [];
+                                return (
+                                <tr key={band.id} className={cn('border-b last:border-0', !band.is_active && 'opacity-60')}>
+                                    <td className="px-4 py-2.5 pl-6 font-semibold">{band.name}</td>
+                                    <td className="text-muted-foreground max-w-[240px] truncate px-4 py-2.5">{band.description || 'No description'}</td>
+                                    <td className="px-4 py-2.5">
+                                        {bandItems.length === 0 ? (
+                                            <span className="text-muted-foreground text-xs">No items</span>
+                                        ) : (
+                                            <Badge variant="outline" className="rounded-full text-xs" title={bandItems.map(bi => bi.benefit_item.name).join(', ')}>
+                                                {bandItems.length} item{bandItems.length !== 1 ? 's' : ''}
+                                            </Badge>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-2.5">
+                                        <Switch checked={band.is_active} onCheckedChange={() => toggleActive(band)} />
+                                    </td>
+                                    <td className="px-4 py-2.5 pr-6 text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="size-8" aria-label="Band actions">
+                                                    <MoreHorizontal className="size-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => openDialog(band)}>
+                                                    <Pencil className="mr-2 size-4" /> Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onClick={() => setDeleteTarget(band)}
+                                                >
+                                                    <Trash2 className="mr-2 size-4" /> Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </td>
+                                </tr>
+                            );})}
+                        </tbody>
+                    </table>
                 </div>
-            ) : bands.length === 0 ? (
-                <EmptyState icon={Layers} title="No benefit bands yet" description="Bundle benefit items into a reusable package to assign to employees in one action." />
-            ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {bands.map(band => (
-                        <Card key={band.id} className={cn('gap-0 p-0', !band.is_active && 'opacity-60')}>
-                            <CardContent className="space-y-3 px-5 py-4">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                        <p className="text-foreground truncate text-sm font-semibold">{band.name}</p>
-                                        <p className="text-muted-foreground truncate text-xs">{band.description || 'No description'}</p>
-                                    </div>
-                                    <Switch checked={band.is_active} onCheckedChange={() => toggleActive(band)} />
-                                </div>
-                                <Badge variant="outline" className="rounded-full text-xs">{(band.band_items ?? []).length} item{(band.band_items ?? []).length !== 1 ? 's' : ''}</Badge>
-                                <div className="flex items-center gap-1 pt-1">
-                                    <Button variant="outline" size="sm" className="h-8 flex-1 text-xs" onClick={() => setManagingBand(band)}>
-                                        Manage Items
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="size-8" onClick={() => openDialog(band)} aria-label="Edit band">
-                                        <Pencil className="size-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 size-8" onClick={() => setDeleteTarget(band)} aria-label="Delete band">
-                                        <Trash2 className="size-4" />
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            )}
+            </Card>
 
             {/* Create/edit band dialog */}
             <Dialog open={isDialogOpen} onOpenChange={open => !open && closeDialog()}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader><DialogTitle>{editing ? 'Edit Benefit Band' : 'Add Benefit Band'}</DialogTitle></DialogHeader>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>{editing ? 'Edit Benefit Band' : 'Add Benefit Band'}</DialogTitle>
+                        <DialogDescription>Pick which benefit items belong to this band — you can change the selection any time.</DialogDescription>
+                    </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-5 pt-2">
                         <div className="space-y-1.5">
                             <Label>Name</Label>
@@ -978,74 +1035,54 @@ function BenefitBandsTab() {
                         </div>
                         <div className="space-y-1.5">
                             <Label>Description</Label>
-                            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="min-h-[80px] resize-none" placeholder="Optional" />
+                            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="min-h-[70px] resize-none" placeholder="Optional" />
                         </div>
+
+                        <div className="space-y-1.5">
+                            <Label>Benefit Items</Label>
+                            <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border p-2">
+                                {allItems.length === 0 ? (
+                                    <p className="text-muted-foreground py-4 text-center text-sm">No active benefit items in the catalog yet.</p>
+                                ) : allItems.map(item => {
+                                    const selection = itemSelections[item.id] ?? { selected: false, override: '' };
+                                    return (
+                                        <div key={item.id} className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50">
+                                            <Checkbox
+                                                checked={selection.selected}
+                                                onCheckedChange={() => toggleItemSelection(item.id)}
+                                                aria-label={`Include ${item.name}`}
+                                            />
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-foreground truncate text-sm font-medium">{item.name}</p>
+                                                    <Badge variant="outline" className={cn('rounded-full text-xs capitalize', CATEGORY_BADGE[item.category])}>
+                                                        {item.category}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-muted-foreground text-xs">
+                                                    Default: {item.calculation_type === 'percentage_of_base' ? `${(item.value * 100).toFixed(1)}% of base` : fmt(item.value)}
+                                                </p>
+                                            </div>
+                                            {selection.selected && (
+                                                <Input
+                                                    type="number" step="0.01" min={0}
+                                                    className="h-8 w-28 shrink-0 text-xs"
+                                                    placeholder="Override"
+                                                    value={selection.override}
+                                                    onChange={e => setItemOverride(item.id, e.target.value)}
+                                                />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
                         <DialogFooter>
                             <Button variant="outline" type="button" onClick={closeDialog}>Cancel</Button>
                             <Button type="submit" disabled={submitting}>{submitting ? 'Saving…' : editing ? 'Update' : 'Create'}</Button>
                         </DialogFooter>
                     </form>
-                </DialogContent>
-            </Dialog>
-
-            {/* Manage items dialog */}
-            <Dialog open={!!managingBand} onOpenChange={open => !open && setManagingBand(null)}>
-                <DialogContent className="max-w-lg">
-                    <DialogHeader><DialogTitle>Manage Items — {managingBand?.name}</DialogTitle></DialogHeader>
-                    <div className="space-y-4 pt-2">
-                        <div className="max-h-64 space-y-1 overflow-y-auto">
-                            {(managingBand?.band_items ?? []).length === 0 ? (
-                                <p className="text-muted-foreground py-4 text-center text-sm">No items in this band yet.</p>
-                            ) : (managingBand?.band_items ?? []).map(bi => (
-                                <div key={bi.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-foreground truncate text-sm font-medium">{bi.benefit_item.name}</p>
-                                            <Badge variant="outline" className={cn('rounded-full text-xs capitalize', CATEGORY_BADGE[bi.benefit_item.category])}>
-                                                {bi.benefit_item.category}
-                                            </Badge>
-                                        </div>
-                                        <p className="text-muted-foreground text-xs">
-                                            {bi.benefit_item.calculation_type === 'percentage_of_base'
-                                                ? `${((bi.override_value ?? bi.benefit_item.value) * 100).toFixed(1)}% of base`
-                                                : fmt(bi.override_value ?? bi.benefit_item.value)}
-                                            {bi.override_value != null && ' · overridden'}
-                                        </p>
-                                    </div>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 size-8 shrink-0" onClick={() => handleRemoveItem(bi.id)} aria-label="Remove item">
-                                        <X className="size-4" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
-
-                        <form onSubmit={handleAddItem} className="border-t pt-4">
-                            <Label className="mb-1.5 block text-xs">Add Item</Label>
-                            <div className="flex items-end gap-2">
-                                <Select value={addItemId} onValueChange={setAddItemId}>
-                                    <SelectTrigger className="w-full"><SelectValue placeholder="Select a benefit item…" /></SelectTrigger>
-                                    <SelectContent>
-                                        {availableItems.map(i => (
-                                            <SelectItem key={i.id} value={String(i.id)}>{i.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Input
-                                    type="number" step="0.01" min={0}
-                                    className="w-32"
-                                    placeholder="Override"
-                                    value={addItemOverride}
-                                    onChange={e => setAddItemOverride(e.target.value)}
-                                />
-                                <Button type="submit" size="icon" disabled={!addItemId || addingItem} aria-label="Add item">
-                                    <Plus className="size-4" />
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setManagingBand(null)}>Done</Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 
