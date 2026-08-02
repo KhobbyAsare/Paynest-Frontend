@@ -3,10 +3,22 @@ import { UserResponse } from "@/interfaces/loginInterface"
 import apiClient from "@/lib/apiClient"
 
 
+// The endpoint is paginated (default page size well under most users counts), so page through
+// it until every item has been collected — dedupe by id in case skip/limit end up ignored.
 export const getAllUsers = async (): Promise<UserResponse[]> => {
     try {
-        const response = await apiClient.get(`/user/all`)
-        return response.data.items
+        const limit = 100;
+        const byId = new Map<number, UserResponse>();
+        let skip = 0;
+        for (let page = 0; page < 50; page++) {
+            const response = await apiClient.get(`/user/all`, { params: { skip, limit } })
+            const items: UserResponse[] = response.data.items;
+            const total: number = response.data.total;
+            items.forEach(user => byId.set(user.id, user));
+            skip += items.length;
+            if (items.length === 0 || byId.size >= total) break;
+        }
+        return Array.from(byId.values());
     } catch (error: any) {
         throw error;
     }

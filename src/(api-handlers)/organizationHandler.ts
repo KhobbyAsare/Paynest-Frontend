@@ -2,10 +2,22 @@ import { ChangeOrganizationSubscriptionPlanRequest, GeneratedCodeResponse, Onboa
 import apiClient from "@/lib/apiClient";
 
 // Superadmin
+// The endpoint is paginated (default page size well under most orgs counts), so page through
+// it until every item has been collected — dedupe by id in case skip/limit end up ignored.
 export const getAllOrganizations = async (): Promise<OrganizationResponse[]> => {
     try {
-        const response = await apiClient.get(`/organization/all/`)
-        return response.data.items
+        const limit = 100;
+        const byId = new Map<number, OrganizationResponse>();
+        let skip = 0;
+        for (let page = 0; page < 50; page++) {
+            const response = await apiClient.get(`/organization/all/`, { params: { skip, limit } })
+            const items: OrganizationResponse[] = response.data.items;
+            const total: number = response.data.total;
+            items.forEach(org => byId.set(org.id, org));
+            skip += items.length;
+            if (items.length === 0 || byId.size >= total) break;
+        }
+        return Array.from(byId.values());
     } catch (error: any) {
         throw error;
     }
