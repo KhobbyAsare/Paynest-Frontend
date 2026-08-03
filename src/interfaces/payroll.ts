@@ -258,4 +258,26 @@ export interface Payslip {
     benefits_breakdown: BenefitBreakdownItem[];
     status: string;
     created_at: string;
+    organization_name?: string | null;
+    organization_logo_url?: string | null;
+}
+
+export interface MyPayslipSummary {
+    id: number;
+    payslip_number: string;
+    payroll_run_id: number;
+    run_number: string;
+    period_start: string;
+    period_end: string;
+    pay_date: string;
+    net_pay: number;
+    status: string;
+    created_at: string | null;
+}
+
+export interface MyPayslipListResponse {
+    items: MyPayslipSummary[];
+    total: number;
+    skip: number;
+    limit: number;
 }

@@ -7,7 +7,7 @@ import {
     EmployeeBenefitsSummary, AssignBenefitBandRequest, AddExtraBenefitItemRequest,
     NetToGrossRequest, NetToGrossResponse,
     PayrollRun, PayrollRunCreate, PayrollRunListResponse,
-    Payslip,
+    Payslip, MyPayslipListResponse,
 } from "@/interfaces/payroll"
 import apiClient from "@/lib/apiClient"
 import axios from "axios"
@@ -299,6 +299,15 @@ export const processPayrollRun = async (id: number, organizationId?: number): Pr
 }
 
 // ─── Payslips ────────────────────────────────────────────────────────────────
+export const getMyPayslips = async (skip = 0, limit = 20): Promise<MyPayslipListResponse> => {
+    try {
+        const response = await apiClient.get(`/payroll/payslips/me`, { params: { skip, limit } })
+        return response.data
+    } catch (error: unknown) {
+        throw error;
+    }
+}
+
 export const getPayslip = async (id: number): Promise<Payslip> => {
     try {
         const response = await apiClient.get(`/payroll/payslips/${id}`)

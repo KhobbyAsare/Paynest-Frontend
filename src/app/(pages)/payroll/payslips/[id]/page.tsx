@@ -97,6 +97,22 @@ export default function PayslipDetailPage() {
                 <Badge variant="outline" className="rounded-full text-xs capitalize ml-auto">{payslip.status}</Badge>
             </div>
 
+            {(payslip.organization_name || payslip.organization_logo_url) && (
+                <div className="flex max-w-2xl items-center gap-3 rounded-lg border p-3">
+                    {payslip.organization_logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                            src={payslip.organization_logo_url}
+                            alt={`${payslip.organization_name ?? 'Organization'} logo`}
+                            className="size-10 shrink-0 rounded-md border border-border bg-muted object-contain"
+                        />
+                    ) : null}
+                    {payslip.organization_name && (
+                        <p className="text-foreground text-sm font-semibold">{payslip.organization_name}</p>
+                    )}
+                </div>
+            )}
+
             <Card className="max-w-2xl gap-0 overflow-hidden p-0">
                 <CardHeader className="bg-primary text-primary-foreground border-b px-6 py-5">
                     <CardTitle className="flex items-center justify-between text-base font-semibold">

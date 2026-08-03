@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Mail, Phone, MapPin, Save, Info, Loader2 } from 'lucide-react';
+import { Building2, Mail, Phone, MapPin, Save, Info, Loader2, Camera, ImageIcon } from 'lucide-react';
 import { useAuthStore } from '@/(zustand-store)/authStore';
-import { getOrganizationProfileByOrgId, updateOrganizationProfile } from '@/(api-handlers)/organizationProfileHandler';
+import { getOrganizationProfileByOrgId, updateOrganizationProfile, uploadOrganizationLogo } from '@/(api-handlers)/organizationProfileHandler';
+import { ALLOWED_AVATAR_TYPES, MAX_AVATAR_SIZE_BYTES } from '@/(api-handlers)/userHandler';
 import { OrganizationResponse } from '@/interfaces/organization';
 import PageHeader from '@/components/(shared-components)/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +37,10 @@ export default function OrganizationProfile() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [originalData, setOriginalData] = useState<OrganizationResponse | null>(null);
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const {
         register, handleSubmit, reset, formState: { errors, isDirty },
@@ -49,6 +54,7 @@ export default function OrganizationProfile() {
         try {
             const profile = await getOrganizationProfileByOrgId(organizationId);
             setOriginalData(profile);
+            setLogoUrl(profile.logo_url);
             reset({
                 name:         profile.name,
                 email:        profile.email,
@@ -64,6 +70,41 @@ export default function OrganizationProfile() {
     }, [organizationId, reset]);
 
     useEffect(() => { fetchProfile(); }, [fetchProfile]);
+
+    const uploadLogo = async (file: File) => {
+        if (!organizationId) return;
+        const localUrl = URL.createObjectURL(file);
+        setLogoPreview(localUrl);
+        setUploadingLogo(true);
+        try {
+            const { logo_url } = await uploadOrganizationLogo(organizationId, file);
+            setLogoUrl(logo_url);
+            toast.success('Logo updated');
+        } catch (error) {
+            handleErrorMessage(error, "Couldn't upload logo");
+        } finally {
+            setUploadingLogo(false);
+            setLogoPreview(null);
+            URL.revokeObjectURL(localUrl);
+        }
+    };
+
+    const handleLogoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+
+        if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+            toast.error('Only JPEG, PNG, and WebP images are supported');
+            return;
+        }
+        if (file.size > MAX_AVATAR_SIZE_BYTES) {
+            toast.error('Image must be smaller than 5 MB');
+            return;
+        }
+
+        uploadLogo(file);
+    };
 
     const onSubmit = async (values: FormValues) => {
         if (!organizationId) return;
@@ -108,6 +149,55 @@ export default function OrganizationProfile() {
                 </div>
             ) : (
                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+                    {/* Logo */}
+                    <Card>
+                        <CardHeader className="border-b">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <ImageIcon className="text-primary size-5" /> Logo
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex items-center gap-4 pt-6">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={handleLogoFile}
+                            />
+                            <div className="group relative inline-block">
+                                <div className="bg-muted border-border flex size-20 items-center justify-center overflow-hidden rounded-xl border">
+                                    {(logoPreview || logoUrl) ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={logoPreview || logoUrl || ''} alt="Organization logo" className="size-full object-contain" />
+                                    ) : (
+                                        <Building2 className="text-muted-foreground size-8" />
+                                    )}
+                                </div>
+                                <div className={cn(
+                                    'absolute inset-0 flex items-center justify-center rounded-xl bg-black/50 opacity-0 transition-opacity group-hover:opacity-100',
+                                    uploadingLogo && 'opacity-100',
+                                )}>
+                                    {uploadingLogo ? (
+                                        <Loader2 className="size-5 animate-spin text-white" />
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            aria-label="Upload logo"
+                                            className="flex size-8 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+                                        >
+                                            <Camera className="size-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="text-muted-foreground text-xs">
+                                <p>Shown on the organization profile, payslips, and other org-branded documents.</p>
+                                <p className="mt-1">JPEG, PNG, or WebP · up to 5MB.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     {/* General Information */}
                     <Card>
                         <CardHeader className="border-b">

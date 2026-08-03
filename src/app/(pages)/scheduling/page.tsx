@@ -34,13 +34,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
     CalendarClock, Timer, Plus, Pencil, Trash2, RefreshCcw,
-    Clock, CheckCircle2, XCircle, AlertTriangle, Calculator,
+    Clock, CheckCircle2, XCircle, AlertTriangle, Calculator, List, LayoutGrid,
 } from 'lucide-react';
-import { DatePicker, TimePicker } from 'antd';
+import { DatePicker, TimePicker, Calendar } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { cn } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 10;
+const MAX_VISIBLE_CHIPS = 3;
+const MONTH_FETCH_LIMIT = 200;
 
 function getInitials(first?: string, last?: string) {
     return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase() || '?';
@@ -102,10 +104,16 @@ export default function SchedulingPage() {
 
 // ─── Shifts ──────────────────────────────────────────────────────────────────
 function ShiftsTab({ isPrivileged }: { isPrivileged: boolean }) {
+    const [view, setView] = useState<'calendar' | 'list'>('calendar');
+
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+
+    const [visibleMonth, setVisibleMonth] = useState(dayjs());
+    const [monthShifts, setMonthShifts] = useState<Shift[]>([]);
+    const [monthLoading, setMonthLoading] = useState(true);
 
     const [shops, setShops] = useState<OrganizationShopResponse[]>([]);
     const [users, setUsers] = useState<UserResponse[]>([]);
@@ -153,10 +161,39 @@ function ShiftsTab({ isPrivileged }: { isPrivileged: boolean }) {
         }
     }, [shopFilter, employeeFilter, statusFilter, currentPage, isPrivileged]);
 
-    useEffect(() => { fetchShifts(); }, [fetchShifts]);
+    useEffect(() => { if (view === 'list') fetchShifts(); }, [view, fetchShifts]);
     useEffect(() => { setCurrentPage(1); }, [shopFilter, employeeFilter, statusFilter]);
 
-    const openDialog = (row: Shift | null = null) => {
+    const fetchMonthShifts = useCallback(async () => {
+        setMonthLoading(true);
+        try {
+            const start_date = visibleMonth.startOf('month').format('YYYY-MM-DD');
+            const end_date = visibleMonth.endOf('month').format('YYYY-MM-DD');
+            const filters = {
+                shop_id: shopFilter === 'all' ? undefined : Number(shopFilter),
+                employee_profile_id: isPrivileged && employeeFilter !== 'all' ? Number(employeeFilter) : undefined,
+                status: statusFilter === 'all' ? undefined : (statusFilter as ShiftStatus),
+                start_date, end_date,
+            };
+            const all: Shift[] = [];
+            let skip = 0;
+            for (let page = 0; page < 20; page++) {
+                const res = await getShifts({ ...filters, skip, limit: MONTH_FETCH_LIMIT });
+                all.push(...res.items);
+                skip += res.items.length;
+                if (res.items.length === 0 || all.length >= res.total) break;
+            }
+            setMonthShifts(all);
+        } catch (err) {
+            handleErrorMessage(err, 'Failed to load shifts');
+        } finally {
+            setMonthLoading(false);
+        }
+    }, [visibleMonth, shopFilter, employeeFilter, statusFilter, isPrivileged]);
+
+    useEffect(() => { if (view === 'calendar') fetchMonthShifts(); }, [view, fetchMonthShifts]);
+
+    const openDialog = (row: Shift | null = null, presetDate?: Dayjs) => {
         setEditing(row);
         setForm(row
             ? {
@@ -164,11 +201,13 @@ function ShiftsTab({ isPrivileged }: { isPrivileged: boolean }) {
                 date: dayjs(row.shift_date), startTime: dayjs(row.start_time, 'HH:mm:ss'), endTime: dayjs(row.end_time, 'HH:mm:ss'),
                 status: row.status, notes: row.notes ?? '',
             }
-            : { shopId: '', employeeId: '', date: null, startTime: null, endTime: null, status: 'scheduled', notes: '' }
+            : { shopId: '', employeeId: '', date: presetDate ?? null, startTime: null, endTime: null, status: 'scheduled', notes: '' }
         );
         setIsDialogOpen(true);
     };
     const closeDialog = () => { setIsDialogOpen(false); setEditing(null); };
+
+    const refresh = () => { if (view === 'calendar') fetchMonthShifts(); else fetchShifts(); };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -194,7 +233,7 @@ function ShiftsTab({ isPrivileged }: { isPrivileged: boolean }) {
                 toast.success('Shift created');
             }
             closeDialog();
-            fetchShifts();
+            refresh();
         } catch (err) {
             handleErrorMessage(err, editing ? 'Failed to update shift' : 'Failed to create shift');
         } finally {
@@ -207,7 +246,7 @@ function ShiftsTab({ isPrivileged }: { isPrivileged: boolean }) {
         try {
             await deleteShift(deleteTarget.id);
             toast.success('Shift deleted');
-            fetchShifts();
+            refresh();
         } catch (err) {
             handleErrorMessage(err, 'Failed to delete shift');
         } finally {
@@ -251,9 +290,25 @@ function ShiftsTab({ isPrivileged }: { isPrivileged: boolean }) {
                             <SelectItem value="no_show">No Show</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button variant="outline" size="icon" className="size-9" onClick={fetchShifts} disabled={loading} aria-label="Refresh shifts">
-                        <RefreshCcw className={cn('size-4', loading && 'animate-spin')} />
+                    <Button variant="outline" size="icon" className="size-9" onClick={refresh} disabled={loading || monthLoading} aria-label="Refresh shifts">
+                        <RefreshCcw className={cn('size-4', (loading || monthLoading) && 'animate-spin')} />
                     </Button>
+                    <div className="border-border flex items-center rounded-md border p-0.5">
+                        <Button
+                            variant={view === 'calendar' ? 'secondary' : 'ghost'} size="sm"
+                            className="h-8 gap-1.5 px-2.5"
+                            onClick={() => setView('calendar')}
+                        >
+                            <LayoutGrid className="size-3.5" /> Calendar
+                        </Button>
+                        <Button
+                            variant={view === 'list' ? 'secondary' : 'ghost'} size="sm"
+                            className="h-8 gap-1.5 px-2.5"
+                            onClick={() => setView('list')}
+                        >
+                            <List className="size-3.5" /> List
+                        </Button>
+                    </div>
                 </div>
                 {isPrivileged && (
                     <Button onClick={() => openDialog()}>
@@ -262,6 +317,62 @@ function ShiftsTab({ isPrivileged }: { isPrivileged: boolean }) {
                 )}
             </div>
 
+            {view === 'calendar' ? (
+                <Card className="gap-0 overflow-hidden p-2">
+                    {monthLoading && monthShifts.length === 0 ? (
+                        <Skeleton className="h-[520px] w-full rounded-lg" />
+                    ) : (
+                        <Calendar
+                            value={visibleMonth}
+                            onPanelChange={date => setVisibleMonth(date)}
+                            cellRender={(date, info) => {
+                                if (info.type !== 'date') return null;
+                                const dateStr = date.format('YYYY-MM-DD');
+                                const dayShifts = monthShifts.filter(s => s.shift_date === dateStr);
+                                const visible = dayShifts.slice(0, MAX_VISIBLE_CHIPS);
+                                const extra = dayShifts.length - visible.length;
+                                return (
+                                    <div className="group/day flex h-full min-h-[76px] flex-col gap-0.5 overflow-hidden py-0.5">
+                                        {visible.map(shift => {
+                                            const emp = userByProfileId.get(shift.employee_profile_id);
+                                            const cfg = SHIFT_STATUS_CONFIG[shift.status] ?? SHIFT_STATUS_CONFIG.scheduled;
+                                            const label = `${shift.start_time.slice(0, 5)} ${emp ? getInitials(emp.first_name, emp.last_name) : `#${shift.employee_profile_id}`}`;
+                                            return (
+                                                <button
+                                                    key={shift.id}
+                                                    type="button"
+                                                    disabled={!isPrivileged}
+                                                    onClick={e => { e.stopPropagation(); if (isPrivileged) openDialog(shift); }}
+                                                    title={`${shift.start_time.slice(0, 5)}–${shift.end_time.slice(0, 5)} · ${emp ? `${emp.first_name} ${emp.last_name}` : `#${shift.employee_profile_id}`} · ${shopById.get(shift.shop_id)?.name ?? ''}`}
+                                                    className={cn(
+                                                        'w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium leading-tight',
+                                                        cfg.cls,
+                                                        isPrivileged ? 'cursor-pointer hover:opacity-80' : 'cursor-default',
+                                                    )}
+                                                >
+                                                    {label}
+                                                </button>
+                                            );
+                                        })}
+                                        {extra > 0 && (
+                                            <span className="text-muted-foreground px-1 text-[10px]">+{extra} more</span>
+                                        )}
+                                        {isPrivileged && (
+                                            <button
+                                                type="button"
+                                                onClick={e => { e.stopPropagation(); openDialog(null, date); }}
+                                                className="text-muted-foreground hover:bg-muted hover:text-foreground mt-auto hidden shrink-0 items-center justify-center rounded py-0.5 text-[10px] group-hover/day:flex"
+                                            >
+                                                + Add
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            }}
+                        />
+                    )}
+                </Card>
+            ) : (
             <Card className="gap-0 overflow-hidden p-0">
                 <div className="overflow-x-auto">
                     <Table>
@@ -353,6 +464,7 @@ function ShiftsTab({ isPrivileged }: { isPrivileged: boolean }) {
                     </div>
                 )}
             </Card>
+            )}
 
             <Dialog open={isDialogOpen} onOpenChange={open => !open && closeDialog()}>
                 <DialogContent className="max-w-md">

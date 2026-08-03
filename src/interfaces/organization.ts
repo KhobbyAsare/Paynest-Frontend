@@ -19,6 +19,7 @@ export interface OrganizationResponse {
     email: string,
     phone_number: string,
     currency: string,
+    logo_url: string | null,
     is_active: boolean,
     max_shops: number,
     max_users: number,
