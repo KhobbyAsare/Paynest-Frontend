@@ -219,9 +219,18 @@ export default function OrganizationDetailsPage({ params }: OrgDetailsPageProps)
             {/* ── Header ──────────────────────────────────────────────────────── */}
             <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-4">
-                    <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xl font-bold">
-                        {getInitials(org.name) || <Building2 className="size-7" />}
-                    </div>
+                    {org.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                            src={org.logo_url}
+                            alt={`${org.name} logo`}
+                            className="size-16 shrink-0 rounded-full border border-border object-contain bg-muted"
+                        />
+                    ) : (
+                        <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xl font-bold">
+                            {getInitials(org.name) || <Building2 className="size-7" />}
+                        </div>
+                    )}
                     <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                             <h1 className="text-2xl font-bold text-foreground leading-tight">{org.name}</h1>

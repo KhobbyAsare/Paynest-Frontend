@@ -20,3 +20,16 @@ export const updateOrganizationProfile = async (organization_id: number, data: U
         throw error;
     }
 }
+
+export const uploadOrganizationLogo = async (organization_id: number, file: File): Promise<{ logo_url: string }> => {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await apiClient.post(`/organization/${organization_id}/logo`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return response.data
+    } catch (error: unknown) {
+        throw error;
+    }
+}

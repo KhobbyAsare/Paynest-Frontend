@@ -324,9 +324,18 @@ export default function OrganizationsPage() {
                                     {/* Identity */}
                                     <TableCell className="pl-6">
                                         <div className="flex items-center gap-3">
-                                            <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold">
-                                                {getInitials(org.name)}
-                                            </div>
+                                            {org.logo_url ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={org.logo_url}
+                                                    alt={`${org.name} logo`}
+                                                    className="size-9 shrink-0 rounded-lg border border-border bg-muted object-contain"
+                                                />
+                                            ) : (
+                                                <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold">
+                                                    {getInitials(org.name)}
+                                                </div>
+                                            )}
                                             <div className="min-w-0">
                                                 <p className="text-foreground truncate font-semibold text-sm leading-tight">{org.name}</p>
                                                 <p className="text-muted-foreground mt-0.5 truncate text-xs">{org.email}</p>

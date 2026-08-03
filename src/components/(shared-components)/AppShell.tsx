@@ -191,6 +191,13 @@ const NAV_GROUPS: NavGroup[] = [
         ],
     },
     {
+        label: "My Pay",
+        roles: ["admin", "manager", "attendant"],
+        items: [
+            { name: "My Payslips", href: "/payroll/my-payslips", icon: Receipt, roles: ["admin", "manager", "attendant"] },
+        ],
+    },
+    {
         label: "Leave & HR",
         roles: ["admin", "manager", "attendant"],
         items: [
