@@ -141,7 +141,7 @@ export default function LeavePage() {
                 </TabsContent>
                 {isPrivileged && (
                     <TabsContent value="approvals">
-                        <ApprovalsTab leaveTypes={leaveTypes} />
+                        <ApprovalsTab leaveTypes={leaveTypes} ownEmployeeProfileId={employeeProfileId} />
                     </TabsContent>
                 )}
                 {canManageBalances && (
@@ -440,7 +440,7 @@ function MyRequestsTab({
 }
 
 // ─── Approvals ────────────────────────────────────────────────────────────────
-function ApprovalsTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
+function ApprovalsTab({ leaveTypes, ownEmployeeProfileId }: { leaveTypes: LeaveType[]; ownEmployeeProfileId?: number }) {
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -593,16 +593,22 @@ function ApprovalsTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
                                 </TableRow>
                             ) : requests.map(r => {
                                 const emp = userByProfileId.get(r.employee_profile_id);
+                                const isOwn = ownEmployeeProfileId != null && r.employee_profile_id === ownEmployeeProfileId;
                                 return (
                                     <TableRow key={r.id}>
                                         <TableCell className="pl-6 font-mono text-sm">{r.leave_number}</TableCell>
-                                        <TableCell className="text-sm">{emp ? `${emp.first_name} ${emp.last_name}` : `#${r.employee_profile_id}`}</TableCell>
+                                        <TableCell className="text-sm">
+                                            {emp ? `${emp.first_name} ${emp.last_name}` : `#${r.employee_profile_id}`}
+                                            {isOwn && <span className="text-muted-foreground"> (You)</span>}
+                                        </TableCell>
                                         <TableCell className="text-sm">{typeById.get(r.leave_type_id)?.name ?? `#${r.leave_type_id}`}</TableCell>
                                         <TableCell className="text-sm">{formatDateRange(r.start_date, r.end_date)}</TableCell>
                                         <TableCell className="text-sm">{r.total_days}</TableCell>
                                         <TableCell><LeaveStatusBadge status={r.status} /></TableCell>
                                         <TableCell className="pr-6 text-right">
-                                            {r.status === 'pending' ? (
+                                            {r.status !== 'pending' ? null : isOwn ? (
+                                                <span className="text-muted-foreground text-xs">Needs another approver</span>
+                                            ) : (
                                                 <div className="flex items-center justify-end gap-1">
                                                     <Button
                                                         variant="ghost" size="icon"
@@ -621,7 +627,7 @@ function ApprovalsTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
                                                         <X className="size-4" />
                                                     </Button>
                                                 </div>
-                                            ) : null}
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 );
