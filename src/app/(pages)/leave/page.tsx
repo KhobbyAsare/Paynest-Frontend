@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { useAuthStore } from '@/(zustand-store)/authStore';
 import {
     getLeaveTypes, createLeaveType, updateLeaveType, deleteLeaveType,
@@ -108,9 +109,7 @@ export default function LeavePage() {
 
             <Tabs defaultValue={defaultTab} className="w-full">
                 <TabsList>
-                    {employeeProfileId && (
-                        <TabsTrigger value="my"><CalendarDays className="mr-1.5 size-4" /> My Requests</TabsTrigger>
-                    )}
+                    <TabsTrigger value="my"><CalendarDays className="mr-1.5 size-4" /> My Requests</TabsTrigger>
                     {isPrivileged && (
                         <TabsTrigger value="approvals"><ListChecks className="mr-1.5 size-4" /> Approvals</TabsTrigger>
                     )}
@@ -122,11 +121,24 @@ export default function LeavePage() {
                     )}
                 </TabsList>
 
-                {employeeProfileId && (
-                    <TabsContent value="my">
-                        <MyRequestsTab employeeProfileId={employeeProfileId} leaveTypes={leaveTypes} />
-                    </TabsContent>
-                )}
+                <TabsContent value="my">
+                    {employeeProfileId ? (
+                        <MyRequestsTab employeeProfileId={employeeProfileId} leaveTypes={leaveTypes} typesLoading={typesLoading} canManageTypes={canManageTypes} />
+                    ) : (
+                        <div className="mt-6">
+                            <EmptyState
+                                title="No employee profile yet"
+                                description="You need an employee profile to submit leave requests for yourself. Set one up, or have an admin set one up for you."
+                                icon={CalendarDays}
+                                actions={
+                                    <Button asChild>
+                                        <Link href="/users/setup-employee-profile">Set Up Employee Profile</Link>
+                                    </Button>
+                                }
+                            />
+                        </div>
+                    )}
+                </TabsContent>
                 {isPrivileged && (
                     <TabsContent value="approvals">
                         <ApprovalsTab leaveTypes={leaveTypes} />
@@ -148,7 +160,14 @@ export default function LeavePage() {
 }
 
 // ─── My Requests ─────────────────────────────────────────────────────────────
-function MyRequestsTab({ employeeProfileId, leaveTypes }: { employeeProfileId: number; leaveTypes: LeaveType[] }) {
+function MyRequestsTab({
+    employeeProfileId, leaveTypes, typesLoading, canManageTypes,
+}: {
+    employeeProfileId: number;
+    leaveTypes: LeaveType[];
+    typesLoading: boolean;
+    canManageTypes: boolean;
+}) {
     const currentYear = new Date().getFullYear();
     const [balances, setBalances] = useState<LeaveBalance[]>([]);
     const [balancesLoading, setBalancesLoading] = useState(true);
@@ -265,11 +284,22 @@ function MyRequestsTab({ employeeProfileId, leaveTypes }: { employeeProfileId: n
                 </div>
             ) : null}
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
                 <p className="text-foreground text-sm font-semibold">My Leave Requests</p>
-                <Button onClick={() => setIsDialogOpen(true)} disabled={activeTypes.length === 0}>
-                    <Plus className="mr-2 size-4" /> Request Leave
-                </Button>
+                <div className="flex flex-col items-end gap-1">
+                    <Button onClick={() => setIsDialogOpen(true)} disabled={!typesLoading && activeTypes.length === 0}>
+                        <Plus className="mr-2 size-4" /> Request Leave
+                    </Button>
+                    {!typesLoading && activeTypes.length === 0 && (
+                        <p className="text-muted-foreground text-xs">
+                            {canManageTypes ? (
+                                <>No active leave types yet — add one in the <span className="font-medium">Leave Types</span> tab.</>
+                            ) : (
+                                'No active leave types yet — ask an admin to add one.'
+                            )}
+                        </p>
+                    )}
+                </div>
             </div>
 
             <Card className="gap-0 overflow-hidden p-0">
