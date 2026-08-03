@@ -7,6 +7,7 @@ import {
     Plus, MoreHorizontal, Pencil, Trash2, Search, RefreshCcw,
     Banknote, FilterX, CreditCard, Smartphone, Building2,
     CheckCircle2, Receipt, ShoppingBag, AlertTriangle, Download,
+    Check, ChevronsUpDown,
 } from 'lucide-react';
 import { downloadCsv } from '@/lib/exportCsv';
 import {
@@ -33,6 +34,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from '@/components/ui/command';
 import {
     Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
@@ -106,6 +111,7 @@ export default function PaymentsPage() {
     const [submitting, setSubmitting]       = useState(false);
     const [deleteTarget, setDeleteTarget]   = useState<PaymentResponse | null>(null);
     const [deleting, setDeleting]           = useState(false);
+    const [orderPickerOpen, setOrderPickerOpen] = useState(false);
 
     const { user } = useAuthStore();
     const [shops, setShops]                 = useState<OrganizationShopResponse[]>([]);
@@ -516,20 +522,81 @@ export default function PaymentsPage() {
                                                 control={control}
                                                 name="order_id"
                                                 rules={{ required: true }}
-                                                render={({ field }) => (
-                                                    <Select value={field.value} onValueChange={field.onChange}>
-                                                        <SelectTrigger className={cn('h-9', errors.order_id && 'border-destructive')}>
-                                                            <SelectValue placeholder="Link to order…" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {orders.map(o => (
-                                                                <SelectItem key={o.id} value={o.id.toString()}>
-                                                                    #{o.order_number || o.id} — {fmt(o.total_amount)}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
+                                                render={({ field }) => {
+                                                    const selectedOrder = orders.find(o => o.id.toString() === field.value);
+                                                    return (
+                                                        <Popover open={orderPickerOpen} onOpenChange={setOrderPickerOpen}>
+                                                            <PopoverTrigger asChild>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    role="combobox"
+                                                                    aria-expanded={orderPickerOpen}
+                                                                    className={cn(
+                                                                        'h-9 w-full justify-between font-normal',
+                                                                        !selectedOrder && 'text-muted-foreground',
+                                                                        errors.order_id && 'border-destructive',
+                                                                    )}
+                                                                >
+                                                                    <span className="truncate">
+                                                                        {selectedOrder
+                                                                            ? `#${selectedOrder.order_number || selectedOrder.id} — ${fmt(selectedOrder.total_amount)}`
+                                                                            : 'Link to order…'}
+                                                                    </span>
+                                                                    <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                                                                </Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+                                                                <Command>
+                                                                    <CommandInput placeholder="Search by order #…" />
+                                                                    <CommandList>
+                                                                        <CommandEmpty>No matching orders.</CommandEmpty>
+                                                                        <CommandGroup>
+                                                                            {orders.map(o => (
+                                                                                <CommandItem
+                                                                                    key={o.id}
+                                                                                    value={`${o.order_number ?? ''} ${o.id}`}
+                                                                                    onSelect={() => {
+                                                                                        field.onChange(o.id.toString());
+                                                                                        setOrderPickerOpen(false);
+                                                                                    }}
+                                                                                >
+                                                                                    <Check className={cn('mr-2 size-4 shrink-0', field.value === o.id.toString() ? 'opacity-100' : 'opacity-0')} />
+                                                                                    <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                                                                                        <div className="min-w-0">
+                                                                                            <p className="truncate text-sm font-medium">#{o.order_number || o.id}</p>
+                                                                                            {o.order_date && (
+                                                                                                <p className="text-muted-foreground text-xs">
+                                                                                                    {new Date(o.order_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                                                                </p>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <div className="flex shrink-0 items-center gap-2">
+                                                                                            <span className="num-tabular text-sm">{fmt(o.total_amount)}</span>
+                                                                                            {o.payment_status && (
+                                                                                                <Badge
+                                                                                                    variant="outline"
+                                                                                                    className={cn(
+                                                                                                        'rounded-full text-[10px] capitalize',
+                                                                                                        o.payment_status === 'paid'
+                                                                                                            ? 'border-success/30 bg-success/10 text-success'
+                                                                                                            : 'border-warning/30 bg-warning/10 text-warning-foreground',
+                                                                                                    )}
+                                                                                                >
+                                                                                                    {o.payment_status}
+                                                                                                </Badge>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </CommandItem>
+                                                                            ))}
+                                                                        </CommandGroup>
+                                                                    </CommandList>
+                                                                </Command>
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    );
+                                                }}
                                             />
                                         </div>
                                         <div className="space-y-1.5">
@@ -559,7 +626,7 @@ export default function PaymentsPage() {
                                                 name="currency"
                                                 render={({ field }) => (
                                                     <Select value={field.value} onValueChange={field.onChange}>
-                                                        <SelectTrigger className="h-9">
+                                                        <SelectTrigger className="h-9 w-full">
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -580,7 +647,7 @@ export default function PaymentsPage() {
                                         name="payment_method"
                                         render={({ field }) => (
                                             <Select value={field.value} onValueChange={field.onChange}>
-                                                <SelectTrigger className="h-9">
+                                                <SelectTrigger className="h-9 w-full">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -603,7 +670,7 @@ export default function PaymentsPage() {
                                             name="status"
                                             render={({ field }) => (
                                                 <Select value={field.value} onValueChange={field.onChange}>
-                                                    <SelectTrigger className="h-9">
+                                                    <SelectTrigger className="h-9 w-full">
                                                         <SelectValue placeholder="Select status" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -697,7 +764,7 @@ export default function PaymentsPage() {
                                         name="collected_by"
                                         render={({ field }) => (
                                             <Select value={field.value} onValueChange={field.onChange}>
-                                                <SelectTrigger className="h-9">
+                                                <SelectTrigger className="h-9 w-full">
                                                     <SelectValue placeholder="Select staff…" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -719,7 +786,7 @@ export default function PaymentsPage() {
                                             name="verified_by"
                                             render={({ field }) => (
                                                 <Select value={field.value} onValueChange={field.onChange}>
-                                                    <SelectTrigger className="h-9">
+                                                    <SelectTrigger className="h-9 w-full">
                                                         <SelectValue placeholder="Select verifier…" />
                                                     </SelectTrigger>
                                                     <SelectContent>
