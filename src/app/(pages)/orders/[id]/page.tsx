@@ -30,12 +30,14 @@ import {
     CalendarClock,
     RotateCcw,
     Undo2,
+    Loader2,
+    AlertTriangle,
 } from 'lucide-react';
-import { GetWalkinOrderById, CloseOrder, UpdateOrderStatus } from '@/(api-handlers)/orders_walkinsHandler';
+import { GetWalkinOrderById, CloseOrder, UpdateOrderStatus, ConfirmOrderPayment } from '@/(api-handlers)/orders_walkinsHandler';
 import { GetProductByID } from '@/(api-handlers)/productsHandler';
 import { GetReturns } from '@/(api-handlers)/returnsHandler';
 import { GetReceiptPdfUrl } from '@/(api-handlers)/receiptsHandler';
-import { OrderWalkInsResponse, OrderStatus } from '@/interfaces/orders_walkins';
+import { OrderWalkInsResponse, OrderStatus, PaymentMethod } from '@/interfaces/orders_walkins';
 import { ProductResponse } from '@/interfaces/products';
 import { ReturnResponse } from '@/interfaces/returns';
 import { ReceiptFormat } from '@/interfaces/receipts';
@@ -62,6 +64,11 @@ import {
 import {
     Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
@@ -152,6 +159,9 @@ export default function OrderDetailsPage() {
     const [selectedReturnId, setSelectedReturnId] = useState<number | null>(null);
     const [receiptLoading, setReceiptLoading] = useState<ReceiptFormat | null>(null);
     const [emailReceiptOpen, setEmailReceiptOpen] = useState(false);
+    const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+    const [confirmingPayment, setConfirmingPayment] = useState(false);
 
     const fetchReturns = useCallback(async (orderId: number) => {
         setReturnsLoading(true);
@@ -215,6 +225,25 @@ export default function OrderDetailsPage() {
             handleErrorMessage(error, 'Failed to close order');
         } finally {
             setUpdating(false);
+        }
+    };
+
+    const handleConfirmPayment = async () => {
+        if (!order) return;
+        setConfirmingPayment(true);
+        try {
+            await ConfirmOrderPayment(order.id, {
+                method: paymentMethod,
+                status: 'paid',
+                amount_paid: order.total_amount ?? order.amount_paid ?? 0,
+            });
+            toast.success('Payment confirmed');
+            setPaymentDialogOpen(false);
+            fetchOrderDetails();
+        } catch (error) {
+            handleErrorMessage(error, 'Failed to confirm payment');
+        } finally {
+            setConfirmingPayment(false);
         }
     };
 
@@ -289,10 +318,36 @@ export default function OrderDetailsPage() {
     const PaymentMethodIcon = paymentMethodIcons[order.payment_method] || CreditCard;
     const OrderTypeIcon = orderTypeConfig[order.order_type]?.icon || ShoppingBag;
     const PaymentStatusIcon = paymentStatusConfig[order.payment_status]?.icon || CircleDollarSign;
+    const isWalkIn = order.order_number.startsWith('SALES-');
+    const isPaid = order.payment_status === 'paid';
+    const needsPayment = !isWalkIn && !isPaid;
 
     return (
         <TooltipProvider>
             <div className="flex flex-col gap-6">
+                {needsPayment && (
+                    <Alert className="border-warning/30 bg-warning/5">
+                        <AlertTriangle className="text-warning-foreground" />
+                        <AlertTitle>Payment not yet recorded</AlertTitle>
+                        <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+                            <span>
+                                This order hasn&apos;t been paid for. Record it here, or on the{' '}
+                                <button
+                                    type="button"
+                                    onClick={() => router.push('/payments')}
+                                    className="text-foreground font-medium underline underline-offset-2"
+                                >
+                                    Payments page
+                                </button>.
+                            </span>
+                            <Button size="sm" className="h-8" onClick={() => { setPaymentMethod('cash'); setPaymentDialogOpen(true); }}>
+                                <Wallet className="mr-2 size-3.5" />
+                                Make Payment
+                            </Button>
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 {/* Header */}
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-start gap-4">
@@ -887,6 +942,17 @@ export default function OrderDetailsPage() {
                                         </div>
                                     )}
 
+                                    {!isWalkIn && (
+                                        <Button
+                                            className="w-full bg-white text-neutral-900 hover:bg-white/90 disabled:opacity-70"
+                                            disabled={isPaid}
+                                            onClick={() => { setPaymentMethod('cash'); setPaymentDialogOpen(true); }}
+                                        >
+                                            {isPaid ? <CheckCircle2 className="mr-2 size-4" /> : <Wallet className="mr-2 size-4" />}
+                                            {isPaid ? 'Paid' : 'Make Payment'}
+                                        </Button>
+                                    )}
+
                                     {order.close_at && (
                                         <div className="flex items-center gap-2 rounded-lg bg-white/10 p-3">
                                             <CalendarClock className="text-white/60 size-4" />
@@ -930,6 +996,65 @@ export default function OrderDetailsPage() {
                 open={emailReceiptOpen}
                 onOpenChange={setEmailReceiptOpen}
             />
+
+            <Dialog open={paymentDialogOpen} onOpenChange={open => { if (!open) setPaymentDialogOpen(false); }}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Wallet className="size-5" />
+                            Confirm Payment
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2">
+                        <div className="bg-muted rounded-lg p-4 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Order</span>
+                                <span className="font-bold">#{order.order_number}</span>
+                            </div>
+                            <div className="mt-1 flex justify-between">
+                                <span className="text-muted-foreground">Amount due</span>
+                                <span className="font-bold">
+                                    {fmt(order.total_amount ?? order.amount_paid ?? 0)}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium">Payment method</p>
+                            <ToggleGroup
+                                type="single"
+                                value={paymentMethod}
+                                onValueChange={v => { if (v) setPaymentMethod(v as PaymentMethod); }}
+                                className="grid grid-cols-3 gap-2"
+                            >
+                                {(['cash', 'bank transfer', 'mobile transfer'] as PaymentMethod[]).map(m => (
+                                    <ToggleGroupItem
+                                        key={m}
+                                        value={m}
+                                        className="h-9 rounded-md border text-xs capitalize data-[state=on]:border-primary data-[state=on]:bg-primary/10"
+                                    >
+                                        {m === 'cash' && <Banknote className="mr-1 size-3.5" />}
+                                        {m === 'bank transfer' && <CreditCard className="mr-1 size-3.5" />}
+                                        {m === 'mobile transfer' && <Wallet className="mr-1 size-3.5" />}
+                                        {m}
+                                    </ToggleGroupItem>
+                                ))}
+                            </ToggleGroup>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setPaymentDialogOpen(false)} disabled={confirmingPayment}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleConfirmPayment} disabled={confirmingPayment}>
+                            {confirmingPayment ? <Loader2 className="mr-2 size-4 animate-spin" /> : <CheckCircle2 className="mr-2 size-4" />}
+                            Confirm Payment
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </TooltipProvider>
     );
 }
