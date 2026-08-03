@@ -12,6 +12,8 @@ import {
     Building,
     Building2,
     Calculator,
+    CalendarClock,
+    CalendarDays,
     ChevronRight,
     CircleDollarSign,
     CircleUser,
@@ -27,6 +29,7 @@ import {
     ReceiptText,
     RotateCcw,
     Settings,
+    Settings2,
     ShoppingCart,
     Tag,
     UserPlus,
@@ -185,6 +188,21 @@ const NAV_GROUPS: NavGroup[] = [
             { name: "Payroll Runs", href: "/payroll", icon: Banknote, roles: ["admin"] },
             { name: "Employee Payroll", href: "/payroll/employees", icon: Wallet, roles: ["admin"] },
             { name: "Payroll Settings", href: "/settings/payroll", icon: Calculator, roles: ["admin"] },
+        ],
+    },
+    {
+        label: "Leave & HR",
+        roles: ["admin", "manager", "attendant"],
+        items: [
+            { name: "Leave", href: "/leave", icon: CalendarDays, roles: ["admin", "manager", "attendant"] },
+        ],
+    },
+    {
+        label: "Scheduling",
+        roles: ["admin", "manager", "attendant"],
+        items: [
+            { name: "Shifts & Overtime", href: "/scheduling", icon: CalendarClock, roles: ["admin", "manager", "attendant"] },
+            { name: "Overtime Rules", href: "/settings/scheduling", icon: Settings2, roles: ["admin"] },
         ],
     },
     {
